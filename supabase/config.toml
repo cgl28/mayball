@@ -1,0 +1,12 @@
+project_id = "may-ball-finance"
+
+[db]
+major_version = 15
+
+[db.seed]
+enabled = true
+sql_paths = ["./seed.sql"]
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"
