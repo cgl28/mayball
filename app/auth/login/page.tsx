@@ -1,3 +1,4 @@
+import { BackButton } from "@/components/back-button";
 import { LoginForm } from "@/components/login-form";
 import { sanitizeReturnPath } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
@@ -24,6 +25,9 @@ export default async function Page({
   return (
     <div className="flex min-h-svh w-full items-center justify-center bg-muted/40 p-6 md:p-10">
       <div className="w-full max-w-sm">
+        <div className="mb-4">
+          <BackButton />
+        </div>
         <LoginForm returnTo={returnTo} />
       </div>
     </div>
