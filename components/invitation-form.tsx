@@ -1,0 +1,105 @@
+"use client";
+
+import { useActionState } from "react";
+import { issueInvitationAction, type InvitationState } from "@/app/events/actions";
+import { SubmitButton } from "@/components/submit-button";
+import type { Department } from "@/lib/events/governance";
+import type { EventRole } from "@/lib/events/access";
+
+const INITIAL_STATE: InvitationState = { ok: false, message: "" };
+
+const ROLE_OPTIONS: { value: EventRole; label: string }[] = [
+  { value: "committee_member", label: "Committee member" },
+  { value: "president", label: "President" },
+  { value: "treasurer", label: "Treasurer" },
+  { value: "read_only", label: "Read-only" },
+];
+
+export function InvitationForm({
+  eventId,
+  departments,
+}: {
+  eventId: string;
+  departments: Department[];
+}) {
+  const [state, action] = useActionState(issueInvitationAction, INITIAL_STATE);
+
+  return (
+    <form action={action} className="grid gap-4 rounded-md border p-4">
+      <input type="hidden" name="eventId" value={eventId} />
+      <label className="grid gap-1 text-sm">
+        <span className="font-medium">Email address</span>
+        <input
+          name="email"
+          type="email"
+          required
+          className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        />
+      </label>
+      <fieldset className="grid gap-2">
+        <legend className="text-sm font-medium">Intended roles</legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {ROLE_OPTIONS.map((role) => (
+            <label key={role.value} className="flex items-center gap-2 text-sm">
+              <input
+                name="roles"
+                type="checkbox"
+                value={role.value}
+                defaultChecked={role.value === "committee_member"}
+                className="h-4 w-4"
+              />
+              {role.label}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      {departments.length > 0 ? (
+        <fieldset className="grid gap-2">
+          <legend className="text-sm font-medium">Initial departments</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {departments.map((department) => (
+              <label key={department.id} className="flex items-center gap-2 text-sm">
+                <input
+                  name="departments"
+                  type="checkbox"
+                  value={department.id}
+                  className="h-4 w-4"
+                />
+                {department.name}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
+      <label className="grid gap-1 text-sm sm:max-w-40">
+        <span className="font-medium">Expiry days</span>
+        <input
+          name="expiresInDays"
+          type="number"
+          min="1"
+          max="90"
+          defaultValue="14"
+          className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        />
+      </label>
+      <SubmitButton pendingLabel="Creating invitation...">Create invitation</SubmitButton>
+      {state.message ? (
+        <div
+          role={state.ok ? "status" : "alert"}
+          className={
+            state.ok
+              ? "rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-950"
+              : "rounded-md border border-destructive/40 p-3 text-sm text-destructive"
+          }
+        >
+          <p>{state.message}</p>
+          {state.token ? (
+            <p className="mt-2 break-all font-mono text-xs">
+              Development acceptance link: /invitations/{state.token}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+    </form>
+  );
+}

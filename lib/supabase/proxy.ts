@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
+import { getPublicEnv, hasPublicEnv } from "@/lib/env";
+import { sanitizeReturnPath } from "@/lib/routes";
 import { NextResponse, type NextRequest } from "next/server";
-import { hasEnvVars } from "../utils";
+import type { Database } from "@/src/types/database.generated";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -9,15 +11,16 @@ export async function updateSession(request: NextRequest) {
 
   // If the env vars are not set, skip proxy check. You can remove this
   // once you setup the project.
-  if (!hasEnvVars) {
+  if (!hasPublicEnv) {
     return supabaseResponse;
   }
+  const { supabaseUrl, supabasePublishableKey } = getPublicEnv();
 
   // With Fluid compute, don't put this client in a global environment
   // variable. Always create a new one on each request.
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+  const supabase = createServerClient<Database>(
+    supabaseUrl,
+    supabasePublishableKey,
     {
       cookies: {
         getAll() {
@@ -39,23 +42,22 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Do not run code between createServerClient and
-  // supabase.auth.getClaims(). A simple mistake could make it very hard to debug
+  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // IMPORTANT: If you remove getClaims() and you use server-side rendering
-  // with the Supabase client, your users may be randomly logged out.
-  const { data } = await supabase.auth.getClaims();
-  const user = data?.claims;
+  const isProtectedPath =
+    request.nextUrl.pathname.startsWith("/events") ||
+    request.nextUrl.pathname.startsWith("/invitations");
 
-  if (
-    request.nextUrl.pathname !== "/" &&
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
+  if (isProtectedPath && !user && !request.nextUrl.pathname.startsWith("/auth")) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
+    url.search = `?returnTo=${encodeURIComponent(
+      sanitizeReturnPath(`${request.nextUrl.pathname}${request.nextUrl.search}`),
+    )}`;
     return NextResponse.redirect(url);
   }
 

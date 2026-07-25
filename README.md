@@ -1,3 +1,46 @@
+# May Ball Finance
+
+May Ball Finance is a collaborative budgeting and expenditure-control application for Cambridge May Balls and similar recurring events.
+
+## Stage 1 Local Run
+
+Start local Supabase, reset the database, and run the app:
+
+```bash
+npx supabase start
+npx supabase db reset
+npm run dev
+```
+
+Generate database types after schema changes:
+
+```bash
+npx supabase gen types typescript --local > src/types/database.generated.ts
+```
+
+Run verification:
+
+```bash
+npx supabase test db
+npx tsc --noEmit
+npm run lint
+npm test
+npm run build
+```
+
+Local authentication setup and seed users are documented in `docs/STAGE_1_LOCAL_AUTH.md`.
+Stage 2 setup, roles, departments and invitation behaviour are documented in `docs/STAGE_2_SETUP_ADMIN.md`.
+Stage 3 budget and contingency behaviour is documented in `docs/STAGE_3_BUDGET_CONTINGENCY.md`.
+Stage 4 revenue forecasts and cumulative ticket snapshots are documented in `docs/STAGE_4_REVENUE.md`.
+Stage 5 spending request drafts and submission behaviour is documented in `docs/STAGE_5_SPENDING_REQUEST_DRAFTS.md`.
+Stage 6 treasurer approval, requested changes and variation behaviour is documented in `docs/STAGE_6_TREASURER_APPROVAL.md`.
+Stage 7 payments and payment-derived completion behaviour is documented in `docs/STAGE_7_PAYMENTS.md`.
+Stage 8 event financial dashboard behaviour is documented in `docs/STAGE_8_DASHBOARD.md`.
+Stage 9 event lifecycle and historical access behaviour is documented in `docs/STAGE_9_EVENT_LIFECYCLE.md`.
+Stage 10 document, activity and CSV export behaviour is documented in `docs/STAGE_10_DOCUMENTS_EXPORTS.md`.
+
+---
+
 <a href="https://demo-nextjs-with-supabase.vercel.app/">
   <img alt="Next.js and Supabase Starter Kit - the fastest way to build apps with Next.js and Supabase" src="https://demo-nextjs-with-supabase.vercel.app/opengraph-image.png">
   <h1 align="center">Next.js and Supabase Starter Kit</h1>
