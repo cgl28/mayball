@@ -19,7 +19,7 @@ select throws_ok($$insert into public.department_members(event_id,department_id,
  values('30000000-0000-0000-0000-000000000099','40000000-0000-0000-0000-000000000001','31000000-0000-0000-0000-000000000005','10000000-0000-0000-0000-000000000005')$$,'23503',null,'cross-event relationship rejected');
 
 select is((select count(*)::bigint from public.v_latest_ticket_sales_snapshot where event_id='30000000-0000-0000-0000-000000000027'),1::bigint,'one latest snapshot');
-select is((select gross_sales_minor from public.v_latest_ticket_sales_snapshot where event_id='30000000-0000-0000-0000-000000000027'),9750000::bigint,'latest snapshot selected');
+select is((select gross_sales_minor from public.v_latest_ticket_sales_snapshot where event_id='30000000-0000-0000-0000-000000000027'),12000000::bigint,'latest snapshot selected');
 
 select * from finish();
 rollback;

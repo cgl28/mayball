@@ -1,0 +1,125 @@
+"use server";
+
+import { randomUUID } from "node:crypto";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import type { Enums } from "@/src/types/database.generated";
+import { parseMoneyToMinor } from "@/lib/money";
+import { createClient } from "@/lib/supabase/server";
+
+type PaymentMethod = Enums<"payment_method">;
+
+const paymentMethods: PaymentMethod[] = ["bank_transfer", "card", "cash", "direct_debit", "other"];
+
+function clean(value: FormDataEntryValue | null) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function optional(value: FormDataEntryValue | null) {
+  const text = clean(value);
+  return text || undefined;
+}
+
+function isFrameworkRedirect(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    typeof (error as { digest?: unknown }).digest === "string" &&
+    (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+  );
+}
+
+function safeMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    if (/authorised|payment|allocation|component|approved|gross|VAT|net|payee|date|duplicate|reconcile|amount|required|below/i.test(error.message)) {
+      return error.message;
+    }
+  }
+  return "Payment action could not be completed.";
+}
+
+async function rpcClient(returnTo: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect(`/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
+  return supabase;
+}
+
+function allocationRows(formData: FormData) {
+  const componentIds = formData.getAll("componentId").map(String);
+  return componentIds.flatMap((componentId) => {
+    const selected = clean(formData.get(`selected_${componentId}`)) === "on";
+    const grossText = clean(formData.get(`gross_${componentId}`));
+    if (!selected && !grossText) return [];
+    if (!selected) throw new Error("Select each component that has an allocation amount.");
+    const gross = parseMoneyToMinor(grossText);
+    if (gross <= 0) throw new Error("Allocation amounts must be greater than zero.");
+    return [{ component_id: componentId, gross_minor: gross }];
+  });
+}
+
+export async function recordPaymentAction(formData: FormData) {
+  const eventId = clean(formData.get("eventId"));
+  const requestId = optional(formData.get("requestId"));
+  const returnPath = requestId
+    ? `/events/${eventId}/requests/${requestId}/payments/new`
+    : `/events/${eventId}/payments/new`;
+  const supabase = await rpcClient(returnPath);
+
+  try {
+    const method = clean(formData.get("method")) as PaymentMethod;
+    if (!paymentMethods.includes(method)) throw new Error("Choose a valid payment method.");
+    const allocations = allocationRows(formData);
+    const gross = parseMoneyToMinor(clean(formData.get("gross")));
+    const allocationTotal = allocations.reduce((total, item) => total + item.gross_minor, 0);
+    if (allocations.length === 0) throw new Error("Choose at least one approved component to pay.");
+    if (allocationTotal !== gross) throw new Error("Allocation totals must equal the payment gross amount.");
+
+    const { data, error } = await supabase.rpc("record_component_payment", {
+      p_event_id: eventId,
+      p_payment_date: clean(formData.get("paymentDate")),
+      p_payee: clean(formData.get("payee")),
+      p_gross_minor: gross,
+      p_bank_reference: clean(formData.get("bankReference")),
+      p_method: method,
+      p_note: clean(formData.get("note")),
+      p_allocations: allocations,
+      p_idempotency_key: clean(formData.get("idempotencyKey")) || randomUUID(),
+    });
+    if (error) throw error;
+
+    revalidatePath(`/events/${eventId}/payments`);
+    revalidatePath(`/events/${eventId}/requests`);
+    if (requestId) revalidatePath(`/events/${eventId}/requests/${requestId}`);
+    redirect(`/events/${eventId}/payments/${data}?recorded=1`);
+  } catch (error) {
+    if (isFrameworkRedirect(error)) throw error;
+    redirect(`${returnPath}?error=${encodeURIComponent(safeMessage(error))}`);
+  }
+}
+
+export async function reversePaymentAction(formData: FormData) {
+  const eventId = clean(formData.get("eventId"));
+  const paymentId = clean(formData.get("paymentId"));
+  const returnPath = `/events/${eventId}/payments/${paymentId}`;
+  const supabase = await rpcClient(returnPath);
+
+  try {
+    const reason = clean(formData.get("reason"));
+    if (!reason) throw new Error("A reversal reason is required.");
+    const { error } = await supabase.rpc("reverse_payment", {
+      p_payment_id: paymentId,
+      p_reason: reason,
+    });
+    if (error) throw error;
+    revalidatePath(`/events/${eventId}/payments`);
+    revalidatePath(`/events/${eventId}/requests`);
+    redirect(`${returnPath}?reversed=1`);
+  } catch (error) {
+    if (isFrameworkRedirect(error)) throw error;
+    redirect(`${returnPath}?error=${encodeURIComponent(safeMessage(error))}`);
+  }
+}

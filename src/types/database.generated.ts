@@ -86,6 +86,48 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
         ]
       }
       budget_transfers: {
@@ -144,8 +186,36 @@ export type Database = {
             referencedColumns: ["event_id", "id"]
           },
           {
+            foreignKeyName: "budget_transfers_event_id_budget_version_id_fkey"
+            columns: ["event_id", "budget_version_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_budget_summaries"
+            referencedColumns: ["event_id", "budget_version_id"]
+          },
+          {
+            foreignKeyName: "budget_transfers_event_id_budget_version_id_fkey"
+            columns: ["event_id", "budget_version_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_version_summaries"
+            referencedColumns: ["event_id", "budget_version_id"]
+          },
+          {
             foreignKeyName: "budget_transfers_event_id_from_department_id_fkey"
             columns: ["event_id", "from_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "budget_transfers_event_id_from_department_id_fkey"
+            columns: ["event_id", "from_department_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_department_financial_positions"
+            referencedColumns: ["event_id", "department_id"]
+          },
+          {
+            foreignKeyName: "budget_transfers_event_id_to_department_id_fkey"
+            columns: ["event_id", "to_department_id"]
             isOneToOne: false
             referencedRelation: "departments"
             referencedColumns: ["event_id", "id"]
@@ -154,8 +224,8 @@ export type Database = {
             foreignKeyName: "budget_transfers_event_id_to_department_id_fkey"
             columns: ["event_id", "to_department_id"]
             isOneToOne: false
-            referencedRelation: "departments"
-            referencedColumns: ["event_id", "id"]
+            referencedRelation: "v_event_department_financial_positions"
+            referencedColumns: ["event_id", "department_id"]
           },
           {
             foreignKeyName: "budget_transfers_reverses_transfer_id_fkey"
@@ -234,6 +304,48 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
         ]
       }
       department_budget_allocations: {
@@ -276,11 +388,32 @@ export type Database = {
             referencedColumns: ["event_id", "id"]
           },
           {
+            foreignKeyName: "department_budget_allocations_event_id_budget_version_id_fkey"
+            columns: ["event_id", "budget_version_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_budget_summaries"
+            referencedColumns: ["event_id", "budget_version_id"]
+          },
+          {
+            foreignKeyName: "department_budget_allocations_event_id_budget_version_id_fkey"
+            columns: ["event_id", "budget_version_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_version_summaries"
+            referencedColumns: ["event_id", "budget_version_id"]
+          },
+          {
             foreignKeyName: "department_budget_allocations_event_id_department_id_fkey"
             columns: ["event_id", "department_id"]
             isOneToOne: false
             referencedRelation: "departments"
             referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "department_budget_allocations_event_id_department_id_fkey"
+            columns: ["event_id", "department_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_department_financial_positions"
+            referencedColumns: ["event_id", "department_id"]
           },
         ]
       }
@@ -322,6 +455,13 @@ export type Database = {
             referencedColumns: ["event_id", "id"]
           },
           {
+            foreignKeyName: "department_members_event_id_department_id_fkey"
+            columns: ["event_id", "department_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_department_financial_positions"
+            referencedColumns: ["event_id", "department_id"]
+          },
+          {
             foreignKeyName: "department_members_event_id_event_member_id_fkey"
             columns: ["event_id", "event_member_id"]
             isOneToOne: false
@@ -356,6 +496,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "departments"
             referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "department_reference_counters_event_id_department_id_fkey"
+            columns: ["event_id", "department_id"]
+            isOneToOne: true
+            referencedRelation: "v_event_department_financial_positions"
+            referencedColumns: ["event_id", "department_id"]
           },
         ]
       }
@@ -414,6 +561,48 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "departments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "departments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "departments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "departments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "departments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "departments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
         ]
       }
       documents: {
@@ -421,49 +610,70 @@ export type Database = {
           bucket_id: string
           category: Database["public"]["Enums"]["document_category"]
           created_at: string
+          description: string | null
           event_id: string
+          finalized_at: string | null
           id: string
           mime_type: string
           object_path: string
           original_filename: string
           payment_id: string | null
+          replaced_by_document_id: string | null
           request_id: string | null
           revision_id: string | null
           sha256: string | null
           size_bytes: number
+          status: Database["public"]["Enums"]["document_upload_status"]
           uploaded_by: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
           bucket_id?: string
           category: Database["public"]["Enums"]["document_category"]
           created_at?: string
+          description?: string | null
           event_id: string
+          finalized_at?: string | null
           id?: string
           mime_type: string
           object_path: string
           original_filename: string
           payment_id?: string | null
+          replaced_by_document_id?: string | null
           request_id?: string | null
           revision_id?: string | null
           sha256?: string | null
           size_bytes: number
+          status?: Database["public"]["Enums"]["document_upload_status"]
           uploaded_by: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
           bucket_id?: string
           category?: Database["public"]["Enums"]["document_category"]
           created_at?: string
+          description?: string | null
           event_id?: string
+          finalized_at?: string | null
           id?: string
           mime_type?: string
           object_path?: string
           original_filename?: string
           payment_id?: string | null
+          replaced_by_document_id?: string | null
           request_id?: string | null
           revision_id?: string | null
           sha256?: string | null
           size_bytes?: number
+          status?: Database["public"]["Enums"]["document_upload_status"]
           uploaded_by?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
@@ -474,11 +684,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
             foreignKeyName: "documents_event_id_payment_id_fkey"
             columns: ["event_id", "payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
             referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_payment_id_fkey"
+            columns: ["event_id", "payment_id"]
+            isOneToOne: false
+            referencedRelation: "v_payment_details"
+            referencedColumns: ["event_id", "payment_id"]
           },
           {
             foreignKeyName: "documents_event_id_request_id_fkey"
@@ -491,7 +750,49 @@ export type Database = {
             foreignKeyName: "documents_event_id_request_id_fkey"
             columns: ["event_id", "request_id"]
             isOneToOne: false
+            referencedRelation: "v_approval_queue"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_dashboard_pending_approvals"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_component_payment_positions"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_department_impacts"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
             referencedRelation: "v_request_payment_positions"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_revision_history"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_spending_request_current_revisions"
             referencedColumns: ["event_id", "request_id"]
           },
           {
@@ -502,11 +803,128 @@ export type Database = {
             referencedColumns: ["event_id", "id"]
           },
           {
+            foreignKeyName: "documents_replaced_by_document_id_fkey"
+            columns: ["replaced_by_document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_replaced_by_document_id_fkey"
+            columns: ["replaced_by_document_id"]
+            isOneToOne: false
+            referencedRelation: "v_visible_documents"
+            referencedColumns: ["document_id"]
+          },
+          {
             foreignKeyName: "documents_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_lifecycle_history: {
+        Row: {
+          acknowledged_warnings: Json
+          action: string
+          actor_user_id: string
+          created_at: string
+          event_id: string
+          id: string
+          metadata: Json
+          new_status: Database["public"]["Enums"]["event_status"]
+          previous_status: Database["public"]["Enums"]["event_status"]
+          reason: string | null
+        }
+        Insert: {
+          acknowledged_warnings?: Json
+          action: string
+          actor_user_id: string
+          created_at?: string
+          event_id: string
+          id?: string
+          metadata?: Json
+          new_status: Database["public"]["Enums"]["event_status"]
+          previous_status: Database["public"]["Enums"]["event_status"]
+          reason?: string | null
+        }
+        Update: {
+          acknowledged_warnings?: Json
+          action?: string
+          actor_user_id?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          metadata?: Json
+          new_status?: Database["public"]["Enums"]["event_status"]
+          previous_status?: Database["public"]["Enums"]["event_status"]
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_lifecycle_history_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_lifecycle_history_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_lifecycle_history_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_lifecycle_history_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_lifecycle_history_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_lifecycle_history_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_lifecycle_history_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_lifecycle_history_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
           },
         ]
       }
@@ -592,6 +1010,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "event_members_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_members_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_members_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_members_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_members_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_members_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
             foreignKeyName: "event_members_invited_by_fkey"
             columns: ["invited_by"]
             isOneToOne: false
@@ -631,13 +1091,59 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "event_reference_counters_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_reference_counters_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_reference_counters_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_reference_counters_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_reference_counters_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "event_reference_counters_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
         ]
       }
       events: {
         Row: {
+          archive_reason: string | null
           archived_at: string | null
+          archived_by: string | null
           code: string
           completed_at: string | null
+          completed_by: string | null
+          completion_note: string | null
           created_at: string
           created_by: string
           currency: string
@@ -649,14 +1155,20 @@ export type Database = {
           name: string
           organisation_id: string
           planning_start_date: string | null
+          reopen_reason: string | null
           reopened_at: string | null
+          reopened_by: string | null
           status: Database["public"]["Enums"]["event_status"]
           updated_at: string
         }
         Insert: {
+          archive_reason?: string | null
           archived_at?: string | null
+          archived_by?: string | null
           code: string
           completed_at?: string | null
+          completed_by?: string | null
+          completion_note?: string | null
           created_at?: string
           created_by: string
           currency?: string
@@ -668,14 +1180,20 @@ export type Database = {
           name: string
           organisation_id: string
           planning_start_date?: string | null
+          reopen_reason?: string | null
           reopened_at?: string | null
+          reopened_by?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           updated_at?: string
         }
         Update: {
+          archive_reason?: string | null
           archived_at?: string | null
+          archived_by?: string | null
           code?: string
           completed_at?: string | null
+          completed_by?: string | null
+          completion_note?: string | null
           created_at?: string
           created_by?: string
           currency?: string
@@ -687,11 +1205,27 @@ export type Database = {
           name?: string
           organisation_id?: string
           planning_start_date?: string | null
+          reopen_reason?: string | null
           reopened_at?: string | null
+          reopened_by?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "events_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "events_created_by_fkey"
             columns: ["created_by"]
@@ -704,6 +1238,13 @@ export type Database = {
             columns: ["organisation_id"]
             isOneToOne: false
             referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_reopened_by_fkey"
+            columns: ["reopened_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -731,6 +1272,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departments"
             referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "invitation_departments_event_id_department_id_fkey"
+            columns: ["event_id", "department_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_department_financial_positions"
+            referencedColumns: ["event_id", "department_id"]
+          },
+          {
+            foreignKeyName: "invitation_departments_invitation_event_fk"
+            columns: ["invitation_id", "event_id"]
+            isOneToOne: false
+            referencedRelation: "invitations"
+            referencedColumns: ["id", "event_id"]
           },
           {
             foreignKeyName: "invitation_departments_invitation_id_fkey"
@@ -826,6 +1381,13 @@ export type Database = {
             referencedColumns: ["id", "organisation_id"]
           },
           {
+            foreignKeyName: "invitations_event_id_organisation_id_fkey"
+            columns: ["event_id", "organisation_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id", "organisation_id"]
+          },
+          {
             foreignKeyName: "invitations_invited_by_fkey"
             columns: ["invited_by"]
             isOneToOne: false
@@ -878,6 +1440,48 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "notifications_user_id_fkey"
@@ -1060,6 +1664,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "other_revenue_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "other_revenue_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "other_revenue_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "other_revenue_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "other_revenue_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "other_revenue_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
             foreignKeyName: "other_revenue_items_owner_user_id_fkey"
             columns: ["owner_user_id"]
             isOneToOne: false
@@ -1111,6 +1757,13 @@ export type Database = {
             referencedColumns: ["event_id", "id"]
           },
           {
+            foreignKeyName: "payment_allocations_event_id_payment_id_fkey"
+            columns: ["event_id", "payment_id"]
+            isOneToOne: false
+            referencedRelation: "v_payment_details"
+            referencedColumns: ["event_id", "payment_id"]
+          },
+          {
             foreignKeyName: "payment_allocations_event_id_request_component_id_fkey"
             columns: ["event_id", "request_component_id"]
             isOneToOne: false
@@ -1128,7 +1781,49 @@ export type Database = {
             foreignKeyName: "payment_allocations_event_id_request_id_fkey"
             columns: ["event_id", "request_id"]
             isOneToOne: false
+            referencedRelation: "v_approval_queue"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_dashboard_pending_approvals"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_component_payment_positions"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_department_impacts"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
             referencedRelation: "v_request_payment_positions"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_revision_history"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_spending_request_current_revisions"
             referencedColumns: ["event_id", "request_id"]
           },
         ]
@@ -1142,6 +1837,7 @@ export type Database = {
           event_id: string
           gross_minor: number
           id: string
+          idempotency_key: string | null
           method: Database["public"]["Enums"]["payment_method"]
           net_minor: number | null
           note: string | null
@@ -1161,6 +1857,7 @@ export type Database = {
           event_id: string
           gross_minor: number
           id?: string
+          idempotency_key?: string | null
           method?: Database["public"]["Enums"]["payment_method"]
           net_minor?: number | null
           note?: string | null
@@ -1180,6 +1877,7 @@ export type Database = {
           event_id?: string
           gross_minor?: number
           id?: string
+          idempotency_key?: string | null
           method?: Database["public"]["Enums"]["payment_method"]
           net_minor?: number | null
           note?: string | null
@@ -1205,6 +1903,48 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
           },
           {
             foreignKeyName: "payments_reversed_by_fkey"
@@ -1392,6 +2132,13 @@ export type Database = {
             referencedColumns: ["event_id", "id"]
           },
           {
+            foreignKeyName: "spending_request_department_allocat_event_id_department_id_fkey"
+            columns: ["event_id", "department_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_department_financial_positions"
+            referencedColumns: ["event_id", "department_id"]
+          },
+          {
             foreignKeyName: "spending_request_department_allocatio_event_id_revision_id_fkey"
             columns: ["event_id", "revision_id"]
             isOneToOne: false
@@ -1498,7 +2245,49 @@ export type Database = {
             foreignKeyName: "spending_request_revisions_event_id_request_id_fkey"
             columns: ["event_id", "request_id"]
             isOneToOne: false
+            referencedRelation: "v_approval_queue"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "spending_request_revisions_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_dashboard_pending_approvals"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "spending_request_revisions_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_component_payment_positions"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "spending_request_revisions_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_department_impacts"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "spending_request_revisions_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
             referencedRelation: "v_request_payment_positions"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "spending_request_revisions_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_revision_history"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "spending_request_revisions_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_spending_request_current_revisions"
             referencedColumns: ["event_id", "request_id"]
           },
         ]
@@ -1585,11 +2374,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
             foreignKeyName: "spending_requests_event_id_primary_department_id_fkey"
             columns: ["event_id", "primary_department_id"]
             isOneToOne: false
             referencedRelation: "departments"
             referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_primary_department_id_fkey"
+            columns: ["event_id", "primary_department_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_department_financial_positions"
+            referencedColumns: ["event_id", "department_id"]
           },
           {
             foreignKeyName: "spending_requests_owner_user_id_fkey"
@@ -1674,6 +2512,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
             foreignKeyName: "ticket_sales_snapshots_voided_by_fkey"
             columns: ["voided_by"]
             isOneToOne: false
@@ -1726,11 +2606,25 @@ export type Database = {
             referencedColumns: ["event_id", "id"]
           },
           {
+            foreignKeyName: "ticket_type_sales_snapshots_event_id_snapshot_id_fkey"
+            columns: ["event_id", "snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "v_ticket_actual_summaries"
+            referencedColumns: ["event_id", "latest_snapshot_id"]
+          },
+          {
             foreignKeyName: "ticket_type_sales_snapshots_event_id_ticket_type_id_fkey"
             columns: ["event_id", "ticket_type_id"]
             isOneToOne: false
             referencedRelation: "ticket_types"
             referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "ticket_type_sales_snapshots_event_id_ticket_type_id_fkey"
+            columns: ["event_id", "ticket_type_id"]
+            isOneToOne: false
+            referencedRelation: "v_ticket_type_forecast_positions"
+            referencedColumns: ["event_id", "ticket_type_id"]
           },
         ]
       }
@@ -1807,10 +2701,999 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
         ]
       }
     }
     Views: {
+      v_active_budget_department_positions: {
+        Row: {
+          budget_version_id: string | null
+          current_budget_minor: number | null
+          department_code: string | null
+          department_id: string | null
+          department_name: string | null
+          event_id: string | null
+          original_allocation_minor: number | null
+          transfers_received_minor: number | null
+          transfers_released_minor: number | null
+          version_number: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_budget_allocations_event_id_budget_version_id_fkey"
+            columns: ["event_id", "budget_version_id"]
+            isOneToOne: false
+            referencedRelation: "budget_versions"
+            referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "department_budget_allocations_event_id_budget_version_id_fkey"
+            columns: ["event_id", "budget_version_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_budget_summaries"
+            referencedColumns: ["event_id", "budget_version_id"]
+          },
+          {
+            foreignKeyName: "department_budget_allocations_event_id_budget_version_id_fkey"
+            columns: ["event_id", "budget_version_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_version_summaries"
+            referencedColumns: ["event_id", "budget_version_id"]
+          },
+        ]
+      }
+      v_active_budget_summaries: {
+        Row: {
+          budget_version_id: string | null
+          effective_date: string | null
+          event_id: string | null
+          name: string | null
+          original_contingency_minor: number | null
+          status: Database["public"]["Enums"]["budget_version_status"] | null
+          total_cost_budget_minor: number | null
+          total_department_original_minor: number | null
+          unallocated_contingency_minor: number | null
+          version_number: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      v_approval_queue: {
+        Row: {
+          approval_status:
+            | Database["public"]["Enums"]["request_approval_status"]
+            | null
+          can_decide: boolean | null
+          code: string | null
+          event_id: string | null
+          gross_minor: number | null
+          net_minor: number | null
+          owner_display_name: string | null
+          owner_preferred_name: string | null
+          owner_user_id: string | null
+          primary_department_code: string | null
+          primary_department_id: string | null
+          primary_department_name: string | null
+          request_id: string | null
+          request_type: string | null
+          revision_id: string | null
+          revision_number: number | null
+          submitted_at: string | null
+          supplier_name: string | null
+          title: string | null
+          vat_minor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_primary_department_id_fkey"
+            columns: ["event_id", "primary_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_primary_department_id_fkey"
+            columns: ["event_id", "primary_department_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_department_financial_positions"
+            referencedColumns: ["event_id", "department_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_budget_version_summaries: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          budget_version_id: string | null
+          created_at: string | null
+          created_by: string | null
+          effective_date: string | null
+          event_id: string | null
+          name: string | null
+          notes: string | null
+          original_contingency_minor: number | null
+          status: Database["public"]["Enums"]["budget_version_status"] | null
+          total_cost_budget_minor: number | null
+          total_department_original_minor: number | null
+          updated_at: string | null
+          version_number: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_versions_activated_by_fkey"
+            columns: ["activated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "budget_versions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      v_department_spending_positions: {
+        Row: {
+          approved_gross_minor: number | null
+          approved_net_minor: number | null
+          budget_version_id: string | null
+          current_budget_minor: number | null
+          department_code: string | null
+          department_id: string | null
+          department_name: string | null
+          event_id: string | null
+          pending_gross_minor: number | null
+          pending_net_minor: number | null
+          potential_remaining_minor: number | null
+          remaining_approved_minor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_budget_allocations_event_id_budget_version_id_fkey"
+            columns: ["event_id", "budget_version_id"]
+            isOneToOne: false
+            referencedRelation: "budget_versions"
+            referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "department_budget_allocations_event_id_budget_version_id_fkey"
+            columns: ["event_id", "budget_version_id"]
+            isOneToOne: false
+            referencedRelation: "v_active_budget_summaries"
+            referencedColumns: ["event_id", "budget_version_id"]
+          },
+          {
+            foreignKeyName: "department_budget_allocations_event_id_budget_version_id_fkey"
+            columns: ["event_id", "budget_version_id"]
+            isOneToOne: false
+            referencedRelation: "v_budget_version_summaries"
+            referencedColumns: ["event_id", "budget_version_id"]
+          },
+        ]
+      }
+      v_event_activity_feed: {
+        Row: {
+          action: string | null
+          activity_id: number | null
+          actor_display_name: string | null
+          actor_preferred_name: string | null
+          actor_user_id: string | null
+          category: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_id: string | null
+          summary: string | null
+          visibility: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      v_event_approval_context: {
+        Row: {
+          approved_net_spending_minor: number | null
+          event_id: string | null
+          forecast_net_revenue_minor: number | null
+          formal_net_position_minor: number | null
+          pending_net_spending_minor: number | null
+          potential_net_position_minor: number | null
+          total_cost_budget_minor: number | null
+          unallocated_contingency_minor: number | null
+        }
+        Relationships: []
+      }
+      v_event_dashboard_activity: {
+        Row: {
+          action: string | null
+          activity_id: number | null
+          actor_display_name: string | null
+          actor_user_id: string | null
+          created_at: string | null
+          entity_id: string | null
+          entity_type: string | null
+          event_id: string | null
+          summary: string | null
+          visibility: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "activity_log_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      v_event_dashboard_draft_exposures: {
+        Row: {
+          draft_scope: string | null
+          event_id: string | null
+          visible_draft_gross_minor: number | null
+          visible_draft_net_minor: number | null
+          visible_draft_request_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      v_event_dashboard_pending_approvals: {
+        Row: {
+          budget_warning: boolean | null
+          event_id: string | null
+          gross_minor: number | null
+          net_minor: number | null
+          owner_display_name: string | null
+          owner_preferred_name: string | null
+          primary_department_code: string | null
+          primary_department_id: string | null
+          primary_department_name: string | null
+          request_code: string | null
+          request_id: string | null
+          request_type: string | null
+          revision_id: string | null
+          submitted_at: string | null
+          title: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_primary_department_id_fkey"
+            columns: ["event_id", "primary_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_primary_department_id_fkey"
+            columns: ["event_id", "primary_department_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_department_financial_positions"
+            referencedColumns: ["event_id", "department_id"]
+          },
+        ]
+      }
+      v_event_dashboard_warnings: {
+        Row: {
+          code: string | null
+          event_id: string | null
+          message: string | null
+          severity: string | null
+          target_module: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
+      v_event_department_draft_exposures: {
+        Row: {
+          department_id: string | null
+          event_id: string | null
+          visible_draft_gross_minor: number | null
+          visible_draft_net_minor: number | null
+          visible_draft_request_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      v_event_department_financial_positions: {
+        Row: {
+          active_budget_version_number: number | null
+          approved_gross_minor: number | null
+          approved_net_minor: number | null
+          approved_over_budget: boolean | null
+          budget_version_id: string | null
+          current_budget_minor: number | null
+          department_code: string | null
+          department_id: string | null
+          department_name: string | null
+          display_order: number | null
+          event_id: string | null
+          has_active_allocation: boolean | null
+          original_allocation_minor: number | null
+          pending_gross_minor: number | null
+          pending_net_minor: number | null
+          potential_over_budget: boolean | null
+          potential_remaining_minor: number | null
+          remaining_approved_minor: number | null
+          transfers_received_minor: number | null
+          transfers_released_minor: number | null
+          visible_draft_gross_minor: number | null
+          visible_draft_net_minor: number | null
+          visible_draft_request_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "departments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "departments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "departments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "departments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "departments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      v_event_financial_positions: {
+        Row: {
+          active_budget_effective_date: string | null
+          active_budget_name: string | null
+          active_budget_version_id: string | null
+          active_budget_version_number: number | null
+          active_ticket_type_count: number | null
+          approved_gross_spending_minor: number | null
+          approved_net_spending_minor: number | null
+          approved_payable_gross_minor: number | null
+          approved_request_count: number | null
+          draft_scope: string | null
+          event_date: string | null
+          event_id: string | null
+          event_name: string | null
+          event_status: Database["public"]["Enums"]["event_status"] | null
+          event_year: number | null
+          formal_forecast_net_position_minor: number | null
+          has_active_budget: boolean | null
+          latest_captured_at: string | null
+          latest_snapshot_id: string | null
+          organisation_id: string | null
+          original_contingency_minor: number | null
+          other_actual_gross_minor: number | null
+          other_actual_net_minor: number | null
+          other_forecast_gross_minor: number | null
+          other_forecast_net_minor: number | null
+          paid_gross_spending_minor: number | null
+          paid_request_count: number | null
+          partially_paid_request_count: number | null
+          pending_gross_spending_minor: number | null
+          pending_net_position_delta_minor: number | null
+          pending_net_spending_minor: number | null
+          pending_request_count: number | null
+          potential_forecast_net_position_minor: number | null
+          recorded_gross_cash_movement_minor: number | null
+          recorded_payment_count: number | null
+          recorded_payment_gross_minor: number | null
+          reversed_payment_count: number | null
+          reversed_payment_gross_minor: number | null
+          ticket_actual_gross_minor: number | null
+          ticket_actual_net_minor: number | null
+          ticket_booking_fees_to_date_minor: number | null
+          ticket_forecast_gross_minor: number | null
+          ticket_forecast_net_minor: number | null
+          ticket_refunds_to_date_minor: number | null
+          tickets_sold_to_date: number | null
+          total_actual_gross_minor: number | null
+          total_current_department_budget_minor: number | null
+          total_forecast_gross_minor: number | null
+          total_forecast_net_minor: number | null
+          unallocated_contingency_minor: number | null
+          unpaid_approved_gross_minor: number | null
+          unpaid_request_count: number | null
+          visible_draft_gross_minor: number | null
+          visible_draft_net_minor: number | null
+          visible_draft_request_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_event_lifecycle_summary: {
+        Row: {
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
+          archived_by_display_name: string | null
+          completed_at: string | null
+          completed_by: string | null
+          completed_by_display_name: string | null
+          completion_note: string | null
+          event_id: string | null
+          is_read_only: boolean | null
+          lifecycle_history_count: number | null
+          reopen_reason: string | null
+          reopened_at: string | null
+          reopened_by: string | null
+          reopened_by_display_name: string | null
+          status: Database["public"]["Enums"]["event_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_reopened_by_fkey"
+            columns: ["reopened_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_event_payment_summaries: {
+        Row: {
+          event_id: string | null
+          recorded_gross_minor: number | null
+          recorded_payment_count: number | null
+          reversed_gross_minor: number | null
+          reversed_payment_count: number | null
+        }
+        Relationships: []
+      }
+      v_event_revenue_summaries: {
+        Row: {
+          event_id: string | null
+          forecast_ticket_quantity: number | null
+          latest_captured_at: string | null
+          latest_snapshot_id: string | null
+          maximum_ticket_capacity: number | null
+          other_actual_gross_minor: number | null
+          other_actual_net_minor: number | null
+          other_actual_vat_minor: number | null
+          other_forecast_gross_minor: number | null
+          other_forecast_net_minor: number | null
+          other_forecast_vat_minor: number | null
+          other_outstanding_gross_minor: number | null
+          ticket_actual_gross_minor: number | null
+          ticket_actual_net_minor: number | null
+          ticket_actual_vat_minor: number | null
+          ticket_booking_fees_to_date_minor: number | null
+          ticket_forecast_gross_minor: number | null
+          ticket_forecast_net_minor: number | null
+          ticket_forecast_vat_minor: number | null
+          ticket_maximum_gross_minor: number | null
+          ticket_maximum_net_minor: number | null
+          ticket_maximum_vat_minor: number | null
+          ticket_refunds_to_date_minor: number | null
+          tickets_sold_to_date: number | null
+          total_actual_gross_minor: number | null
+          total_forecast_gross_minor: number | null
+          total_forecast_net_minor: number | null
+          total_forecast_vat_minor: number | null
+        }
+        Relationships: []
+      }
+      v_event_spending_summaries: {
+        Row: {
+          approved_gross_minor: number | null
+          approved_net_minor: number | null
+          approved_payable_gross_minor: number | null
+          approved_request_count: number | null
+          event_id: string | null
+          paid_gross_minor: number | null
+          paid_request_count: number | null
+          partially_paid_request_count: number | null
+          pending_gross_minor: number | null
+          pending_net_minor: number | null
+          pending_request_count: number | null
+          unpaid_approved_gross_minor: number | null
+          unpaid_request_count: number | null
+        }
+        Relationships: []
+      }
       v_latest_ticket_sales_snapshot: {
         Row: {
           booking_fees_to_date_minor: number | null
@@ -1847,6 +3730,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
             foreignKeyName: "ticket_sales_snapshots_voided_by_fkey"
             columns: ["voided_by"]
             isOneToOne: false
@@ -1855,10 +3780,408 @@ export type Database = {
           },
         ]
       }
+      v_other_revenue_summaries: {
+        Row: {
+          actual_gross_minor: number | null
+          actual_net_minor: number | null
+          actual_vat_minor: number | null
+          event_id: string | null
+          forecast_gross_minor: number | null
+          forecast_net_minor: number | null
+          forecast_vat_minor: number | null
+          outstanding_gross_minor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "other_revenue_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "other_revenue_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "other_revenue_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "other_revenue_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "other_revenue_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "other_revenue_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "other_revenue_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      v_payment_allocation_details: {
+        Row: {
+          component_code: string | null
+          component_description: string | null
+          created_at: string | null
+          event_id: string | null
+          gross_minor: number | null
+          net_minor: number | null
+          payment_allocation_id: string | null
+          payment_code: string | null
+          payment_date: string | null
+          payment_id: string | null
+          payment_status:
+            | Database["public"]["Enums"]["payment_record_status"]
+            | null
+          request_code: string | null
+          request_component_id: string | null
+          request_id: string | null
+          revision_id: string | null
+          revision_number: number | null
+          vat_minor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_allocations_event_id_payment_id_fkey"
+            columns: ["event_id", "payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_payment_id_fkey"
+            columns: ["event_id", "payment_id"]
+            isOneToOne: false
+            referencedRelation: "v_payment_details"
+            referencedColumns: ["event_id", "payment_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_request_component_id_fkey"
+            columns: ["event_id", "request_component_id"]
+            isOneToOne: false
+            referencedRelation: "request_components"
+            referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "spending_requests"
+            referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_approval_queue"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_dashboard_pending_approvals"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_component_payment_positions"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_department_impacts"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_payment_positions"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_revision_history"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_spending_request_current_revisions"
+            referencedColumns: ["event_id", "request_id"]
+          },
+        ]
+      }
+      v_payment_details: {
+        Row: {
+          allocated_gross_minor: number | null
+          allocation_count: number | null
+          bank_reference: string | null
+          code: string | null
+          created_at: string | null
+          entered_by: string | null
+          entered_by_display_name: string | null
+          event_id: string | null
+          gross_minor: number | null
+          method: Database["public"]["Enums"]["payment_method"] | null
+          net_minor: number | null
+          note: string | null
+          payee: string | null
+          payment_date: string | null
+          payment_id: string | null
+          request_codes: string | null
+          reversal_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          reversed_by_display_name: string | null
+          status: Database["public"]["Enums"]["payment_record_status"] | null
+          vat_minor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_entered_by_fkey"
+            columns: ["entered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "payments_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "payments_reversed_by_fkey"
+            columns: ["reversed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_request_component_payment_positions: {
+        Row: {
+          approved_gross_minor: number | null
+          approved_net_minor: number | null
+          approved_vat_minor: number | null
+          component_code: string | null
+          description: string | null
+          event_id: string | null
+          expected_payment_date: string | null
+          outstanding_gross_minor: number | null
+          paid_gross_minor: number | null
+          payment_status: string | null
+          request_code: string | null
+          request_component_id: string | null
+          request_id: string | null
+          revision_id: string | null
+          revision_number: number | null
+          supplier_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      v_request_department_impacts: {
+        Row: {
+          approved_net_minor: number | null
+          baseline_net_minor: number | null
+          current_budget_minor: number | null
+          department_code: string | null
+          department_id: string | null
+          department_name: string | null
+          event_id: string | null
+          incremental_net_minor: number | null
+          over_budget: boolean | null
+          potential_remaining_after_minor: number | null
+          proposed_net_minor: number | null
+          request_id: string | null
+          request_type: string | null
+          revision_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
       v_request_payment_positions: {
         Row: {
           approved_gross_minor: number | null
           approved_net_minor: number | null
+          approved_revision_id: string | null
+          approved_revision_number: number | null
           code: string | null
           event_id: string | null
           outstanding_gross_minor: number | null
@@ -1874,34 +4197,932 @@ export type Database = {
             referencedRelation: "events"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      v_request_review_history: {
+        Row: {
+          created_at: string | null
+          decision: Database["public"]["Enums"]["review_decision"] | null
+          event_id: string | null
+          reason: string | null
+          request_id: string | null
+          review_id: string | null
+          reviewer_display_name: string | null
+          reviewer_preferred_name: string | null
+          reviewer_user_id: string | null
+          revision_id: string | null
+          revision_number: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_reviews_event_id_request_id_revision_id_fkey"
+            columns: ["event_id", "request_id", "revision_id"]
+            isOneToOne: false
+            referencedRelation: "spending_request_revisions"
+            referencedColumns: ["event_id", "request_id", "id"]
+          },
+          {
+            foreignKeyName: "request_reviews_reviewer_user_id_fkey"
+            columns: ["reviewer_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_request_revision_history: {
+        Row: {
+          approval_status:
+            | Database["public"]["Enums"]["request_approval_status"]
+            | null
+          business_justification: string | null
+          change_summary: string | null
+          created_at: string | null
+          created_by: string | null
+          created_by_display_name: string | null
+          created_by_preferred_name: string | null
+          current_approved_revision_id: string | null
+          current_draft_revision_id: string | null
+          decided_at: string | null
+          description: string | null
+          event_id: string | null
+          expected_payment_date: string | null
+          gross_minor: number | null
+          is_current_approved: boolean | null
+          is_current_draft: boolean | null
+          is_pending_review: boolean | null
+          net_minor: number | null
+          request_code: string | null
+          request_id: string | null
+          revision_id: string | null
+          revision_number: number | null
+          revision_status: Database["public"]["Enums"]["revision_status"] | null
+          submitted_at: string | null
+          supplier_name: string | null
+          title: string | null
+          vat_minor: number | null
+          vat_treatment: Database["public"]["Enums"]["vat_treatment"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spending_request_revisions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spending_requests_approved_revision_fk"
+            columns: ["event_id", "request_id", "current_approved_revision_id"]
+            isOneToOne: false
+            referencedRelation: "spending_request_revisions"
+            referencedColumns: ["event_id", "request_id", "id"]
+          },
+          {
+            foreignKeyName: "spending_requests_draft_revision_fk"
+            columns: ["event_id", "request_id", "current_draft_revision_id"]
+            isOneToOne: false
+            referencedRelation: "spending_request_revisions"
+            referencedColumns: ["event_id", "request_id", "id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      v_spending_request_current_revisions: {
+        Row: {
+          approval_status:
+            | Database["public"]["Enums"]["request_approval_status"]
+            | null
+          business_justification: string | null
+          can_edit_draft: boolean | null
+          code: string | null
+          current_approved_revision_id: string | null
+          current_draft_revision_id: string | null
+          description: string | null
+          event_id: string | null
+          expected_payment_date: string | null
+          gross_minor: number | null
+          net_minor: number | null
+          owner_display_name: string | null
+          owner_preferred_name: string | null
+          owner_user_id: string | null
+          primary_department_code: string | null
+          primary_department_id: string | null
+          primary_department_name: string | null
+          request_created_at: string | null
+          request_id: string | null
+          request_submitted_at: string | null
+          request_updated_at: string | null
+          revision_created_at: string | null
+          revision_id: string | null
+          revision_number: number | null
+          revision_status: Database["public"]["Enums"]["revision_status"] | null
+          revision_submitted_at: string | null
+          revision_updated_at: string | null
+          supplier_name: string | null
+          title: string | null
+          vat_minor: number | null
+          vat_rate: number | null
+          vat_recoverable: boolean | null
+          vat_treatment: Database["public"]["Enums"]["vat_treatment"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "spending_requests_approved_revision_fk"
+            columns: ["event_id", "request_id", "current_approved_revision_id"]
+            isOneToOne: false
+            referencedRelation: "spending_request_revisions"
+            referencedColumns: ["event_id", "request_id", "id"]
+          },
+          {
+            foreignKeyName: "spending_requests_draft_revision_fk"
+            columns: ["event_id", "request_id", "current_draft_revision_id"]
+            isOneToOne: false
+            referencedRelation: "spending_request_revisions"
+            referencedColumns: ["event_id", "request_id", "id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_primary_department_id_fkey"
+            columns: ["event_id", "primary_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "spending_requests_event_id_primary_department_id_fkey"
+            columns: ["event_id", "primary_department_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_department_financial_positions"
+            referencedColumns: ["event_id", "department_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_ticket_actual_summaries: {
+        Row: {
+          booking_fees_to_date_minor: number | null
+          entered_by: string | null
+          event_id: string | null
+          gross_sales_minor: number | null
+          latest_captured_at: string | null
+          latest_snapshot_id: string | null
+          net_sales_minor: number | null
+          refunds_to_date_minor: number | null
+          source: Database["public"]["Enums"]["snapshot_source"] | null
+          tickets_sold_to_date: number | null
+          vat_minor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_sales_snapshots_entered_by_fkey"
+            columns: ["entered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_sales_snapshots_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      v_ticket_forecast_summaries: {
+        Row: {
+          complimentary_ticket_quantity: number | null
+          event_id: string | null
+          forecast_gross_minor: number | null
+          forecast_net_minor: number | null
+          forecast_ticket_quantity: number | null
+          forecast_vat_minor: number | null
+          maximum_gross_minor: number | null
+          maximum_net_minor: number | null
+          maximum_ticket_capacity: number | null
+          maximum_vat_minor: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      v_ticket_type_forecast_positions: {
+        Row: {
+          complimentary_quantity: number | null
+          description: string | null
+          display_order: number | null
+          event_id: string | null
+          forecast_gross_minor: number | null
+          forecast_net_minor: number | null
+          forecast_quantity: number | null
+          forecast_vat_minor: number | null
+          gross_price_minor: number | null
+          is_active: boolean | null
+          maximum_gross_minor: number | null
+          maximum_net_minor: number | null
+          maximum_quantity: number | null
+          maximum_vat_minor: number | null
+          name: string | null
+          net_price_minor: number | null
+          ticket_type_id: string | null
+          vat_minor: number | null
+          vat_rate: number | null
+          vat_treatment: Database["public"]["Enums"]["vat_treatment"] | null
+        }
+        Insert: {
+          complimentary_quantity?: number | null
+          description?: string | null
+          display_order?: number | null
+          event_id?: string | null
+          forecast_gross_minor?: never
+          forecast_net_minor?: never
+          forecast_quantity?: number | null
+          forecast_vat_minor?: never
+          gross_price_minor?: number | null
+          is_active?: boolean | null
+          maximum_gross_minor?: never
+          maximum_net_minor?: never
+          maximum_quantity?: number | null
+          maximum_vat_minor?: never
+          name?: string | null
+          net_price_minor?: number | null
+          ticket_type_id?: string | null
+          vat_minor?: number | null
+          vat_rate?: number | null
+          vat_treatment?: Database["public"]["Enums"]["vat_treatment"] | null
+        }
+        Update: {
+          complimentary_quantity?: number | null
+          description?: string | null
+          display_order?: number | null
+          event_id?: string | null
+          forecast_gross_minor?: never
+          forecast_net_minor?: never
+          forecast_quantity?: number | null
+          forecast_vat_minor?: never
+          gross_price_minor?: number | null
+          is_active?: boolean | null
+          maximum_gross_minor?: never
+          maximum_net_minor?: never
+          maximum_quantity?: number | null
+          maximum_vat_minor?: never
+          name?: string | null
+          net_price_minor?: number | null
+          ticket_type_id?: string | null
+          vat_minor?: number | null
+          vat_rate?: number | null
+          vat_treatment?: Database["public"]["Enums"]["vat_treatment"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "ticket_types_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+        ]
+      }
+      v_visible_documents: {
+        Row: {
+          category: Database["public"]["Enums"]["document_category"] | null
+          created_at: string | null
+          description: string | null
+          document_id: string | null
+          event_id: string | null
+          finalized_at: string | null
+          mime_type: string | null
+          original_filename: string | null
+          payment_code: string | null
+          payment_id: string | null
+          request_code: string | null
+          request_id: string | null
+          revision_id: string | null
+          revision_number: number | null
+          revision_status: Database["public"]["Enums"]["revision_status"] | null
+          size_bytes: number | null
+          status: Database["public"]["Enums"]["document_upload_status"] | null
+          uploaded_by: string | null
+          uploaded_by_display_name: string | null
+          uploaded_by_preferred_name: string | null
+          visibility_scope: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+          voided_by_display_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_approval_context"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_financial_positions"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_lifecycle_summary"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_payment_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_revenue_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_spending_summaries"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_payment_id_fkey"
+            columns: ["event_id", "payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_payment_id_fkey"
+            columns: ["event_id", "payment_id"]
+            isOneToOne: false
+            referencedRelation: "v_payment_details"
+            referencedColumns: ["event_id", "payment_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "spending_requests"
+            referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_approval_queue"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_event_dashboard_pending_approvals"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_component_payment_positions"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_department_impacts"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_payment_positions"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_request_revision_history"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_request_id_fkey"
+            columns: ["event_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "v_spending_request_current_revisions"
+            referencedColumns: ["event_id", "request_id"]
+          },
+          {
+            foreignKeyName: "documents_event_id_revision_id_fkey"
+            columns: ["event_id", "revision_id"]
+            isOneToOne: false
+            referencedRelation: "spending_request_revisions"
+            referencedColumns: ["event_id", "id"]
+          },
+          {
+            foreignKeyName: "documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_voided_by_fkey"
+            columns: ["voided_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Functions: {
+      accept_invitation: { Args: { p_raw_token: string }; Returns: string }
       activate_budget_version: {
         Args: { p_budget_version_id: string }
         Returns: undefined
+      }
+      archive_event: {
+        Args: { p_event_id: string; p_reason: string }
+        Returns: Json
+      }
+      assert_budget_editable: {
+        Args: { p_budget_version_id: string }
+        Returns: {
+          activated_at: string | null
+          activated_by: string | null
+          created_at: string
+          created_by: string
+          effective_date: string | null
+          event_id: string
+          id: string
+          name: string
+          notes: string | null
+          original_contingency_minor: number
+          status: Database["public"]["Enums"]["budget_version_status"]
+          updated_at: string
+          version_number: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "budget_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      assert_document_parent: {
+        Args: {
+          p_event_id: string
+          p_payment_id: string
+          p_request_id: string
+          p_revision_id: string
+        }
+        Returns: {
+          parent_summary: string
+          request_id: string
+        }[]
+      }
+      assert_president_can_manage_event: {
+        Args: { p_event_id: string }
+        Returns: {
+          archive_reason: string | null
+          archived_at: string | null
+          archived_by: string | null
+          code: string
+          completed_at: string | null
+          completed_by: string | null
+          completion_note: string | null
+          created_at: string
+          created_by: string
+          currency: string
+          default_vat_rate: number
+          event_date: string | null
+          event_year: number
+          id: string
+          is_vat_registered: boolean
+          name: string
+          organisation_id: string
+          planning_start_date: string | null
+          reopen_reason: string | null
+          reopened_at: string | null
+          reopened_by: string | null
+          status: Database["public"]["Enums"]["event_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "events"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       assert_revision_balanced: {
         Args: { p_revision_id: string }
         Returns: undefined
       }
+      assign_department_member: {
+        Args: { p_department_id: string; p_event_member_id: string }
+        Returns: undefined
+      }
+      assign_event_role: {
+        Args: {
+          p_event_member_id: string
+          p_role: Database["public"]["Enums"]["event_role"]
+        }
+        Returns: undefined
+      }
+      begin_document_upload: {
+        Args: {
+          p_category: Database["public"]["Enums"]["document_category"]
+          p_description?: string
+          p_event_id: string
+          p_mime_type: string
+          p_original_filename: string
+          p_payment_id: string
+          p_request_id: string
+          p_revision_id: string
+          p_size_bytes: number
+        }
+        Returns: {
+          bucket_id: string
+          document_id: string
+          object_path: string
+        }[]
+      }
       can_edit_request_revision: {
         Args: { p_revision_id: string }
         Returns: boolean
       }
+      can_insert_document_object: {
+        Args: { p_bucket_id: string; p_object_path: string }
+        Returns: boolean
+      }
+      can_view_document: { Args: { p_document_id: string }; Returns: boolean }
       can_view_event: { Args: { p_event_id: string }; Returns: boolean }
       can_view_historical_event: {
         Args: { p_event_id: string }
         Returns: boolean
       }
+      can_view_request: { Args: { p_request_id: string }; Returns: boolean }
       can_view_request_revision: {
         Args: { p_revision_id: string }
         Returns: boolean
       }
       complete_event: {
-        Args: { p_acknowledge_warnings?: boolean; p_event_id: string }
+        Args: {
+          p_acknowledge_warnings?: boolean
+          p_event_id: string
+          p_reason?: string
+        }
         Returns: Json
+      }
+      create_budget_version: {
+        Args: {
+          p_allocations?: Json
+          p_effective_date?: string
+          p_event_id: string
+          p_name: string
+          p_notes?: string
+          p_original_contingency_minor?: number
+        }
+        Returns: string
+      }
+      create_department: {
+        Args: {
+          p_code: string
+          p_colour?: string
+          p_description?: string
+          p_display_order?: number
+          p_event_id: string
+          p_name: string
+        }
+        Returns: string
+      }
+      create_organisation_and_event: {
+        Args: {
+          p_assign_treasurer?: boolean
+          p_event_code: string
+          p_event_date?: string
+          p_event_name: string
+          p_event_year: number
+          p_initial_status?: Database["public"]["Enums"]["event_status"]
+          p_legal_name?: string
+          p_organisation_name: string
+          p_organisation_slug: string
+          p_planning_start_date?: string
+        }
+        Returns: {
+          event_id: string
+          organisation_id: string
+        }[]
+      }
+      create_recurring_event: {
+        Args: {
+          p_event_code: string
+          p_event_date?: string
+          p_event_name: string
+          p_event_year: number
+          p_initial_status?: Database["public"]["Enums"]["event_status"]
+          p_organisation_id: string
+          p_planning_start_date?: string
+        }
+        Returns: string
       }
       create_spending_request: {
         Args: {
@@ -1920,6 +5141,30 @@ export type Database = {
           revision_id: string
         }[]
       }
+      create_spending_request_draft: {
+        Args: {
+          p_allocations?: Json
+          p_business_justification?: string
+          p_components?: Json
+          p_description?: string
+          p_event_id: string
+          p_expected_payment_date?: string
+          p_gross_minor?: number
+          p_net_minor?: number
+          p_primary_department_id: string
+          p_supplier_name?: string
+          p_title: string
+          p_vat_minor?: number
+          p_vat_rate?: number
+          p_vat_recoverable?: boolean
+          p_vat_treatment?: Database["public"]["Enums"]["vat_treatment"]
+        }
+        Returns: {
+          request_code: string
+          request_id: string
+          revision_id: string
+        }[]
+      }
       decide_spending_request: {
         Args: {
           p_decision: Database["public"]["Enums"]["review_decision"]
@@ -1929,6 +5174,31 @@ export type Database = {
         }
         Returns: undefined
       }
+      document_activity_visibility: {
+        Args: { p_payment_id: string; p_revision_id: string }
+        Returns: string
+      }
+      event_completion_readiness: {
+        Args: { p_event_id: string }
+        Returns: {
+          acknowledgement_allowed: boolean
+          amount_minor: number
+          blocks_completion: boolean
+          category: string
+          code: string
+          item_count: number
+          severity: string
+          target_route: string
+        }[]
+      }
+      finalise_document_upload: {
+        Args: {
+          p_document_id: string
+          p_mime_type: string
+          p_size_bytes: number
+        }
+        Returns: string
+      }
       has_event_role: {
         Args: {
           p_event_id: string
@@ -1936,11 +5206,66 @@ export type Database = {
         }
         Returns: boolean
       }
+      insert_budget_allocations: {
+        Args: {
+          p_allocations: Json
+          p_budget_version_id: string
+          p_event_id: string
+        }
+        Returns: undefined
+      }
+      insert_request_allocations: {
+        Args: { p_allocations: Json; p_event_id: string; p_revision_id: string }
+        Returns: undefined
+      }
+      insert_request_components: {
+        Args: {
+          p_components: Json
+          p_event_id: string
+          p_request_code: string
+          p_revision_id: string
+        }
+        Returns: undefined
+      }
       is_active_event_member: { Args: { p_event_id: string }; Returns: boolean }
       is_event_president: { Args: { p_event_id: string }; Returns: boolean }
       is_event_treasurer: { Args: { p_event_id: string }; Returns: boolean }
       is_event_writable: { Args: { p_event_id: string }; Returns: boolean }
       is_request_owner: { Args: { p_request_id: string }; Returns: boolean }
+      issue_invitation: {
+        Args: {
+          p_department_ids?: string[]
+          p_email: string
+          p_event_id: string
+          p_expires_in_days?: number
+          p_roles?: Database["public"]["Enums"]["event_role"][]
+        }
+        Returns: {
+          invitation_id: string
+          invitation_token: string
+        }[]
+      }
+      normalise_document_extension: {
+        Args: { p_mime_type: string }
+        Returns: string
+      }
+      normalise_email: { Args: { p_email: string }; Returns: string }
+      normalise_event_code: { Args: { p_code: string }; Returns: string }
+      normalise_slug: { Args: { p_slug: string }; Returns: string }
+      record_component_payment: {
+        Args: {
+          p_allocations: Json
+          p_bank_reference: string
+          p_event_id: string
+          p_gross_minor: number
+          p_idempotency_key?: string
+          p_method: Database["public"]["Enums"]["payment_method"]
+          p_note: string
+          p_payee: string
+          p_payment_date: string
+        }
+        Returns: string
+      }
       record_payment: {
         Args: {
           p_allocation_gross_minor: number[]
@@ -1953,13 +5278,85 @@ export type Database = {
         }
         Returns: string
       }
+      record_ticket_sales_snapshot: {
+        Args: {
+          p_booking_fees_to_date_minor?: number
+          p_breakdown?: Json
+          p_captured_at: string
+          p_event_id: string
+          p_gross_sales_minor?: number
+          p_net_sales_minor?: number
+          p_notes?: string
+          p_refunds_to_date_minor?: number
+          p_source?: Database["public"]["Enums"]["snapshot_source"]
+          p_tickets_sold_to_date?: number
+          p_vat_minor?: number
+        }
+        Returns: string
+      }
+      remove_department_member: {
+        Args: { p_department_id: string; p_event_member_id: string }
+        Returns: undefined
+      }
+      remove_event_role: {
+        Args: {
+          p_event_member_id: string
+          p_role: Database["public"]["Enums"]["event_role"]
+        }
+        Returns: undefined
+      }
       reopen_event: {
         Args: { p_event_id: string; p_reason: string }
-        Returns: undefined
+        Returns: Json
       }
       reverse_payment: {
         Args: { p_payment_id: string; p_reason: string }
         Returns: undefined
+      }
+      revoke_invitation: {
+        Args: { p_invitation_id: string }
+        Returns: undefined
+      }
+      save_other_revenue_item: {
+        Args: {
+          p_actual_gross_minor?: number
+          p_actual_net_minor?: number
+          p_actual_vat_minor?: number
+          p_category?: Database["public"]["Enums"]["revenue_item_category"]
+          p_event_id: string
+          p_expected_date?: string
+          p_forecast_gross_minor?: number
+          p_forecast_net_minor?: number
+          p_forecast_vat_minor?: number
+          p_item_id?: string
+          p_notes?: string
+          p_owner_user_id?: string
+          p_received_date?: string
+          p_status?: Database["public"]["Enums"]["revenue_item_status"]
+          p_title?: string
+          p_vat_rate?: number
+          p_vat_treatment?: Database["public"]["Enums"]["vat_treatment"]
+        }
+        Returns: string
+      }
+      save_ticket_type: {
+        Args: {
+          p_complimentary_quantity?: number
+          p_description?: string
+          p_display_order?: number
+          p_event_id: string
+          p_forecast_quantity?: number
+          p_gross_price_minor?: number
+          p_is_active?: boolean
+          p_maximum_quantity?: number
+          p_name?: string
+          p_net_price_minor?: number
+          p_ticket_type_id?: string
+          p_vat_minor?: number
+          p_vat_rate?: number
+          p_vat_treatment?: Database["public"]["Enums"]["vat_treatment"]
+        }
+        Returns: string
       }
       start_request_variation: {
         Args: { p_request_id: string }
@@ -1978,6 +5375,85 @@ export type Database = {
         }
         Returns: string
       }
+      transfer_event_contingency: {
+        Args: {
+          p_amount_minor: number
+          p_department_id: string
+          p_event_id: string
+          p_reason: string
+        }
+        Returns: string
+      }
+      update_department: {
+        Args: {
+          p_code: string
+          p_colour?: string
+          p_department_id: string
+          p_description?: string
+          p_display_order?: number
+          p_is_active?: boolean
+          p_name: string
+        }
+        Returns: undefined
+      }
+      update_draft_budget_version: {
+        Args: {
+          p_allocations?: Json
+          p_budget_version_id: string
+          p_effective_date?: string
+          p_name: string
+          p_notes?: string
+          p_original_contingency_minor?: number
+        }
+        Returns: undefined
+      }
+      update_event_member_status: {
+        Args: {
+          p_event_member_id: string
+          p_status: Database["public"]["Enums"]["membership_status"]
+        }
+        Returns: undefined
+      }
+      update_event_settings: {
+        Args: {
+          p_code: string
+          p_event_date?: string
+          p_event_id: string
+          p_event_year: number
+          p_name: string
+          p_planning_start_date?: string
+        }
+        Returns: undefined
+      }
+      update_spending_request_draft: {
+        Args: {
+          p_allocations?: Json
+          p_business_justification?: string
+          p_change_summary?: string
+          p_components?: Json
+          p_description?: string
+          p_expected_payment_date?: string
+          p_gross_minor?: number
+          p_net_minor?: number
+          p_primary_department_id: string
+          p_request_id: string
+          p_supplier_name?: string
+          p_title: string
+          p_vat_minor?: number
+          p_vat_rate?: number
+          p_vat_recoverable?: boolean
+          p_vat_treatment?: Database["public"]["Enums"]["vat_treatment"]
+        }
+        Returns: undefined
+      }
+      void_document: {
+        Args: { p_document_id: string; p_reason: string }
+        Returns: string
+      }
+      void_ticket_sales_snapshot: {
+        Args: { p_reason: string; p_snapshot_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       budget_version_status: "draft" | "active" | "superseded" | "final"
@@ -1988,6 +5464,7 @@ export type Database = {
         | "receipt"
         | "supporting"
         | "other"
+      document_upload_status: "pending" | "finalised" | "voided"
       event_role: "president" | "treasurer" | "committee_member" | "read_only"
       event_status:
         | "setup"
@@ -2202,6 +5679,7 @@ export const Constants = {
         "supporting",
         "other",
       ],
+      document_upload_status: ["pending", "finalised", "voided"],
       event_role: ["president", "treasurer", "committee_member", "read_only"],
       event_status: [
         "setup",

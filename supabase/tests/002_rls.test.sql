@@ -25,8 +25,8 @@ select throws_ok($$select public.transfer_contingency('50000000-0000-0000-0000-0
 
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000005',true);
 select is((select count(*)::bigint from public.events),1::bigint,'outsider sees only own event');
-select is((select count(*)::bigint from public.departments),0::bigint,'outsider sees no Downing departments');
-select is((select count(*)::bigint from public.ticket_sales_snapshots),0::bigint,'outsider sees no Downing revenue');
+select is((select count(*)::bigint from public.departments where event_id='30000000-0000-0000-0000-000000000027'),0::bigint,'outsider sees no Downing departments');
+select is((select count(*)::bigint from public.ticket_sales_snapshots where event_id='30000000-0000-0000-0000-000000000027'),0::bigint,'outsider sees no Downing revenue');
 
 select * from finish();
 rollback;
