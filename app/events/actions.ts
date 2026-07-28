@@ -3,6 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import {
+  departmentColourForCode,
+  missingStandardDepartments,
+} from "@/lib/departments/templates";
+import { friendlyInvitationError } from "@/lib/invitations/messages";
+import { parseInvitationInput } from "@/lib/invitations/parse-invitation-input";
 import type { Enums } from "@/src/types/database.generated";
 
 export type FormState = {
@@ -40,7 +46,7 @@ function codeValue(value: string, label: string) {
 
 function safeMessage(error: unknown) {
   if (error instanceof Error && error.message) {
-    if (/duplicate|already exists|required|invalid|authorised|expiry|pending|read-only|same event|president/i.test(error.message)) {
+    if (/duplicate|already exists|required|invalid|authorised|expiry|expired|pending|email|invitation|read-only|same event|president/i.test(error.message)) {
       return error.message;
     }
   }
@@ -174,12 +180,30 @@ export async function saveDepartmentAction(formData: FormData) {
   const eventId = clean(formData.get("eventId"));
   const departmentId = clean(formData.get("departmentId"));
   try {
+    const displayOrder = Number(clean(formData.get("displayOrder")) || "0");
+    const departmentCode = codeValue(clean(formData.get("code")), "Department code");
+    let colour = departmentColourForCode(departmentCode, displayOrder);
+
+    if (departmentId) {
+      const { data: existingDepartment, error: departmentError } = await supabase
+        .from("departments")
+        .select("colour")
+        .eq("id", departmentId)
+        .maybeSingle();
+
+      if (departmentError) {
+        throw departmentError;
+      }
+
+      colour = existingDepartment?.colour ?? colour;
+    }
+
     const payload = {
       p_name: clean(formData.get("name")),
-      p_code: codeValue(clean(formData.get("code")), "Department code"),
-      p_colour: clean(formData.get("colour")) || undefined,
+      p_code: departmentCode,
+      p_colour: colour,
       p_description: clean(formData.get("description")) || undefined,
-      p_display_order: Number(clean(formData.get("displayOrder")) || "0"),
+      p_display_order: displayOrder,
     };
     const { error } = departmentId
       ? await supabase.rpc("update_department", {
@@ -196,6 +220,53 @@ export async function saveDepartmentAction(formData: FormData) {
     }
     revalidatePath(`/events/${eventId}/departments`);
     redirect(`/events/${eventId}/departments?saved=1`);
+  } catch (error) {
+    if (isFrameworkRedirect(error)) {
+      throw error;
+    }
+    redirect(`/events/${eventId}/departments?error=${encodeURIComponent(safeMessage(error))}`);
+  }
+}
+
+export async function addTemplateDepartmentsAction(formData: FormData) {
+  const supabase = await rpcClient();
+  const eventId = clean(formData.get("eventId"));
+
+  try {
+    const { data: departments, error: departmentsError } = await supabase
+      .from("departments")
+      .select("code")
+      .eq("event_id", eventId);
+
+    if (departmentsError) {
+      throw departmentsError;
+    }
+
+    const existingCodes = (departments ?? []).map((department) => department.code);
+    const missingDepartments = missingStandardDepartments(existingCodes);
+
+    for (const department of missingDepartments) {
+      const { error } = await supabase.rpc("create_department", {
+        p_event_id: eventId,
+        p_name: department.name,
+        p_code: department.code,
+        p_colour: departmentColourForCode(
+          department.code,
+          department.displayOrder,
+        ),
+        p_description: undefined,
+        p_display_order: department.displayOrder,
+      });
+
+      if (error) {
+        throw error;
+      }
+    }
+
+    revalidatePath(`/events/${eventId}/departments`);
+    redirect(
+      `/events/${eventId}/departments?templateAdded=${missingDepartments.length}&templateExisting=${existingCodes.length}`,
+    );
   } catch (error) {
     if (isFrameworkRedirect(error)) {
       throw error;
@@ -229,7 +300,7 @@ export async function issueInvitationAction(
     revalidatePath(`/events/${eventId}/committee`);
     return {
       ok: true,
-      message: "Invitation record created. Email delivery is not configured.",
+      message: "Invitation created. Email delivery is not configured.",
       token: data?.[0]?.invitation_token,
     };
   } catch (error) {
@@ -340,20 +411,45 @@ export async function updateMemberStatusAction(formData: FormData) {
 
 export async function acceptInvitationAction(formData: FormData) {
   const supabase = await rpcClient();
-  const token = clean(formData.get("token"));
+  const rawToken = clean(formData.get("token"));
+  const source = clean(formData.get("source"));
+  const parsed = parseInvitationInput(rawToken);
+  const token = parsed.ok ? parsed.token : rawToken;
+  const errorRedirect =
+    source === "join"
+      ? `/app/join?token=${encodeURIComponent(token)}`
+      : `/invitations/${encodeURIComponent(token)}`;
+
   try {
+    if (!parsed.ok) {
+      throw new Error(parsed.error);
+    }
+
     const { data, error } = await supabase.rpc("accept_invitation", {
       p_raw_token: token,
     });
     if (error) {
       throw error;
     }
+    revalidatePath("/app");
     revalidatePath("/events");
+    revalidatePath(`/events/${data}`);
+
+    if (source === "join") {
+      redirect(`/app?joinedEventId=${encodeURIComponent(data)}`);
+    }
+
     redirect(`/events/${data}?accepted=1`);
   } catch (error) {
     if (isFrameworkRedirect(error)) {
       throw error;
     }
-    redirect(`/invitations/${encodeURIComponent(token)}?error=${encodeURIComponent(safeMessage(error))}`);
+    const message =
+      error instanceof Error
+        ? friendlyInvitationError(error.message)
+        : "The invitation could not be validated.";
+    redirect(
+      `${errorRedirect}${errorRedirect.includes("?") ? "&" : "?"}error=${encodeURIComponent(message)}`,
+    );
   }
 }

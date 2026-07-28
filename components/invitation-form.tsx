@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
+import { Copy } from "lucide-react";
 import { issueInvitationAction, type InvitationState } from "@/app/events/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { Button } from "@/components/ui/button";
 import type { Department } from "@/lib/events/governance";
 import type { EventRole } from "@/lib/events/access";
 
@@ -14,6 +16,48 @@ const ROLE_OPTIONS: { value: EventRole; label: string }[] = [
   { value: "treasurer", label: "Treasurer" },
   { value: "read_only", label: "Read-only" },
 ];
+
+export function InvitationLinkDisplay({ token }: { token: string }) {
+  const [origin, setOrigin] = useState("");
+  const [copied, setCopied] = useState(false);
+  const invitationPath = `/invitations/${token}`;
+  const invitationLink = useMemo(
+    () => (origin ? `${origin}${invitationPath}` : invitationPath),
+    [invitationPath, origin],
+  );
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
+  async function copyLink() {
+    if (!navigator.clipboard) {
+      return;
+    }
+    await navigator.clipboard.writeText(invitationLink);
+    setCopied(true);
+  }
+
+  return (
+    <div className="mt-3 grid gap-3 rounded-md border border-emerald-200 bg-white p-3">
+      <div>
+        <p className="font-medium">Share this invitation link with the committee member:</p>
+        <p className="mt-2 break-all font-mono text-xs">{invitationLink}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" variant="outline" onClick={copyLink}>
+          <Copy className="h-4 w-4" aria-hidden="true" />
+          Copy Invitation Link
+        </Button>
+        {copied ? <span className="text-xs">Copied.</span> : null}
+      </div>
+      <p className="text-xs">
+        The recipient can open the link directly, or paste it into Join Event on
+        their Home page.
+      </p>
+    </div>
+  );
+}
 
 export function InvitationForm({
   eventId,
@@ -93,11 +137,7 @@ export function InvitationForm({
           }
         >
           <p>{state.message}</p>
-          {state.token ? (
-            <p className="mt-2 break-all font-mono text-xs">
-              Development acceptance link: /invitations/{state.token}
-            </p>
-          ) : null}
+          {state.token ? <InvitationLinkDisplay token={state.token} /> : null}
         </div>
       ) : null}
     </form>

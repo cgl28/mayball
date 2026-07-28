@@ -1,4 +1,4 @@
-const DEFAULT_AUTHENTICATED_PATH = "/events";
+const DEFAULT_AUTHENTICATED_PATH = "/app";
 const LOGIN_PATH = "/auth/login";
 
 export function sanitizeReturnPath(

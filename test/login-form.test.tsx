@@ -71,6 +71,17 @@ describe("LoginForm", () => {
     await userEvent.type(screen.getByLabelText("Password"), "password");
     await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/events"));
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/app"));
+  });
+
+  it("defaults successful login to the authenticated home", async () => {
+    signInWithPassword.mockResolvedValueOnce({ error: null });
+    render(<LoginForm />);
+
+    await userEvent.type(screen.getByLabelText("Email"), "treasurer@example.test");
+    await userEvent.type(screen.getByLabelText("Password"), "password");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/app"));
   });
 });

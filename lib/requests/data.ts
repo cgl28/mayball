@@ -33,6 +33,7 @@ export type SpendingRequestsData = {
   requests: RequestSummary[];
   departments: RequestDepartment[];
   paymentPositions: RequestPaymentPosition[];
+  defaultDepartmentId?: string;
 };
 
 export type SpendingRequestDetail = {
@@ -47,8 +48,9 @@ export type SpendingRequestDetail = {
 export async function getSpendingRequestsData(
   supabase: SupabaseClient<Database>,
   eventId: string,
+  userId?: string,
 ) {
-  const [requests, departments, paymentPositions] = await Promise.all([
+  const [requests, departments, paymentPositions, departmentMemberships] = await Promise.all([
     supabase
       .from("v_spending_request_current_revisions")
       .select("*")
@@ -64,20 +66,52 @@ export async function getSpendingRequestsData(
       .from("v_request_payment_positions")
       .select("*")
       .eq("event_id", eventId),
+    getCurrentUserDepartments(supabase, eventId, userId),
   ]);
 
   if (requests.error) return { data: null, error: "Spending requests could not be loaded." };
   if (departments.error) return { data: null, error: "Departments could not be loaded." };
   if (paymentPositions.error) return { data: null, error: "Payment positions could not be loaded." };
+  if (departmentMemberships.error) return { data: null, error: "Department memberships could not be loaded." };
+
+  const activeDepartmentIds = new Set((departmentMemberships.data ?? []).map((row) => row.department_id));
+  const defaultDepartmentId = activeDepartmentIds.size === 1 ? [...activeDepartmentIds][0] : undefined;
 
   return {
     data: {
       requests: requests.data ?? [],
       departments: departments.data ?? [],
       paymentPositions: paymentPositions.data ?? [],
+      defaultDepartmentId,
     } satisfies SpendingRequestsData,
     error: null,
   };
+}
+
+async function getCurrentUserDepartments(
+  supabase: SupabaseClient<Database>,
+  eventId: string,
+  userId?: string,
+) {
+  if (!userId) return { data: [], error: null };
+
+  const { data: membership, error: membershipError } = await supabase
+    .from("event_members")
+    .select("id")
+    .eq("event_id", eventId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (membershipError || !membership) {
+    return { data: [], error: membershipError };
+  }
+
+  return supabase
+    .from("department_members")
+    .select("department_id")
+    .eq("event_id", eventId)
+    .eq("event_member_id", membership.id);
 }
 
 export async function getSpendingRequestDetail(

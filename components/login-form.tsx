@@ -18,7 +18,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function LoginForm({
-  returnTo = "/events",
+  returnTo = "/app",
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div"> & { returnTo?: string }) {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AlertCircle, CheckCircle, History, Scale, TriangleAlert } from "lucide-react";
 import { decideSpendingRequestAction } from "@/app/events/[eventId]/approvals/actions";
+import { StatusBadge } from "@/components/status-badge";
 import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -179,7 +180,7 @@ export function ApprovalReviewPanel({
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant={requestType === "variation" ? "secondary" : "outline"}>{label(requestType)}</Badge>
-          <Badge>{label(request.approval_status)}</Badge>
+          <StatusBadge kind="approval" status={request.approval_status} />
           <Button asChild variant="outline"><Link href={`/events/${eventId}/approvals`}>Back to queue</Link></Button>
         </div>
       </div>

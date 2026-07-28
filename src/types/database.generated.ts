@@ -5199,6 +5199,22 @@ export type Database = {
         }
         Returns: string
       }
+      get_invitation_preview: {
+        Args: { p_raw_token: string }
+        Returns: {
+          already_member: boolean
+          departments: string[]
+          event_date: string
+          event_id: string
+          event_name: string
+          event_year: number
+          expires_at: string
+          invitation_status: Database["public"]["Enums"]["invitation_status"]
+          invited_email: string
+          organisation_name: string
+          roles: Database["public"]["Enums"]["event_role"][]
+        }[]
+      }
       has_event_role: {
         Args: {
           p_event_id: string

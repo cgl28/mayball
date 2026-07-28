@@ -33,6 +33,18 @@ describe("Supabase proxy session handling", () => {
     );
   });
 
+  it("redirects unauthenticated app home routes to login", async () => {
+    const { updateSession, NextRequest } = await loadProxyWithUser(null);
+    const response = await updateSession(
+      new NextRequest("http://localhost:3000/app/profile"),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toContain(
+      "/auth/login?returnTo=%2Fapp%2Fprofile",
+    );
+  });
+
   it("allows authenticated protected routes to continue", async () => {
     const { updateSession, NextRequest } = await loadProxyWithUser({
       id: "10000000-0000-0000-0000-000000000002",

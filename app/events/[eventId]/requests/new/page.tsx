@@ -23,10 +23,10 @@ export default async function NewRequestPage({
   const capabilities = getEventCapabilities(eventAccess);
   if (capabilities.isReadOnly || eventAccess.accessMode !== "active") notFound();
 
-  const data = await getSpendingRequestsData(session.supabase, eventId);
+  const data = await getSpendingRequestsData(session.supabase, eventId, session.user.id);
   if (data.error || !data.data) {
     return <div role="alert" className="rounded-md border border-destructive/40 p-4 text-sm text-destructive">{data.error ?? "Departments could not be loaded."}</div>;
   }
 
-  return <RequestEditor eventId={eventId} departments={data.data.departments} error={query.error} />;
+  return <RequestEditor eventId={eventId} departments={data.data.departments} defaultDepartmentId={data.data.defaultDepartmentId} error={query.error} />;
 }

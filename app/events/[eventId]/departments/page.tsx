@@ -11,7 +11,12 @@ export default async function DepartmentsPage({
   searchParams,
 }: {
   params: Promise<{ eventId: string }>;
-  searchParams: Promise<{ error?: string; saved?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    saved?: string;
+    templateAdded?: string;
+    templateExisting?: string;
+  }>;
 }) {
   await connection();
   const { eventId } = await params;
@@ -60,6 +65,12 @@ export default async function DepartmentsPage({
       readOnly={capabilities.isReadOnly}
       error={query.error}
       saved={query.saved === "1"}
+      templateAdded={
+        query.templateAdded ? Number(query.templateAdded) : undefined
+      }
+      templateExisting={
+        query.templateExisting ? Number(query.templateExisting) : undefined
+      }
     />
   );
 }

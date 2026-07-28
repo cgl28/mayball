@@ -12,7 +12,7 @@ export type AuthenticatedSession = {
 };
 
 export async function getAuthenticatedSession(
-  returnTo = "/events",
+  returnTo = "/app",
 ): Promise<AuthenticatedSession> {
   const supabase = await createClient();
   const {

@@ -49,7 +49,7 @@ const lifecycle: LifecycleData = {
 };
 
 describe("Stage 9 lifecycle panel", () => {
-  it("shows completion readiness and acknowledgement copy to authorised presidents", () => {
+  it("shows lifecycle progress, readiness and confirmation copy to presidents", () => {
     render(
       <LifecyclePanel
         eventAccess={makeEventAccess({ roles: ["president"] })}
@@ -58,11 +58,18 @@ describe("Stage 9 lifecycle panel", () => {
       />,
     );
 
-    expect(screen.getByText("Completion readiness")).toBeInTheDocument();
-    expect(screen.getByText("Requests await approval")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Lifecycle" })).toBeInTheDocument();
+    expect(screen.getAllByText("Current stage").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole("listitem", { name: "Setup: Completed stage" })).toBeInTheDocument();
+    expect(screen.getByRole("listitem", { name: "Planning: Current stage" })).toBeInTheDocument();
+    expect(screen.getByRole("listitem", { name: "Live: Future stage" })).toBeInTheDocument();
+    expect(screen.getByText("Readiness warnings")).toBeInTheDocument();
+    expect(screen.getAllByText("Requests are awaiting review").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText(/2 items; £6,240.00/)).toBeInTheDocument();
+    expect(screen.getByText("Completion allowed with acknowledgement")).toBeInTheDocument();
+    expect(screen.getByText("Change Lifecycle Stage")).toBeInTheDocument();
+    expect(screen.getByText("Review and confirm completion")).toBeInTheDocument();
     expect(screen.getByText(/completion is not bank reconciliation/i)).toBeInTheDocument();
-    expect(screen.getAllByText("Complete event").length).toBeGreaterThan(1);
   });
 
   it("shows lifecycle status and history without mutation controls to historical viewers", () => {
@@ -107,9 +114,10 @@ describe("Stage 9 lifecycle panel", () => {
     );
 
     expect(screen.getByText("Historical read-only event")).toBeInTheDocument();
-    expect(screen.getByText(/Lifecycle readiness details are available/)).toBeInTheDocument();
+    expect(screen.getByText(/Detailed completion readiness is available to event Presidents/)).toBeInTheDocument();
+    expect(screen.getByText(/Only event Presidents can change the lifecycle stage/)).toBeInTheDocument();
     expect(screen.queryByText("Complete event")).not.toBeInTheDocument();
-    expect(screen.getByText("planning to completed")).toBeInTheDocument();
+    expect(screen.getByText("Moved from Planning to Completed")).toBeInTheDocument();
   });
 
   it("shows archive and reopen success states distinctly", () => {
@@ -134,7 +142,49 @@ describe("Stage 9 lifecycle panel", () => {
     );
 
     expect(screen.getByText(/Event archived/)).toBeInTheDocument();
-    expect(screen.getByText(/Event reopened into reconciliation/)).toBeInTheDocument();
-    expect(screen.getByText("Exceptional reopen")).toBeInTheDocument();
+    expect(screen.getByText(/Event reopened into Reconciliation/)).toBeInTheDocument();
+    expect(screen.getByText("Reopen for Reconciliation")).toBeInTheDocument();
+    expect(screen.getByText("Review and confirm exceptional reopening")).toBeInTheDocument();
+  });
+
+  it("shows only archive and reopen actions for completed presidents", () => {
+    render(
+      <LifecyclePanel
+        eventAccess={makeEventAccess({
+          roles: ["president"],
+          event: { status: "completed" },
+          isReadOnly: true,
+        })}
+        lifecycle={{
+          ...lifecycle,
+          summary: {
+            ...lifecycle.summary!,
+            status: "completed",
+            completed_at: "2027-08-01T10:00:00Z",
+            completed_by_display_name: "Pat President",
+            is_read_only: true,
+          },
+          readiness: [],
+        }}
+        canManageLifecycle
+      />,
+    );
+
+    expect(screen.queryByText("Review and confirm completion")).not.toBeInTheDocument();
+    expect(screen.getByText("Archive Event")).toBeInTheDocument();
+    expect(screen.getByText("Reopen for Reconciliation")).toBeInTheDocument();
+  });
+
+  it("does not show lifecycle controls to treasurers without president role", () => {
+    render(
+      <LifecyclePanel
+        eventAccess={makeEventAccess({ roles: ["treasurer"] })}
+        lifecycle={lifecycle}
+        canManageLifecycle={false}
+      />,
+    );
+
+    expect(screen.getByText(/Only event Presidents can change/)).toBeInTheDocument();
+    expect(screen.queryByText("Review and confirm completion")).not.toBeInTheDocument();
   });
 });

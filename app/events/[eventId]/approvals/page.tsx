@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { ApprovalQueuePanel } from "@/components/approvals-panel";
+import { LockedPage } from "@/components/locked-page";
 import { getApprovalQueueData } from "@/lib/approvals/data";
 import { getAuthenticatedSession } from "@/lib/auth/session";
 import { getEventAccess } from "@/lib/events/access";
-import { getEventCapabilities } from "@/lib/events/permissions";
+import { getApprovalsPageLock } from "@/lib/events/page-access";
 
 export default async function ApprovalsPage({
   params,
@@ -24,8 +25,17 @@ export default async function ApprovalsPage({
   }
   if (!eventAccess) notFound();
 
-  const capabilities = getEventCapabilities(eventAccess);
-  if (!capabilities.canManageFinance) notFound();
+  const lock = getApprovalsPageLock(eventAccess);
+  if (lock) {
+    return (
+      <LockedPage
+        title={lock.title}
+        description={lock.description}
+        requiredRole={lock.requiredRole}
+        backHref={lock.backHref}
+      />
+    );
+  }
 
   const queue = await getApprovalQueueData(session.supabase, eventId);
   if (queue.error || !queue.data) {
