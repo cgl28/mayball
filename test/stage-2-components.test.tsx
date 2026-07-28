@@ -2,7 +2,16 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { CommitteePanel } from "@/components/committee-panel";
 import { DepartmentsPanel } from "@/components/departments-panel";
+import { LockedPage } from "@/components/locked-page";
 import { SetupForms, getPresidentOrganisations } from "@/components/setup-forms";
+import {
+  departmentColourForCode,
+  missingStandardDepartments,
+} from "@/lib/departments/templates";
+import {
+  getApprovalReviewPageLock,
+  getApprovalsPageLock,
+} from "@/lib/events/page-access";
 import { getEventCapabilities } from "@/lib/events/permissions";
 import { makeEventAccess } from "@/test/fixtures";
 
@@ -123,6 +132,77 @@ describe("department panel", () => {
     expect(screen.getByText("Security")).toBeInTheDocument();
     expect(screen.getByText("Add custom department")).toBeInTheDocument();
     expect(screen.getByText("Standard department template")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add all missing standard departments" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Colour")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add" })).not.toBeInTheDocument();
+  });
+
+  it("shows stored colours as markers instead of editable hex controls", () => {
+    render(
+      <DepartmentsPanel
+        eventId="event-id"
+        departments={[{ ...department, colour: "#256f6c" }]}
+        canManage
+        readOnly={false}
+      />,
+    );
+
+    expect(screen.getByLabelText("Department colour")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("#256f6c")).not.toBeInTheDocument();
+  });
+
+  it("selects missing standard departments idempotently", () => {
+    const missing = missingStandardDepartments(["SEC", "food"]);
+
+    expect(missing.some((department) => department.code === "SEC")).toBe(false);
+    expect(missing.some((department) => department.code === "FOOD")).toBe(false);
+    expect(missing.some((department) => department.code === "WEL")).toBe(true);
+  });
+
+  it("assigns stable automatic colours from department codes", () => {
+    expect(departmentColourForCode("SEC", 13)).toBe(departmentColourForCode("sec", 13));
+    expect(departmentColourForCode("CUSTOM", 20)).toMatch(/^#[0-9a-f]{6}$/);
+  });
+});
+
+describe("locked page", () => {
+  it("allows treasurers through approval pages", () => {
+    const eventAccess = makeEventAccess({ roles: ["treasurer"] });
+
+    expect(getApprovalsPageLock(eventAccess)).toBeNull();
+    expect(getApprovalReviewPageLock(eventAccess)).toBeNull();
+  });
+
+  it("returns a clear treasurer-only lock for ordinary committee members", () => {
+    const eventAccess = makeEventAccess({ roles: ["committee_member"] });
+
+    expect(getApprovalsPageLock(eventAccess)).toMatchObject({
+      title: "Approvals are locked",
+      requiredRole: "Treasurer",
+      backHref: "/events/30000000-0000-0000-0000-000000000027/dashboard",
+    });
+    expect(getApprovalReviewPageLock(eventAccess)).toMatchObject({
+      title: "Approval review is locked",
+      requiredRole: "Treasurer",
+    });
+  });
+
+  it("explains role-restricted access without hiding event existence", () => {
+    render(
+      <LockedPage
+        title="Approvals are locked"
+        description="Approval queues are available to event treasurers only."
+        requiredRole="Treasurer"
+        backHref="/events/event-id/dashboard"
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Approvals are locked" })).toBeInTheDocument();
+    expect(screen.getByText("Required role: Treasurer")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to event" })).toHaveAttribute(
+      "href",
+      "/events/event-id/dashboard",
+    );
   });
 });
 

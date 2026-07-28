@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import {
   RequestDetailPanel,
@@ -117,6 +118,42 @@ function detail(overrides: Partial<RequestSummary> = {}): SpendingRequestDetail 
     request: request(overrides),
     allocations,
     components,
+    departments,
+  };
+}
+
+function simpleDetail(overrides: Partial<RequestSummary> = {}): SpendingRequestDetail {
+  const row = request(overrides);
+  return {
+    request: row,
+    allocations: [
+      {
+        id: "allocation-single",
+        event_id: "event-id",
+        revision_id: "revision-a",
+        department_id: row.primary_department_id ?? "dep-ae",
+        net_minor: row.net_minor ?? 0,
+        vat_minor: row.vat_minor ?? 0,
+        gross_minor: row.gross_minor ?? 0,
+      },
+    ],
+    components: [
+      {
+        id: "component-single",
+        event_id: "event-id",
+        revision_id: "revision-a",
+        sequence_number: 1,
+        code: "DMB_AE_1.1",
+        description: "Full payment",
+        expected_payment_date: row.expected_payment_date,
+        supplier_name: row.supplier_name,
+        net_minor: row.net_minor ?? 0,
+        vat_minor: row.vat_minor ?? 0,
+        gross_minor: row.gross_minor ?? 0,
+        vat_rate: row.vat_rate ?? null,
+        vat_treatment: row.vat_treatment ?? "unknown",
+      },
+    ],
     departments,
   };
 }
@@ -281,17 +318,61 @@ describe("Stage 5 spending request panels", () => {
     expect(screen.getByText("Submit for treasurer review")).toBeInTheDocument();
   });
 
-  it("renders draft editor fields for multi-department and component entry", () => {
-    render(<RequestEditor eventId="event-id" departments={departments} detail={detail()} />);
+  it("renders the simplified draft editor for a normal single-department request", () => {
+    render(<RequestEditor eventId="event-id" departments={departments} detail={simpleDetail()} />);
 
     expect(screen.getByText("Edit DMB_AE_1")).toBeInTheDocument();
     expect(screen.getByLabelText("Title")).toHaveValue("Lighting deposit");
-    expect(screen.getByText("Department allocations")).toBeInTheDocument();
-    expect(screen.getAllByText("Aesthetics").length).toBeGreaterThan(1);
-    expect(screen.getAllByText("Music").length).toBeGreaterThan(1);
+    expect(screen.getByLabelText("Department")).toHaveValue("dep-ae");
+    expect(screen.getByLabelText("Description")).toBeRequired();
+    expect(screen.queryByText("Department allocations")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Business justification")).not.toBeInTheDocument();
+    expect(screen.getByText("Payment Components")).toBeInTheDocument();
     expect(screen.getByText("Component 1")).toBeInTheDocument();
-    expect(screen.getByText("Component 3")).toBeInTheDocument();
-    expect(screen.getByText("Save draft")).toBeInTheDocument();
+    expect(screen.getByText("Fully allocated")).toBeInTheDocument();
+    expect(screen.getByText("Save Draft")).toBeInTheDocument();
+    expect(screen.getByText("Submit Request")).toBeInTheDocument();
+  });
+
+  it("preselects the default department when one active department membership is unambiguous", () => {
+    render(<RequestEditor eventId="event-id" departments={departments} defaultDepartmentId="dep-me" />);
+
+    expect(screen.getByLabelText("Department")).toHaveValue("dep-me");
+    expect(screen.queryByText("Select the department responsible for this request.")).not.toBeInTheDocument();
+  });
+
+  it("calculates VAT from gross with integer-safe displayed values", async () => {
+    const user = userEvent.setup();
+    render(<RequestEditor eventId="event-id" departments={departments} defaultDepartmentId="dep-ae" />);
+
+    await user.clear(screen.getByLabelText("Gross amount"));
+    await user.type(screen.getByLabelText("Gross amount"), "12000");
+    await user.click(screen.getByRole("button", { name: "Compute from Gross" }));
+
+    expect(screen.getByLabelText("Net amount")).toHaveValue("10000.00");
+    expect(screen.getByLabelText("VAT amount")).toHaveValue("2000.00");
+    expect(screen.getByLabelText("Gross amount")).toHaveValue("12000.00");
+  });
+
+  it("adds editable payment components and shows reconciliation status", async () => {
+    const user = userEvent.setup();
+    render(<RequestEditor eventId="event-id" departments={departments} detail={simpleDetail()} />);
+
+    await user.click(screen.getByRole("button", { name: "Add Component" }));
+
+    expect(screen.getByText("Component 2")).toBeInTheDocument();
+    expect(screen.getByText("Split Equally")).toBeInTheDocument();
+    expect(screen.getByText("50 / 50")).toBeInTheDocument();
+    expect(screen.getAllByText("Allocate Remaining")).toHaveLength(2);
+  });
+
+  it("prevents destructive editing of existing multi-department drafts", () => {
+    render(<RequestEditor eventId="event-id" departments={departments} detail={detail()} />);
+
+    expect(screen.getByText("Edit DMB_AE_1")).toBeInTheDocument();
+    expect(screen.getByText("This draft uses multiple department allocations.")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Title")).not.toBeInTheDocument();
+    expect(screen.getByText("Back to request")).toBeInTheDocument();
   });
 
   it("shows safe errors without raw database internals", () => {

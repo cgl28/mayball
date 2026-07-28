@@ -49,6 +49,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isProtectedPath =
+    request.nextUrl.pathname.startsWith("/app") ||
     request.nextUrl.pathname.startsWith("/events") ||
     request.nextUrl.pathname.startsWith("/invitations");
 

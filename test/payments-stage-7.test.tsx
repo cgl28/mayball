@@ -112,7 +112,7 @@ describe("Stage 7 payment panels", () => {
     expect(screen.getByText("Payments")).toBeInTheDocument();
     expect(screen.getByText("Record payment")).toBeInTheDocument();
     expect(screen.getAllByText("DMB_AE_3").length).toBeGreaterThan(0);
-    expect(screen.getByText("partially paid")).toBeInTheDocument();
+    expect(screen.getByText("Partially Paid")).toBeInTheDocument();
     expect(screen.getByText("PAY-2027-0001")).toBeInTheDocument();
   });
 

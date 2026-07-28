@@ -1,29 +1,24 @@
 import { AlertCircle, Plus } from "lucide-react";
-import { saveDepartmentAction } from "@/app/events/actions";
+import {
+  addTemplateDepartmentsAction,
+  saveDepartmentAction,
+} from "@/app/events/actions";
 import { Badge } from "@/components/ui/badge";
 import { SubmitButton } from "@/components/submit-button";
+import { missingStandardDepartments } from "@/lib/departments/templates";
 import type { Department } from "@/lib/events/governance";
 
-export const DEFAULT_DEPARTMENT_TEMPLATE = [
-  ["Aesthetics", "AE"],
-  ["Drinks", "DR"],
-  ["Food", "FOOD"],
-  ["Graphics", "GR"],
-  ["Insurance", "INS"],
-  ["Launch", "LA"],
-  ["Lawyers", "LAW"],
-  ["Logistics", "LOG"],
-  ["Musical Ents", "ME"],
-  ["Non-musical Ents", "NME"],
-  ["Personnel", "PER"],
-  ["Production", "PROD"],
-  ["Security", "SEC"],
-  ["Ticketing", "TIX"],
-  ["Web", "WEB"],
-  ["Welfare", "WEL"],
-] as const;
-
-function Message({ error, saved }: { error?: string; saved?: boolean }) {
+function Message({
+  error,
+  saved,
+  templateAdded,
+  templateExisting,
+}: {
+  error?: string;
+  saved?: boolean;
+  templateAdded?: number;
+  templateExisting?: number;
+}) {
   if (error) {
     return (
       <div role="alert" className="flex gap-2 rounded-md border border-destructive/40 p-3 text-sm text-destructive">
@@ -41,7 +36,34 @@ function Message({ error, saved }: { error?: string; saved?: boolean }) {
     );
   }
 
+  if (templateAdded !== undefined || templateExisting !== undefined) {
+    const added = templateAdded ?? 0;
+    const existing = templateExisting ?? 0;
+    return (
+      <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-950">
+        {added > 0
+          ? `${added} standard department${added === 1 ? "" : "s"} added.`
+          : "All standard departments already exist."}
+        {existing > 0 ? ` ${existing} existing department${existing === 1 ? " was" : "s were"} left unchanged.` : null}
+      </div>
+    );
+  }
+
   return null;
+}
+
+function ColourMarker({ colour }: { colour: string | null }) {
+  if (!colour) {
+    return null;
+  }
+
+  return (
+    <span
+      aria-label="Department colour"
+      className="h-5 w-5 rounded-full border border-slate-300"
+      style={{ backgroundColor: colour }}
+    />
+  );
 }
 
 function DepartmentForm({
@@ -85,16 +107,7 @@ function DepartmentForm({
           />
         </label>
       </div>
-      <div className="grid gap-3 md:grid-cols-[10rem_1fr]">
-        <label className="grid gap-1 text-sm">
-          <span className="font-medium">Colour</span>
-          <input
-            name="colour"
-            placeholder="#336699"
-            defaultValue={department?.colour ?? ""}
-            className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          />
-        </label>
+      <div className="grid gap-3">
         <label className="grid gap-1 text-sm">
           <span className="font-medium">Description</span>
           <input
@@ -132,6 +145,8 @@ export function DepartmentsPanel({
   readOnly,
   error,
   saved,
+  templateAdded,
+  templateExisting,
 }: {
   eventId: string;
   departments: Department[];
@@ -139,10 +154,11 @@ export function DepartmentsPanel({
   readOnly: boolean;
   error?: string;
   saved?: boolean;
+  templateAdded?: number;
+  templateExisting?: number;
 }) {
-  const existingCodes = new Set(departments.map((department) => department.code));
-  const remainingTemplate = DEFAULT_DEPARTMENT_TEMPLATE.filter(
-    ([, code]) => !existingCodes.has(code),
+  const remainingTemplate = missingStandardDepartments(
+    departments.map((department) => department.code),
   );
 
   return (
@@ -155,7 +171,12 @@ export function DepartmentsPanel({
         </p>
       </div>
 
-      <Message error={error} saved={saved} />
+      <Message
+        error={error}
+        saved={saved}
+        templateAdded={templateAdded}
+        templateExisting={templateExisting}
+      />
 
       {readOnly ? (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
@@ -181,7 +202,8 @@ export function DepartmentsPanel({
                     {department.description || "No description"}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <ColourMarker colour={department.colour} />
                   <Badge variant="outline">{department.code}</Badge>
                   <Badge variant={department.is_active ? "default" : "secondary"}>
                     {department.is_active ? "Active" : "Inactive"}
@@ -214,27 +236,17 @@ export function DepartmentsPanel({
         <section className="rounded-md border p-5">
           <h2 className="font-medium">Standard department template</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            These defaults come from the product specification and remain editable after creation.
+            Add every missing standard department at once. Existing and custom departments are left unchanged.
           </p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {remainingTemplate.map(([name, code], index) => (
-              <form key={code} action={saveDepartmentAction} className="rounded-md border p-3">
-                <input type="hidden" name="eventId" value={eventId} />
-                <input type="hidden" name="name" value={name} />
-                <input type="hidden" name="code" value={code} />
-                <input type="hidden" name="displayOrder" value={departments.length + index + 1} />
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-medium">{name}</p>
-                    <p className="text-xs text-muted-foreground">{code}</p>
-                  </div>
-                  <SubmitButton pendingLabel="Adding..." variant="outline">
-                    Add
-                  </SubmitButton>
-                </div>
-              </form>
-            ))}
-          </div>
+          <form action={addTemplateDepartmentsAction} className="mt-4">
+            <input type="hidden" name="eventId" value={eventId} />
+            <SubmitButton pendingLabel="Adding..." variant="outline">
+              Add all missing standard departments
+            </SubmitButton>
+          </form>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Missing: {remainingTemplate.map((department) => department.code).join(", ")}
+          </p>
         </section>
       ) : null}
     </div>

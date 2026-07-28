@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { AlertCircle, CheckCircle, Eye, FileText, Plus } from "lucide-react";
 import {
-  saveSpendingRequestDraftAction,
   submitSpendingRequestAction,
 } from "@/app/events/[eventId]/requests/actions";
 import { startVariationAction } from "@/app/events/[eventId]/approvals/actions";
 import { RequestDocumentsSection } from "@/components/documents-panel";
+import { SpendingRequestForm } from "@/components/spending-request-form";
+import { StatusBadge } from "@/components/status-badge";
 import { SubmitButton } from "@/components/submit-button";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type {
   RequestDepartment,
@@ -15,9 +15,7 @@ import type {
   RequestSummary,
   SpendingRequestDetail,
 } from "@/lib/requests/data";
-import { formatMinor, minorToInput, sumMinor } from "@/lib/money";
-
-const vatTreatments = ["standard", "reduced", "zero_rated", "exempt", "outside_scope", "unknown"] as const;
+import { formatMinor, sumMinor } from "@/lib/money";
 
 function formatLabel(value: string | null | undefined) {
   return value ? value.replaceAll("_", " ") : "Not set";
@@ -167,12 +165,10 @@ export function RequestsListPanel({
                     <td className="py-3 pr-4">{ownerName(request)}</td>
                     <td className="py-3 pr-4">{request.primary_department_code}</td>
                     <td className="py-3 pr-4 text-right">{formatMinor(request.gross_minor)}</td>
-                    <td className="py-3 pr-4"><Badge variant={request.approval_status === "draft" ? "secondary" : "default"}>{formatLabel(request.approval_status)}</Badge></td>
+                    <td className="py-3 pr-4"><StatusBadge kind="approval" status={request.approval_status} /></td>
                     <td className="py-3 pr-4">
                       {paymentByRequestId.get(request.request_id)?.payment_status ? (
-                        <Badge variant={paymentByRequestId.get(request.request_id)?.payment_status === "paid" ? "default" : "outline"}>
-                          {formatLabel(paymentByRequestId.get(request.request_id)?.payment_status)}
-                        </Badge>
+                        <StatusBadge kind="payment" status={paymentByRequestId.get(request.request_id)?.payment_status} />
                       ) : (
                         <span className="text-muted-foreground">Not applicable</span>
                       )}
@@ -251,7 +247,7 @@ export function RequestDetailPanel({
           <h1 className="text-2xl font-semibold tracking-normal">{request.title}</h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge variant={request.approval_status === "draft" ? "secondary" : "default"}>{formatLabel(request.approval_status)}</Badge>
+          <StatusBadge kind="approval" status={request.approval_status} />
           <Button asChild variant="outline"><Link href={`/events/${eventId}/requests`}>Back to requests</Link></Button>
         </div>
       </div>
@@ -354,17 +350,18 @@ export function RequestEditor({
   eventId,
   departments,
   detail,
+  defaultDepartmentId,
   error,
 }: {
   eventId: string;
   departments: RequestDepartment[];
   detail?: SpendingRequestDetail;
+  defaultDepartmentId?: string;
   error?: string;
 }) {
   const request = detail?.request;
-  const allocationByDepartment = new Map((detail?.allocations ?? []).map((allocation) => [allocation.department_id, allocation]));
-  const components = detail?.components ?? [];
   const editable = !request || request.approval_status === "draft";
+  const hasComplexDraftAllocations = Boolean(request && (detail?.allocations.length ?? 0) > 1);
 
   return (
     <div className="grid gap-6">
@@ -377,144 +374,19 @@ export function RequestEditor({
       <Message error={error} />
       {!editable ? (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">Submitted requests cannot be edited.</div>
-      ) : (
-        <form action={saveSpendingRequestDraftAction} className="grid gap-6">
-          <input type="hidden" name="eventId" value={eventId} />
-          {request?.request_id ? <input type="hidden" name="requestId" value={request.request_id} /> : null}
-          <section className="rounded-md border p-5">
-            <h2 className="font-medium">Request information</h2>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <Field name="title" label="Title" required defaultValue={request?.title ?? ""} />
-              <label className="grid gap-1 text-sm">
-                <span className="font-medium">Primary department</span>
-                <select name="primaryDepartmentId" required defaultValue={request?.primary_department_id ?? ""} className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-                  <option value="">Choose department</option>
-                  {departments.map((department) => <option key={department.id} value={department.id}>{department.name}</option>)}
-                </select>
-              </label>
-              <Field name="supplierName" label="Supplier or proposed supplier" defaultValue={request?.supplier_name ?? ""} />
-              <Field name="expectedPaymentDate" label="Expected payment date" type="date" defaultValue={request?.expected_payment_date ?? ""} />
-              <label className="grid gap-1 text-sm md:col-span-2">
-                <span className="font-medium">Description</span>
-                <textarea name="description" rows={3} defaultValue={request?.description ?? ""} className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-              </label>
-              <label className="grid gap-1 text-sm md:col-span-2">
-                <span className="font-medium">Business justification</span>
-                <textarea name="businessJustification" rows={3} defaultValue={request?.business_justification ?? ""} className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-              </label>
-              {request && (request.revision_number ?? 1) > 1 ? (
-                <label className="grid gap-1 text-sm md:col-span-2">
-                  <span className="font-medium">Change summary</span>
-                  <textarea name="changeSummary" rows={2} required defaultValue="" className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-                </label>
-              ) : null}
-            </div>
-          </section>
-
-          <section className="rounded-md border p-5">
-            <h2 className="font-medium">Totals and VAT</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Enter net plus VAT explicitly. The database requires net plus VAT to equal gross.</p>
-            <div className="mt-4 grid gap-4 md:grid-cols-4">
-              <Field name="net" label="Net" required defaultValue={minorToInput(request?.net_minor ?? 0)} />
-              <Field name="vat" label="VAT" required defaultValue={minorToInput(request?.vat_minor ?? 0)} />
-              <Field name="gross" label="Gross" required defaultValue={minorToInput(request?.gross_minor ?? 0)} />
-              <Field name="vatRate" label="VAT rate" defaultValue={request?.vat_rate?.toString() ?? ""} />
-              <Select name="vatTreatment" label="VAT treatment" defaultValue={request?.vat_treatment ?? "standard"} />
-              <label className="flex items-center gap-2 text-sm md:self-end">
-                <input name="vatRecoverable" type="checkbox" defaultChecked={request?.vat_recoverable ?? true} className="h-4 w-4 rounded border" />
-                <span>VAT recoverable</span>
-              </label>
-            </div>
-          </section>
-
-          <section className="rounded-md border p-5">
-            <h2 className="font-medium">Department allocations</h2>
-            <div className="mt-4 grid gap-3">
-              {departments.map((department) => {
-                const allocation = allocationByDepartment.get(department.id);
-                return (
-                  <div key={department.id} className="grid gap-3 rounded-md border p-3 md:grid-cols-[1fr_9rem_9rem_9rem] md:items-end">
-                    <input type="hidden" name="departmentId" value={department.id} />
-                    <p className="text-sm font-medium">{department.name} <span className="text-muted-foreground">{department.code}</span></p>
-                    <Field name={`allocationNet_${department.id}`} label="Net" defaultValue={minorToInput(allocation?.net_minor ?? 0)} />
-                    <Field name={`allocationVat_${department.id}`} label="VAT" defaultValue={minorToInput(allocation?.vat_minor ?? 0)} />
-                    <Field name={`allocationGross_${department.id}`} label="Gross" defaultValue={minorToInput(allocation?.gross_minor ?? 0)} />
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          <section className="rounded-md border p-5">
-            <h2 className="font-medium">Components</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Use one row for a simple request or multiple rows for instalments.</p>
-            <div className="mt-4 grid gap-4">
-              {[1, 2, 3].map((sequence) => {
-                const component = components.find((item) => item.sequence_number === sequence);
-                return (
-                  <div key={sequence} className="rounded-md border p-3">
-                    <p className="text-sm font-medium">Component {sequence}</p>
-                    <div className="mt-3 grid gap-3 md:grid-cols-3">
-                      <Field name={`componentDescription_${sequence}`} label="Description" defaultValue={component?.description ?? (sequence === 1 ? request?.title ?? "" : "")} />
-                      <Field name={`componentSupplier_${sequence}`} label="Supplier" defaultValue={component?.supplier_name ?? request?.supplier_name ?? ""} />
-                      <Field name={`componentDate_${sequence}`} label="Expected date" type="date" defaultValue={component?.expected_payment_date ?? request?.expected_payment_date ?? ""} />
-                      <Field name={`componentNet_${sequence}`} label="Net" defaultValue={minorToInput(component?.net_minor ?? (sequence === 1 ? request?.net_minor ?? 0 : 0))} />
-                      <Field name={`componentVat_${sequence}`} label="VAT" defaultValue={minorToInput(component?.vat_minor ?? (sequence === 1 ? request?.vat_minor ?? 0 : 0))} />
-                      <Field name={`componentGross_${sequence}`} label="Gross" defaultValue={minorToInput(component?.gross_minor ?? (sequence === 1 ? request?.gross_minor ?? 0 : 0))} />
-                      <Field name={`componentVatRate_${sequence}`} label="VAT rate" defaultValue={component?.vat_rate?.toString() ?? request?.vat_rate?.toString() ?? ""} />
-                      <Select name={`componentVatTreatment_${sequence}`} label="VAT treatment" defaultValue={component?.vat_treatment ?? request?.vat_treatment ?? "standard"} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-          <div className="flex flex-wrap gap-2">
-            <SubmitButton pendingLabel="Saving draft...">Save draft</SubmitButton>
-            <Button asChild variant="outline"><Link href={request?.request_id ? `/events/${eventId}/requests/${request.request_id}` : `/events/${eventId}/requests`}>Cancel</Link></Button>
+      ) : hasComplexDraftAllocations ? (
+        <div className="grid gap-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <p className="font-medium">This draft uses multiple department allocations.</p>
+          <p>
+            The simplified editor now creates one allocation for the selected department. To avoid silently collapsing existing allocation data, this draft remains read-only in the editor.
+          </p>
+          <div>
+            <Button asChild variant="outline"><Link href={`/events/${eventId}/requests/${request?.request_id}`}>Back to request</Link></Button>
           </div>
-        </form>
+        </div>
+      ) : (
+        <SpendingRequestForm eventId={eventId} departments={departments} detail={detail} defaultDepartmentId={defaultDepartmentId} />
       )}
     </div>
-  );
-}
-
-function Field({
-  name,
-  label,
-  type = "text",
-  required,
-  defaultValue,
-}: {
-  name: string;
-  label: string;
-  type?: string;
-  required?: boolean;
-  defaultValue?: string;
-}) {
-  return (
-    <label className="grid gap-1 text-sm">
-      <span className="font-medium">{label}</span>
-      <input name={name} type={type} required={required} defaultValue={defaultValue} min={type === "number" ? "0" : undefined} className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-    </label>
-  );
-}
-
-function Select({
-  name,
-  label,
-  defaultValue,
-}: {
-  name: string;
-  label: string;
-  defaultValue: string;
-}) {
-  return (
-    <label className="grid gap-1 text-sm">
-      <span className="font-medium">{label}</span>
-      <select name={name} defaultValue={defaultValue} className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-        {vatTreatments.map((value) => <option key={value} value={value}>{formatLabel(value)}</option>)}
-      </select>
-    </label>
   );
 }

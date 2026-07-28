@@ -1,9 +1,13 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { ApprovalReviewPanel } from "@/components/approvals-panel";
+import { LockedPage } from "@/components/locked-page";
 import { getApprovalReviewData } from "@/lib/approvals/data";
 import { getAuthenticatedSession } from "@/lib/auth/session";
 import { getEventAccess } from "@/lib/events/access";
+import {
+  getApprovalReviewPageLock,
+} from "@/lib/events/page-access";
 import { getEventCapabilities } from "@/lib/events/permissions";
 
 export default async function ApprovalReviewPage({
@@ -24,8 +28,19 @@ export default async function ApprovalReviewPage({
   }
   if (!eventAccess) notFound();
 
+  const lock = getApprovalReviewPageLock(eventAccess);
+  if (lock) {
+    return (
+      <LockedPage
+        title={lock.title}
+        description={lock.description}
+        requiredRole={lock.requiredRole}
+        backHref={lock.backHref}
+      />
+    );
+  }
+
   const capabilities = getEventCapabilities(eventAccess);
-  if (!capabilities.isTreasurer) notFound();
 
   const review = await getApprovalReviewData(session.supabase, eventId, requestId);
   if (review.error) {

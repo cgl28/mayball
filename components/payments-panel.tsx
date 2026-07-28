@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AlertCircle, CheckCircle, CreditCard, History, RotateCcw } from "lucide-react";
 import { recordPaymentAction, reversePaymentAction } from "@/app/events/[eventId]/payments/actions";
+import { StatusBadge } from "@/components/status-badge";
 import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,11 +63,6 @@ function ReadOnlyNotice() {
       This historical event is read-only. Payment records are shown for reference.
     </div>
   );
-}
-
-function PaymentStatusBadge({ status }: { status: string | null | undefined }) {
-  const variant = status === "paid" ? "default" : status === "partially_paid" ? "secondary" : "outline";
-  return <Badge variant={variant}>{label(status)}</Badge>;
 }
 
 export function PaymentsPanel({
@@ -153,7 +149,7 @@ export function PaymentsPanel({
                     <td className="py-3 pr-4 text-right">{formatMinor(position.approved_gross_minor)}</td>
                     <td className="py-3 pr-4 text-right">{formatMinor(position.paid_gross_minor)}</td>
                     <td className="py-3 pr-4 text-right">{formatMinor(position.outstanding_gross_minor)}</td>
-                    <td className="py-3 pr-4"><PaymentStatusBadge status={position.payment_status} /></td>
+                    <td className="py-3 pr-4"><StatusBadge kind="payment" status={position.payment_status} /></td>
                     <td className="py-3">
                       <div className="flex flex-wrap gap-2">
                         <Button asChild variant="outline" size="sm"><Link href={`/events/${eventId}/requests/${position.request_id}/payments`}>History</Link></Button>
@@ -411,7 +407,7 @@ export function RequestPaymentsPanel({
           <h1 className="text-2xl font-semibold tracking-normal">Request payments</h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          <PaymentStatusBadge status={position.payment_status} />
+          <StatusBadge kind="payment" status={position.payment_status} />
           <Button asChild variant="outline"><Link href={`/events/${eventId}/requests/${requestId}`}>Back to request</Link></Button>
           {canManage && Number(position.outstanding_gross_minor ?? 0) > 0 ? <Button asChild><Link href={`/events/${eventId}/requests/${requestId}/payments/new`}>Record payment</Link></Button> : null}
         </div>
@@ -433,7 +429,7 @@ export function RequestPaymentsPanel({
             <div key={component.request_component_id} className="rounded-md border p-3 text-sm">
               <div className="flex flex-wrap justify-between gap-3">
                 <p className="font-medium">{component.component_code}: {component.description}</p>
-                <PaymentStatusBadge status={component.payment_status} />
+                <StatusBadge kind="payment" status={component.payment_status} />
               </div>
               <p className="mt-1 text-muted-foreground">Approved {formatMinor(component.approved_gross_minor)}; paid {formatMinor(component.paid_gross_minor)}; outstanding {formatMinor(component.outstanding_gross_minor)}</p>
             </div>

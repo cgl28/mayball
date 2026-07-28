@@ -9,12 +9,12 @@ describe("return path safety", () => {
   });
 
   it("rejects external and protocol-relative paths", () => {
-    expect(sanitizeReturnPath("https://example.com/events")).toBe("/events");
-    expect(sanitizeReturnPath("//example.com/events")).toBe("/events");
+    expect(sanitizeReturnPath("https://example.com/events")).toBe("/app");
+    expect(sanitizeReturnPath("//example.com/events")).toBe("/app");
   });
 
   it("avoids redirecting back to login", () => {
-    expect(sanitizeReturnPath("/auth/login?returnTo=/events")).toBe("/events");
+    expect(sanitizeReturnPath("/auth/login?returnTo=/events")).toBe("/app");
   });
 
   it("builds encoded login redirects for protected routes", () => {
