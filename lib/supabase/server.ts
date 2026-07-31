@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { getPublicEnv } from "@/lib/env";
+import { instrumentSupabaseClient, isPerfTraceEnabled } from "@/lib/perf/trace";
 import type { Database } from "@/src/types/database.generated";
 
 /**
@@ -10,9 +12,10 @@ import type { Database } from "@/src/types/database.generated";
  */
 export async function createClient() {
   const cookieStore = await cookies();
+  const headerStore = await headers();
   const { supabaseUrl, supabasePublishableKey } = getPublicEnv();
 
-  return createServerClient<Database>(
+  const supabase = createServerClient<Database>(
     supabaseUrl,
     supabasePublishableKey,
     {
@@ -33,5 +36,14 @@ export async function createClient() {
         },
       },
     },
+  );
+
+  if (!isPerfTraceEnabled()) {
+    return supabase;
+  }
+
+  return instrumentSupabaseClient(
+    supabase,
+    headerStore.get("x-mbf-route") ?? headerStore.get("next-url") ?? "unknown",
   );
 }

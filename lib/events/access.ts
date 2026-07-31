@@ -1,4 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { cache } from "react";
+import { headers } from "next/headers";
+import { traceAsync } from "@/lib/perf/trace";
 import type {
   Database,
   Enums,
@@ -81,96 +84,101 @@ function unique<T>(values: T[]) {
   return [...new Set(values)];
 }
 
-export async function getVisibleEventAccess(
+export const getVisibleEventAccess = cache(async function getVisibleEventAccess(
   supabase: SupabaseClient<Database>,
   userId: string,
 ) {
-  const { data: events, error: eventsError } = await supabase
-    .from("events")
-    .select("id,name,event_year,event_date,planning_start_date,status,organisation_id,code,completed_at,archived_at,reopened_at")
-    .order("event_year", { ascending: false })
-    .order("name", { ascending: true });
+  const headerStore = await headers();
+  const route = headerStore.get("x-mbf-route") ?? headerStore.get("next-url") ?? "unknown";
 
-  if (eventsError) {
-    return { data: null, error: eventsError };
-  }
+  return traceAsync({ route, name: "cache.execute", target: "getVisibleEventAccess" }, async () => {
+    const { data: events, error: eventsError } = await supabase
+      .from("events")
+      .select("id,name,event_year,event_date,planning_start_date,status,organisation_id,code,completed_at,archived_at,reopened_at")
+      .order("event_year", { ascending: false })
+      .order("name", { ascending: true });
 
-  if (!events || events.length === 0) {
-    return { data: [] satisfies EventAccess[], error: null };
-  }
+    if (eventsError) {
+      return { data: null, error: eventsError };
+    }
 
-  const eventIds = events.map((event) => event.id);
-  const organisationIds = unique(events.map((event) => event.organisation_id));
+    if (!events || events.length === 0) {
+      return { data: [] satisfies EventAccess[], error: null };
+    }
 
-  const [
-    { data: organisations, error: organisationsError },
-    { data: memberships, error: membershipsError },
-  ] = await Promise.all([
-    supabase
-      .from("organisations")
-      .select("id,name,legal_name,slug")
-      .in("id", organisationIds),
-    supabase
-      .from("event_members")
-      .select("id,event_id,status,user_id")
-      .eq("user_id", userId)
-      .in("event_id", eventIds),
-  ]);
+    const eventIds = events.map((event) => event.id);
+    const organisationIds = unique(events.map((event) => event.organisation_id));
 
-  if (organisationsError) {
-    return { data: null, error: organisationsError };
-  }
-  if (membershipsError) {
-    return { data: null, error: membershipsError };
-  }
+    const [
+      { data: organisations, error: organisationsError },
+      { data: memberships, error: membershipsError },
+    ] = await Promise.all([
+      supabase
+        .from("organisations")
+        .select("id,name,legal_name,slug")
+        .in("id", organisationIds),
+      supabase
+        .from("event_members")
+        .select("id,event_id,status,user_id")
+        .eq("user_id", userId)
+        .in("event_id", eventIds),
+    ]);
 
-  const activeMemberships = (memberships ?? []).filter(
-    (membership) => membership.status === "active",
-  );
-  const membershipIds = activeMemberships.map((membership) => membership.id);
-  const { data: roleRows, error: rolesError } = membershipIds.length
-    ? await supabase
-        .from("event_member_roles")
-        .select("event_id,event_member_id,role")
-        .in("event_member_id", membershipIds)
-    : { data: [], error: null };
+    if (organisationsError) {
+      return { data: null, error: organisationsError };
+    }
+    if (membershipsError) {
+      return { data: null, error: membershipsError };
+    }
 
-  if (rolesError) {
-    return { data: null, error: rolesError };
-  }
+    const activeMemberships = (memberships ?? []).filter(
+      (membership) => membership.status === "active",
+    );
+    const membershipIds = activeMemberships.map((membership) => membership.id);
+    const { data: roleRows, error: rolesError } = membershipIds.length
+      ? await supabase
+          .from("event_member_roles")
+          .select("event_id,event_member_id,role")
+          .in("event_member_id", membershipIds)
+      : { data: [], error: null };
 
-  const organisationsById = new Map(
-    (organisations ?? []).map((organisation) => [organisation.id, organisation]),
-  );
-  const membershipsByEventId = new Map(
-    activeMemberships.map((membership) => [membership.event_id, membership]),
-  );
-  const rolesByEventId = new Map<string, EventRole[]>();
+    if (rolesError) {
+      return { data: null, error: rolesError };
+    }
 
-  for (const roleRow of roleRows ?? []) {
-    const roles = rolesByEventId.get(roleRow.event_id) ?? [];
-    roles.push(roleRow.role);
-    rolesByEventId.set(roleRow.event_id, roles);
-  }
+    const organisationsById = new Map(
+      (organisations ?? []).map((organisation) => [organisation.id, organisation]),
+    );
+    const membershipsByEventId = new Map(
+      activeMemberships.map((membership) => [membership.event_id, membership]),
+    );
+    const rolesByEventId = new Map<string, EventRole[]>();
 
-  const data: EventAccess[] = events.map((event) => {
-    const membership = membershipsByEventId.get(event.id) ?? null;
-    const roles = rolesByEventId.get(event.id) ?? [];
+    for (const roleRow of roleRows ?? []) {
+      const roles = rolesByEventId.get(roleRow.event_id) ?? [];
+      roles.push(roleRow.role);
+      rolesByEventId.set(roleRow.event_id, roles);
+    }
 
-    return {
-      event,
-      organisation: organisationsById.get(event.organisation_id) ?? null,
-      membership,
-      roles,
-      accessMode: getEventAccessMode(event, membership),
-      isReadOnly: isEventReadOnly(event, roles, membership),
-    };
+    const data: EventAccess[] = events.map((event) => {
+      const membership = membershipsByEventId.get(event.id) ?? null;
+      const roles = rolesByEventId.get(event.id) ?? [];
+
+      return {
+        event,
+        organisation: organisationsById.get(event.organisation_id) ?? null,
+        membership,
+        roles,
+        accessMode: getEventAccessMode(event, membership),
+        isReadOnly: isEventReadOnly(event, roles, membership),
+      };
+    });
+
+    return { data, error: null };
   });
+});
 
-  return { data, error: null };
-}
-
-export async function getEventAccess(
+export const getEventAccess = cache(async function getEventAccess(
   supabase: SupabaseClient<Database>,
   userId: string,
   eventId: string,
@@ -185,4 +193,4 @@ export async function getEventAccess(
     data: result.data?.find((eventAccess) => eventAccess.event.id === eventId) ?? null,
     error: null,
   };
-}
+});
