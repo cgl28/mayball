@@ -31,6 +31,7 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   locked?: boolean;
   lockedLabel?: string;
+  prefetch?: boolean;
 };
 
 const baseItems: NavItem[] = [
@@ -48,23 +49,24 @@ function eventNavItems(eventAccess: EventAccess): NavItem[] {
   const capabilities = getEventCapabilities(eventAccess);
 
   return [
-    { href: `/events/${eventId}/dashboard`, label: "Dashboard", icon: LayoutDashboard },
-    { href: `/events/${eventId}/committee`, label: "Committee", icon: Users },
-    { href: `/events/${eventId}/departments`, label: "Departments", icon: Users },
-    { href: `/events/${eventId}/budget`, label: "Budget", icon: Banknote },
-    { href: `/events/${eventId}/revenue`, label: "Revenue", icon: BarChart3 },
-    { href: `/events/${eventId}/finances`, label: "Finances", icon: ReceiptText },
-    { href: `/events/${eventId}/requests`, label: "Requests", icon: FileText },
+    { href: `/events/${eventId}/dashboard`, label: "Dashboard", icon: LayoutDashboard, prefetch: false },
+    { href: `/events/${eventId}/committee`, label: "Committee", icon: Users, prefetch: false },
+    { href: `/events/${eventId}/departments`, label: "Departments", icon: Users, prefetch: false },
+    { href: `/events/${eventId}/budget`, label: "Budget", icon: Banknote, prefetch: false },
+    { href: `/events/${eventId}/revenue`, label: "Revenue", icon: BarChart3, prefetch: false },
+    { href: `/events/${eventId}/finances`, label: "Finances", icon: ReceiptText, prefetch: false },
+    { href: `/events/${eventId}/requests`, label: "Requests", icon: FileText, prefetch: false },
     {
       href: `/events/${eventId}/approvals`,
       label: "Approvals",
       icon: Receipt,
       locked: !capabilities.canManageFinance,
       lockedLabel: "Approvals require the Treasurer role",
+      prefetch: false,
     },
-    { href: `/events/${eventId}/payments`, label: "Payments", icon: CreditCard },
-    { href: `/events/${eventId}/settings/lifecycle`, label: "Lifecycle", icon: CalendarClock },
-    { href: `/events/${eventId}/settings`, label: "Settings", icon: Settings },
+    { href: `/events/${eventId}/payments`, label: "Payments", icon: CreditCard, prefetch: false },
+    { href: `/events/${eventId}/settings/lifecycle`, label: "Lifecycle", icon: CalendarClock, prefetch: false },
+    { href: `/events/${eventId}/settings`, label: "Settings", icon: Settings, prefetch: false },
   ];
 }
 
@@ -80,6 +82,7 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   return (
     <Link
       href={item.href}
+      prefetch={item.prefetch}
       aria-current={active ? "page" : undefined}
       className={cn(
         "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--marketing-brand))]",

@@ -95,23 +95,21 @@ export async function getFinancesData(
     null;
 
   const requests = requestsResult.data ?? [];
-  const revisionIds = requests
-    .map((request) => request.revision_id)
-    .filter((value): value is string => Boolean(value));
+  const selectedDepartmentId = selectedDepartment?.department_id;
 
-  const allocationsResult = revisionIds.length
+  const allocationsResult = selectedDepartmentId
     ? await supabase
         .from("spending_request_department_allocations")
         .select("department_id,revision_id,net_minor,vat_minor,gross_minor")
-        .in("revision_id", revisionIds)
+        .eq("event_id", eventId)
+        .eq("department_id", selectedDepartmentId)
     : { data: [] as AllocationRow[], error: null };
 
   if (allocationsResult.error) return { data: null, error: "Department request allocations could not be loaded." };
 
-  const selectedDepartmentId = selectedDepartment?.department_id;
   const paymentByRequestId = new Map((paymentsResult.data ?? []).map((payment) => [payment.request_id, payment]));
   const requestsByRevisionId = new Map(requests.map((request) => [request.revision_id, request]));
-  const selectedAllocations = (allocationsResult.data ?? []).filter((allocation) => allocation.department_id === selectedDepartmentId);
+  const selectedAllocations = allocationsResult.data ?? [];
 
   const rows = selectedAllocations.reduce<DepartmentFinanceRequest[]>((acc, allocation) => {
       const request = requestsByRevisionId.get(allocation.revision_id);

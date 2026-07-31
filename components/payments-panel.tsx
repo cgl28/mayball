@@ -10,6 +10,7 @@ import type {
   PaymentAllocationDetail,
   PaymentDetailData,
   PaymentFormData,
+  PaymentListRow,
   PaymentsData,
   RequestPaymentPosition,
 } from "@/lib/payments/data";
@@ -27,6 +28,28 @@ function date(value: string | null | undefined) {
 
 function dateTime(value: string | null | undefined) {
   return value ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "Not set";
+}
+
+function paymentsHref(
+  eventId: string,
+  params: {
+    status?: string;
+    search?: string;
+    page?: number;
+    pageSize?: number;
+    requestPage?: number;
+    requestPageSize?: number;
+  } = {},
+) {
+  const query = new URLSearchParams();
+  if (params.status) query.set("status", params.status);
+  if (params.search?.trim()) query.set("q", params.search.trim());
+  if (params.page && params.page > 1) query.set("page", String(params.page));
+  if (params.pageSize && params.pageSize !== 25) query.set("pageSize", String(params.pageSize));
+  if (params.requestPage && params.requestPage > 1) query.set("requestPage", String(params.requestPage));
+  if (params.requestPageSize && params.requestPageSize !== 25) query.set("requestPageSize", String(params.requestPageSize));
+  const suffix = query.toString();
+  return `/events/${eventId}/payments${suffix ? `?${suffix}` : ""}`;
 }
 
 function Message({
@@ -72,6 +95,8 @@ export function PaymentsPanel({
   readOnly,
   recorded,
   error,
+  status,
+  search,
 }: {
   eventId: string;
   data: PaymentsData;
@@ -79,8 +104,15 @@ export function PaymentsPanel({
   readOnly: boolean;
   recorded?: boolean;
   error?: string;
+  status?: string;
+  search?: string;
 }) {
-  const payableCount = data.componentPositions.filter((component) => Number(component.outstanding_gross_minor ?? 0) > 0).length;
+  const requestPage = data.requestPage ?? 1;
+  const requestPageSize = data.requestPageSize ?? 25;
+  const requestCount = data.requestCount ?? data.requestPositions.length;
+  const requestTotalPages = Math.max(1, Math.ceil(requestCount / requestPageSize));
+  const hasPreviousRequests = requestPage > 1;
+  const hasNextRequests = requestPage < requestTotalPages;
 
   return (
     <div className="grid gap-6">
@@ -119,99 +151,191 @@ export function PaymentsPanel({
         </div>
         <div className="rounded-md border p-4">
           <p className="text-sm text-muted-foreground">Payable components</p>
-          <p className="mt-1 text-xl font-semibold">{payableCount}</p>
+          <p className="mt-1 text-xl font-semibold">{data.payableComponentCount ?? data.componentPositions?.filter((component) => Number(component.outstanding_gross_minor ?? 0) > 0).length ?? 0}</p>
         </div>
       </section>
 
       <section className="rounded-md border p-5">
         <h2 className="font-medium">Approved request positions</h2>
-        {data.requestPositions.length === 0 ? (
+        {requestCount === 0 ? (
           <p className="mt-4 rounded-md border border-dashed p-4 text-sm text-muted-foreground">
             No approved requests are currently visible for payment tracking.
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[60rem] text-left text-sm">
-              <thead className="border-b text-muted-foreground">
-                <tr>
-                  <th className="py-2 pr-4 font-medium">Request</th>
-                  <th className="py-2 pr-4 text-right font-medium">Approved</th>
-                  <th className="py-2 pr-4 text-right font-medium">Paid</th>
-                  <th className="py-2 pr-4 text-right font-medium">Outstanding</th>
-                  <th className="py-2 pr-4 font-medium">Status</th>
-                  <th className="py-2 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.requestPositions.map((position) => (
-                  <tr key={position.request_id} className="border-b last:border-b-0">
-                    <td className="py-3 pr-4 font-medium">{position.code}</td>
-                    <td className="py-3 pr-4 text-right">{formatMinor(position.approved_gross_minor)}</td>
-                    <td className="py-3 pr-4 text-right">{formatMinor(position.paid_gross_minor)}</td>
-                    <td className="py-3 pr-4 text-right">{formatMinor(position.outstanding_gross_minor)}</td>
-                    <td className="py-3 pr-4"><StatusBadge kind="payment" status={position.payment_status} /></td>
-                    <td className="py-3">
-                      <div className="flex flex-wrap gap-2">
-                        <Button asChild variant="outline" size="sm"><Link href={`/events/${eventId}/requests/${position.request_id}/payments`}>History</Link></Button>
-                        {canManage && Number(position.outstanding_gross_minor ?? 0) > 0 ? (
-                          <Button asChild variant="outline" size="sm"><Link href={`/events/${eventId}/requests/${position.request_id}/payments/new`}>Pay</Link></Button>
-                        ) : null}
-                      </div>
-                    </td>
+          <div className="mt-4 grid gap-4">
+            <p className="text-sm text-muted-foreground">
+              Showing {data.requestPositions.length} of {requestCount} approved request positions. Page {requestPage} of {requestTotalPages}.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[60rem] text-left text-sm">
+                <thead className="border-b text-muted-foreground">
+                  <tr>
+                    <th className="py-2 pr-4 font-medium">Request</th>
+                    <th className="py-2 pr-4 text-right font-medium">Approved</th>
+                    <th className="py-2 pr-4 text-right font-medium">Paid</th>
+                    <th className="py-2 pr-4 text-right font-medium">Outstanding</th>
+                    <th className="py-2 pr-4 font-medium">Status</th>
+                    <th className="py-2 font-medium">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.requestPositions.map((position) => (
+                    <tr key={position.request_id} className="border-b last:border-b-0">
+                      <td className="py-3 pr-4 font-medium">{position.code}</td>
+                      <td className="py-3 pr-4 text-right">{formatMinor(position.approved_gross_minor)}</td>
+                      <td className="py-3 pr-4 text-right">{formatMinor(position.paid_gross_minor)}</td>
+                      <td className="py-3 pr-4 text-right">{formatMinor(position.outstanding_gross_minor)}</td>
+                      <td className="py-3 pr-4"><StatusBadge kind="payment" status={position.payment_status} /></td>
+                      <td className="py-3">
+                        <div className="flex flex-wrap gap-2">
+                          <Button asChild variant="outline" size="sm"><Link href={`/events/${eventId}/requests/${position.request_id}/payments`}>History</Link></Button>
+                          {canManage && Number(position.outstanding_gross_minor ?? 0) > 0 ? (
+                            <Button asChild variant="outline" size="sm"><Link href={`/events/${eventId}/requests/${position.request_id}/payments/new`}>Pay</Link></Button>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Button asChild variant="outline" size="sm" aria-disabled={!hasPreviousRequests}>
+                <Link
+                  aria-disabled={!hasPreviousRequests}
+                  tabIndex={hasPreviousRequests ? undefined : -1}
+                  href={hasPreviousRequests ? paymentsHref(eventId, { status, search, requestPage: requestPage - 1, requestPageSize, page: data.page, pageSize: data.pageSize }) : paymentsHref(eventId, { status, search, requestPage, requestPageSize, page: data.page, pageSize: data.pageSize })}
+                >
+                  Previous
+                </Link>
+              </Button>
+              <span className="text-sm text-muted-foreground">Page {requestPage} of {requestTotalPages}</span>
+              <Button asChild variant="outline" size="sm" aria-disabled={!hasNextRequests}>
+                <Link
+                  aria-disabled={!hasNextRequests}
+                  tabIndex={hasNextRequests ? undefined : -1}
+                  href={hasNextRequests ? paymentsHref(eventId, { status, search, requestPage: requestPage + 1, requestPageSize, page: data.page, pageSize: data.pageSize }) : paymentsHref(eventId, { status, search, requestPage, requestPageSize, page: data.page, pageSize: data.pageSize })}
+                >
+                  Next
+                </Link>
+              </Button>
+            </div>
           </div>
         )}
       </section>
 
-      <PaymentHistory eventId={eventId} payments={data.payments} />
+      <PaymentHistory eventId={eventId} payments={data.payments} page={data.page ?? 1} pageSize={data.pageSize ?? 25} count={data.count ?? data.payments.length} status={status} search={search} />
     </div>
   );
 }
 
-function PaymentHistory({ eventId, payments }: { eventId: string; payments: PaymentDetailData["payment"][] }) {
+function PaymentHistory({
+  eventId,
+  payments,
+  page,
+  pageSize,
+  count,
+  status,
+  search,
+}: {
+  eventId: string;
+  payments: PaymentListRow[];
+  page: number;
+  pageSize: number;
+  count: number;
+  status?: string;
+  search?: string;
+}) {
+  const totalPages = Math.max(1, Math.ceil(count / pageSize));
+  const hasPrevious = page > 1;
+  const hasNext = page < totalPages;
+
   return (
     <section className="rounded-md border p-5">
       <h2 className="flex items-center gap-2 font-medium">
         <History className="h-4 w-4" aria-hidden="true" />
         Payment history
       </h2>
-      {payments.length === 0 ? (
+      <form action={`/events/${eventId}/payments`} className="mt-4 flex max-w-xl flex-col gap-2 sm:flex-row">
+        {status ? <input type="hidden" name="status" value={status} /> : null}
+        <label className="grid flex-1 gap-1 text-sm">
+          <span className="sr-only">Search payment history</span>
+          <input
+            type="search"
+            name="q"
+            defaultValue={search ?? ""}
+            placeholder="Search reference, payee or bank reference"
+            className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          />
+        </label>
+        <Button type="submit" variant="outline" size="sm">Search</Button>
+        {search ? <Button asChild variant="ghost" size="sm"><Link href={paymentsHref(eventId, { status })}>Clear</Link></Button> : null}
+      </form>
+      <div className="mt-3 flex flex-wrap gap-2 text-sm">
+        <Button asChild variant={!status ? "default" : "outline"} size="sm"><Link href={paymentsHref(eventId, { search })}>All payments</Link></Button>
+        <Button asChild variant={status === "recorded" ? "default" : "outline"} size="sm"><Link href={paymentsHref(eventId, { status: "recorded", search })}>Recorded</Link></Button>
+        <Button asChild variant={status === "reversed" ? "default" : "outline"} size="sm"><Link href={paymentsHref(eventId, { status: "reversed", search })}>Reversed</Link></Button>
+      </div>
+      {count === 0 ? (
         <p className="mt-4 rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-          No payments have been recorded for this event.
+          {status || search ? "No payments match those filters." : "No payments have been recorded for this event."}
         </p>
       ) : (
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[62rem] text-left text-sm">
-            <thead className="border-b text-muted-foreground">
-              <tr>
-                <th className="py-2 pr-4 font-medium">Reference</th>
-                <th className="py-2 pr-4 font-medium">Date</th>
-                <th className="py-2 pr-4 font-medium">Payee</th>
-                <th className="py-2 pr-4 text-right font-medium">Gross</th>
-                <th className="py-2 pr-4 font-medium">Requests</th>
-                <th className="py-2 pr-4 font-medium">Status</th>
-                <th className="py-2 font-medium">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((payment) => (
-                <tr key={payment.payment_id} className="border-b last:border-b-0">
-                  <td className="py-3 pr-4 font-medium">{payment.code}</td>
-                  <td className="py-3 pr-4">{date(payment.payment_date)}</td>
-                  <td className="py-3 pr-4">{payment.payee}</td>
-                  <td className="py-3 pr-4 text-right">{formatMinor(payment.gross_minor)}</td>
-                  <td className="py-3 pr-4">{payment.request_codes ?? "Not allocated"}</td>
-                  <td className="py-3 pr-4"><Badge variant={payment.status === "reversed" ? "secondary" : "default"}>{label(payment.status)}</Badge></td>
-                  <td className="py-3">
-                    <Button asChild variant="outline" size="sm"><Link href={`/events/${eventId}/payments/${payment.payment_id}`}>Open</Link></Button>
-                  </td>
+        <div className="grid gap-4">
+          <p className="text-sm text-muted-foreground">
+            Showing {payments.length} of {count} payments. Page {page} of {totalPages}.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[62rem] text-left text-sm">
+              <thead className="border-b text-muted-foreground">
+                <tr>
+                  <th className="py-2 pr-4 font-medium">Reference</th>
+                  <th className="py-2 pr-4 font-medium">Date</th>
+                  <th className="py-2 pr-4 font-medium">Payee</th>
+                  <th className="py-2 pr-4 text-right font-medium">Gross</th>
+                  <th className="py-2 pr-4 font-medium">Requests</th>
+                  <th className="py-2 pr-4 font-medium">Status</th>
+                  <th className="py-2 font-medium">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {payments.map((payment) => (
+                  <tr key={payment.payment_id} className="border-b last:border-b-0">
+                    <td className="py-3 pr-4 font-medium">{payment.code}</td>
+                    <td className="py-3 pr-4">{date(payment.payment_date)}</td>
+                    <td className="py-3 pr-4">{payment.payee}</td>
+                    <td className="py-3 pr-4 text-right">{formatMinor(payment.gross_minor)}</td>
+                    <td className="py-3 pr-4">{payment.request_codes ?? "Not allocated"}</td>
+                    <td className="py-3 pr-4"><Badge variant={payment.status === "reversed" ? "secondary" : "default"}>{label(payment.status)}</Badge></td>
+                    <td className="py-3">
+                      <Button asChild variant="outline" size="sm"><Link href={`/events/${eventId}/payments/${payment.payment_id}`}>Open</Link></Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Button asChild variant="outline" size="sm" aria-disabled={!hasPrevious}>
+              <Link
+                aria-disabled={!hasPrevious}
+                tabIndex={hasPrevious ? undefined : -1}
+                href={hasPrevious ? paymentsHref(eventId, { status, search, page: page - 1, pageSize }) : paymentsHref(eventId, { status, search, page, pageSize })}
+              >
+                Previous
+              </Link>
+            </Button>
+            <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+            <Button asChild variant="outline" size="sm" aria-disabled={!hasNext}>
+              <Link
+                aria-disabled={!hasNext}
+                tabIndex={hasNext ? undefined : -1}
+                href={hasNext ? paymentsHref(eventId, { status, search, page: page + 1, pageSize }) : paymentsHref(eventId, { status, search, page, pageSize })}
+              >
+                Next
+              </Link>
+            </Button>
+          </div>
         </div>
       )}
     </section>

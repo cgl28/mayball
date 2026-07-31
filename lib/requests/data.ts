@@ -2,6 +2,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables } from "@/src/types/database.generated";
 import type { VisibleDocument } from "@/lib/documents/data";
 
+const REQUEST_APPROVAL_STATUSES = [
+  "draft",
+  "submitted",
+  "changes_requested",
+  "approved",
+  "variation_pending",
+  "rejected",
+  "cancelled",
+] as const;
+
 export type RequestSummary = Tables<"v_spending_request_current_revisions">;
 export type RequestAllocation = Pick<
   Tables<"spending_request_department_allocations">,
@@ -28,12 +38,36 @@ export type RequestDepartment = Pick<
   "id" | "name" | "code" | "display_order" | "is_active"
 >;
 export type RequestPaymentPosition = Tables<"v_request_payment_positions">;
+export type RequestListRow = Pick<
+  RequestSummary,
+  | "request_id"
+  | "event_id"
+  | "code"
+  | "title"
+  | "owner_display_name"
+  | "owner_preferred_name"
+  | "primary_department_id"
+  | "primary_department_name"
+  | "primary_department_code"
+  | "approval_status"
+  | "gross_minor"
+  | "request_updated_at"
+  | "revision_status"
+  | "can_edit_draft"
+>;
+export type RequestListPaymentPosition = Pick<
+  RequestPaymentPosition,
+  "request_id" | "payment_status"
+>;
 
 export type SpendingRequestsData = {
-  requests: RequestSummary[];
+  requests: RequestListRow[];
   departments: RequestDepartment[];
-  paymentPositions: RequestPaymentPosition[];
+  paymentPositions: RequestListPaymentPosition[];
   defaultDepartmentId?: string;
+  page: number;
+  pageSize: number;
+  count: number;
 };
 
 export type SpendingRequestDetail = {
@@ -49,30 +83,75 @@ export async function getSpendingRequestsData(
   supabase: SupabaseClient<Database>,
   eventId: string,
   userId?: string,
+  options: {
+    mine?: boolean;
+    status?: string;
+    departmentId?: string;
+    search?: string;
+    page?: number;
+    pageSize?: number;
+  } = {},
 ) {
-  const [requests, departments, paymentPositions, departmentMemberships] = await Promise.all([
-    supabase
-      .from("v_spending_request_current_revisions")
-      .select("*")
-      .eq("event_id", eventId)
-      .order("request_updated_at", { ascending: false }),
+  const pageSize = Math.min(Math.max(options.pageSize ?? 25, 1), 100);
+  const page = Math.max(options.page ?? 1, 1);
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const search = normaliseSearch(options.search);
+
+  let requestQuery = supabase
+    .from("v_spending_request_current_revisions")
+    .select(
+      "request_id,event_id,code,title,owner_display_name,owner_preferred_name,primary_department_id,primary_department_name,primary_department_code,approval_status,gross_minor,request_updated_at,revision_status,can_edit_draft",
+      { count: "exact" },
+    )
+    .eq("event_id", eventId);
+
+  if (options.mine) {
+    requestQuery = requestQuery.eq("can_edit_draft", true);
+  }
+  const status = normaliseRequestStatus(options.status);
+  if (status) {
+    requestQuery = requestQuery.eq("approval_status", status);
+  }
+  if (options.departmentId) {
+    requestQuery = requestQuery.eq("primary_department_id", options.departmentId);
+  }
+  if (search) {
+    requestQuery = requestQuery.or(
+      `code.ilike.%${search}%,title.ilike.%${search}%,supplier_name.ilike.%${search}%`,
+    );
+  }
+
+  const [requests, departments, departmentMemberships] = await Promise.all([
+    requestQuery
+      .order("request_updated_at", { ascending: false })
+      .order("code", { ascending: true })
+      .range(from, to),
     supabase
       .from("departments")
       .select("id,name,code,display_order,is_active")
       .eq("event_id", eventId)
       .eq("is_active", true)
       .order("display_order", { ascending: true }),
-    supabase
-      .from("v_request_payment_positions")
-      .select("*")
-      .eq("event_id", eventId),
     getCurrentUserDepartments(supabase, eventId, userId),
   ]);
 
   if (requests.error) return { data: null, error: "Spending requests could not be loaded." };
   if (departments.error) return { data: null, error: "Departments could not be loaded." };
-  if (paymentPositions.error) return { data: null, error: "Payment positions could not be loaded." };
   if (departmentMemberships.error) return { data: null, error: "Department memberships could not be loaded." };
+
+  const requestIds = (requests.data ?? [])
+    .map((request) => request.request_id)
+    .filter((requestId): requestId is string => Boolean(requestId));
+  const paymentPositions = requestIds.length
+    ? await supabase
+        .from("v_request_payment_positions")
+        .select("request_id,payment_status")
+        .eq("event_id", eventId)
+        .in("request_id", requestIds)
+    : { data: [] as RequestListPaymentPosition[], error: null };
+
+  if (paymentPositions.error) return { data: null, error: "Payment positions could not be loaded." };
 
   const activeDepartmentIds = new Set((departmentMemberships.data ?? []).map((row) => row.department_id));
   const defaultDepartmentId = activeDepartmentIds.size === 1 ? [...activeDepartmentIds][0] : undefined;
@@ -83,9 +162,22 @@ export async function getSpendingRequestsData(
       departments: departments.data ?? [],
       paymentPositions: paymentPositions.data ?? [],
       defaultDepartmentId,
+      page,
+      pageSize,
+      count: requests.count ?? 0,
     } satisfies SpendingRequestsData,
     error: null,
   };
+}
+
+function normaliseRequestStatus(value?: string) {
+  return REQUEST_APPROVAL_STATUSES.find((status) => status === value);
+}
+
+function normaliseSearch(value?: string) {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  return trimmed.replaceAll("%", "\\%").replaceAll("_", "\\_").replace(/[(),]/g, " ").slice(0, 80);
 }
 
 async function getCurrentUserDepartments(

@@ -11,7 +11,14 @@ export default async function RequestsPage({
   searchParams,
 }: {
   params: Promise<{ eventId: string }>;
-  searchParams: Promise<{ mine?: string; status?: string; department?: string }>;
+  searchParams: Promise<{
+    mine?: string;
+    status?: string;
+    department?: string;
+    q?: string;
+    page?: string;
+    pageSize?: string;
+  }>;
 }) {
   await connection();
   const { eventId } = await params;
@@ -28,7 +35,16 @@ export default async function RequestsPage({
   }
   if (!eventAccess) notFound();
 
-  const data = await getSpendingRequestsData(session.supabase, eventId);
+  const page = Number.parseInt(query.page ?? "1", 10);
+  const pageSize = Number.parseInt(query.pageSize ?? "25", 10);
+  const data = await getSpendingRequestsData(session.supabase, eventId, session.user.id, {
+    mine: query.mine === "1",
+    status: query.status,
+    departmentId: query.department,
+    search: query.q,
+    page: Number.isFinite(page) ? page : 1,
+    pageSize: Number.isFinite(pageSize) ? pageSize : 25,
+  });
   if (data.error || !data.data) {
     return <div role="alert" className="rounded-md border border-destructive/40 p-4 text-sm text-destructive">{data.error ?? "Spending requests could not be loaded."}</div>;
   }
@@ -41,11 +57,15 @@ export default async function RequestsPage({
       requests={data.data.requests}
       departments={data.data.departments}
       paymentPositions={data.data.paymentPositions}
+      page={data.data.page}
+      pageSize={data.data.pageSize}
+      count={data.data.count}
       canCreate={!capabilities.isReadOnly && eventAccess.accessMode === "active"}
       readOnly={capabilities.isReadOnly}
       mine={query.mine === "1"}
       status={query.status}
       departmentId={query.department}
+      search={query.q}
     />
   );
 }
