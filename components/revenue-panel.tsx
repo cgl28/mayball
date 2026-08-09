@@ -6,6 +6,7 @@ import {
   saveTicketTypeAction,
 } from "@/app/events/[eventId]/revenue/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { TicketTypeForecastFields } from "@/components/ticket-type-forecast-fields";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type {
@@ -85,6 +86,43 @@ function MoneyStat({
   );
 }
 
+function valueNumber(value: number | string | bigint | null | undefined) {
+  return value === null || value === undefined ? 0 : Number(value);
+}
+
+function percentage(value: number, total: number) {
+  if (total <= 0 || value <= 0) return 0;
+  return Math.min(100, Math.max(0, (value / total) * 100));
+}
+
+function formatSignedMinor(value: number | string | bigint | null | undefined) {
+  if (value === null || value === undefined) return formatMinor(value);
+  const numeric = value === null || value === undefined ? 0 : Number(value);
+  if (numeric < 0) return `-${formatMinor(Math.abs(numeric))}`;
+  return formatMinor(numeric);
+}
+
+function SummaryCard({
+  label,
+  value,
+  basis,
+  description,
+}: {
+  label: string;
+  value: number | string | bigint | null | undefined;
+  basis: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-md border bg-white p-4">
+      <dt className="text-sm text-muted-foreground">{label}</dt>
+      <dd className="mt-2 text-xl font-semibold">{formatSignedMinor(value)}</dd>
+      <p className="mt-1 text-xs font-medium uppercase tracking-wide text-cyan-800">{basis}</p>
+      <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
 function RevenueNav({ eventId }: { eventId: string }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -121,6 +159,10 @@ export function RevenueOverviewPanel({
   const hasTicketTypes = revenue.ticketTypes.length > 0;
   const hasSnapshot = Boolean(summary?.latest_snapshot_id);
   const hasOther = revenue.otherItems.length > 0;
+  const forecastGross = valueNumber(summary?.total_forecast_gross_minor);
+  const actualGross = valueNumber(summary?.total_actual_gross_minor);
+  const comparisonTotal = Math.max(forecastGross, actualGross);
+  const grossVariance = actualGross - forecastGross;
 
   return (
     <div className="grid gap-6">
@@ -137,6 +179,68 @@ export function RevenueOverviewPanel({
       </div>
       <Message error={error} />
       {readOnly ? <ReadOnlyNotice /> : null}
+
+      <section>
+        <h2 className="text-lg font-semibold tracking-normal">Revenue position</h2>
+        <dl className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <SummaryCard
+            label="Forecast ticket revenue"
+            value={summary?.ticket_forecast_gross_minor}
+            basis="gross"
+            description="Ticket price multiplied by forecast sales."
+          />
+          <SummaryCard
+            label="Forecast other income"
+            value={summary?.other_forecast_gross_minor}
+            basis="gross"
+            description="Non-cancelled sponsorship, contributions and other expected income."
+          />
+          <SummaryCard
+            label="Total forecast revenue"
+            value={summary?.total_forecast_net_minor}
+            basis="net dashboard basis"
+            description="Matches the Dashboard Forecast Income card."
+          />
+          <SummaryCard
+            label="Actual revenue recorded"
+            value={hasSnapshot ? summary?.total_actual_gross_minor : null}
+            basis="gross"
+            description="Latest cumulative ticket snapshot plus actual other revenue."
+          />
+          <SummaryCard
+            label="Gross variance to forecast"
+            value={grossVariance}
+            basis="gross comparison"
+            description="Actual gross revenue minus forecast gross revenue."
+          />
+        </dl>
+      </section>
+
+      <section className="rounded-md border p-5">
+        <h2 className="font-medium">Forecast vs actual</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Forecast revenue is an editable plan. Actual ticket revenue is not a list of transactions; it is the latest cumulative ticket-sales snapshot plus actual other income.
+        </p>
+        <div className="mt-4 grid gap-4">
+          <ComparisonBar
+            label="Forecast revenue"
+            value={forecastGross}
+            total={comparisonTotal}
+            tone="bg-cyan-300"
+            valueLabel={`${formatMinor(forecastGross)} gross`}
+          />
+          <ComparisonBar
+            label="Actual revenue"
+            value={actualGross}
+            total={comparisonTotal}
+            tone="bg-emerald-300"
+            valueLabel={hasSnapshot ? `${formatMinor(actualGross)} gross` : "No ticket snapshot yet"}
+          />
+        </div>
+        <div className="mt-4 rounded-md bg-muted/40 p-4 text-sm text-muted-foreground">
+          Ticket forecast = forecast sales x gross ticket price. Total forecast = ticket forecast plus non-cancelled other forecast income. Actual ticket revenue uses the latest non-void cumulative snapshot; snapshots are never added together.
+        </div>
+      </section>
 
       {!hasTicketTypes && !hasSnapshot && !hasOther ? (
         <section className="rounded-md border border-dashed p-6">
@@ -157,42 +261,103 @@ export function RevenueOverviewPanel({
       <section className="rounded-md border p-5">
         <h2 className="flex items-center gap-2 font-medium">
           <Tags className="h-4 w-4" aria-hidden="true" />
-          Ticket forecast
+          Ticket revenue forecast
         </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Ticket forecasts are the price you expect to charge multiplied by the number of tickets you currently expect to sell.
+        </p>
         {hasTicketTypes ? (
-          <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MoneyStat label="Maximum gross ticket revenue" value={summary?.ticket_maximum_gross_minor} />
-            <MoneyStat label="Forecast gross ticket revenue" value={summary?.ticket_forecast_gross_minor} />
-            <MoneyStat label="Forecast VAT" value={summary?.ticket_forecast_vat_minor} />
-            <MoneyStat label="Forecast net ticket revenue" value={summary?.ticket_forecast_net_minor} />
-            <div>
-              <dt className="text-sm text-muted-foreground">Forecast tickets</dt>
-              <dd className="text-lg font-semibold">{summary?.forecast_ticket_quantity ?? 0}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-muted-foreground">Maximum capacity</dt>
-              <dd className="text-lg font-semibold">{summary?.maximum_ticket_capacity ?? 0}</dd>
-            </div>
-          </dl>
+          <div className="mt-4 max-w-full overflow-x-auto">
+            <table className="w-full min-w-[48rem] text-left text-sm">
+              <thead className="border-b text-muted-foreground">
+                <tr>
+                  <th className="py-2 pr-4 font-medium">Ticket type</th>
+                  <th className="py-2 pr-4 text-right font-medium">Ticket price</th>
+                  <th className="py-2 pr-4 text-right font-medium">Maximum available</th>
+                  <th className="py-2 pr-4 text-right font-medium">Forecast sales</th>
+                  <th className="py-2 pr-4 text-right font-medium">Forecast revenue</th>
+                  <th className="py-2 text-right font-medium">Maximum revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {revenue.ticketTypes.map((ticket) => (
+                  <tr key={ticket.ticket_type_id} className="border-b last:border-b-0">
+                    <td className="py-3 pr-4">
+                      <div className="font-medium">{ticket.name}</div>
+                      <div className="text-muted-foreground">{ticket.is_active ? "Active" : "Cancelled"}</div>
+                    </td>
+                    <td className="py-3 pr-4 text-right">{formatMinor(ticket.gross_price_minor)}</td>
+                    <td className="py-3 pr-4 text-right">{ticket.maximum_quantity}</td>
+                    <td className="py-3 pr-4 text-right">{ticket.forecast_quantity}</td>
+                    <td className="py-3 pr-4 text-right font-medium">{formatMinor(ticket.forecast_gross_minor)}</td>
+                    <td className="py-3 text-right">{formatMinor(ticket.maximum_gross_minor)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">No ticket types have been configured.</p>
         )}
+        {canManage && !readOnly ? (
+          <div className="mt-4">
+            <Button asChild>
+              <Link href={`/events/${eventId}/revenue/tickets`}>Add Ticket Type</Link>
+            </Button>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="rounded-md border p-5">
+        <h2 className="flex items-center gap-2 font-medium">
+          <ReceiptText className="h-4 w-4" aria-hidden="true" />
+          Other forecast income
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">Sponsorship, college contributions, donations and other non-ticket income stay flexible.</p>
+        {hasOther ? (
+          <div className="mt-4 grid gap-3">
+            {revenue.otherItems.slice(0, 4).map((item) => (
+              <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3 text-sm">
+                <div>
+                  <p className="font-medium">{item.title}</p>
+                  <p className="text-muted-foreground">{formatLabel(item.category)}; {formatLabel(item.status)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold">{formatMinor(item.forecast_gross_minor)}</p>
+                  <p className="text-muted-foreground">forecast gross</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">No other revenue items have been configured.</p>
+        )}
+        {canManage && !readOnly ? (
+          <div className="mt-4">
+            <Button asChild variant="outline">
+              <Link href={`/events/${eventId}/revenue/other`}>Add other forecast income</Link>
+            </Button>
+          </div>
+        ) : null}
       </section>
 
       <section className="rounded-md border p-5">
         <h2 className="flex items-center gap-2 font-medium">
           <TrendingUp className="h-4 w-4" aria-hidden="true" />
-          Actual tickets
+          Actual revenue
         </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Actual ticket revenue comes from cumulative ticket-sale snapshots. The newest non-void snapshot is the current position.
+        </p>
         {hasSnapshot ? (
           <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <dt className="text-sm text-muted-foreground">Latest captured</dt>
               <dd className="text-lg font-semibold">{dateTime(summary?.latest_captured_at)}</dd>
             </div>
-            <MoneyStat label="Gross sales to date" value={summary?.ticket_actual_gross_minor} />
-            <MoneyStat label="VAT to date" value={summary?.ticket_actual_vat_minor} />
-            <MoneyStat label="Net sales to date" value={summary?.ticket_actual_net_minor} />
+            <MoneyStat label="Latest ticket actual" value={summary?.ticket_actual_gross_minor} />
+            <MoneyStat label="Other actual revenue" value={summary?.other_actual_gross_minor} />
+            <MoneyStat label="Total actual recorded" value={summary?.total_actual_gross_minor} />
             <MoneyStat label="Refunds to date" value={summary?.ticket_refunds_to_date_minor} />
             <MoneyStat label="Booking fees to date" value={summary?.ticket_booking_fees_to_date_minor} />
             <div>
@@ -204,27 +369,40 @@ export function RevenueOverviewPanel({
           <p className="mt-3 text-sm text-muted-foreground">No actual ticket snapshot has been recorded.</p>
         )}
         <p className="mt-4 text-sm text-muted-foreground">
-          Booking fees are shown separately and are not deducted from May Ball
-          gross ticket revenue.
+          Booking fees are shown separately and are not deducted from May Ball gross ticket revenue.
         </p>
+        {canManage && !readOnly ? (
+          <div className="mt-4">
+            <Button asChild variant="outline">
+              <Link href={`/events/${eventId}/revenue/actual`}>Record actual ticket revenue</Link>
+            </Button>
+          </div>
+        ) : null}
       </section>
+    </div>
+  );
+}
 
-      <section className="rounded-md border p-5">
-        <h2 className="flex items-center gap-2 font-medium">
-          <ReceiptText className="h-4 w-4" aria-hidden="true" />
-          Other revenue
-        </h2>
-        {hasOther ? (
-          <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MoneyStat label="Forecast other gross" value={summary?.other_forecast_gross_minor} />
-            <MoneyStat label="Actual other gross" value={summary?.other_actual_gross_minor} />
-            <MoneyStat label="Outstanding other gross" value={summary?.other_outstanding_gross_minor} />
-            <MoneyStat label="Total forecast gross revenue" value={summary?.total_forecast_gross_minor} />
-          </dl>
-        ) : (
-          <p className="mt-3 text-sm text-muted-foreground">No other revenue items have been configured.</p>
-        )}
-      </section>
+function ComparisonBar({
+  label,
+  value,
+  total,
+  tone,
+  valueLabel,
+}: {
+  label: string;
+  value: number;
+  total: number;
+  tone: string;
+  valueLabel: string;
+}) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)_10rem] sm:items-center">
+      <span className="text-sm font-medium">{label}</span>
+      <div className="h-3 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+        <div className={`h-full rounded-full ${tone}`} style={{ width: `${percentage(value, total)}%` }} />
+      </div>
+      <span className="text-sm text-muted-foreground sm:text-right">{valueLabel}</span>
     </div>
   );
 }
@@ -259,7 +437,7 @@ export function TicketTypesPanel({
       {readOnly ? <ReadOnlyNotice /> : null}
       <section className="rounded-md border p-5">
         <h2 className="font-medium">Ticket forecast positions</h2>
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 max-w-full overflow-x-auto">
           <table className="w-full min-w-[64rem] text-left text-sm">
             <thead className="border-b text-muted-foreground">
               <tr>
@@ -308,24 +486,12 @@ function TicketTypeForm({ eventId }: { eventId: string }) {
   return (
     <section className="rounded-md border p-5">
       <h2 className="flex items-center gap-2 font-medium"><Plus className="h-4 w-4" aria-hidden="true" />Add or update ticket type</h2>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Start with the modelling fields treasurers use most: ticket price, maximum available and expected sales. Net and VAT are derived from the gross price and VAT treatment when you save.
+      </p>
       <form action={saveTicketTypeAction} className="mt-4 grid gap-4 md:grid-cols-3">
         <input type="hidden" name="eventId" value={eventId} />
-        <Field name="ticketTypeId" label="Existing ticket ID for update" placeholder="Leave blank for new" />
-        <Field name="name" label="Name" required />
-        <Field name="description" label="Description" />
-        <Field name="netPrice" label="Net price" placeholder="125.00" required />
-        <Field name="vatAmount" label="VAT amount" placeholder="25.00" required />
-        <Field name="grossPrice" label="Gross price" placeholder="150.00" required />
-        <Field name="vatRate" label="VAT rate" placeholder="20.00" />
-        <Select name="vatTreatment" label="VAT treatment" values={vatTreatments} />
-        <Field name="maximumQuantity" label="Maximum allocation" type="number" required />
-        <Field name="forecastQuantity" label="Forecast sales" type="number" required />
-        <Field name="complimentaryQuantity" label="Complimentary allocation" type="number" defaultValue="0" />
-        <Field name="displayOrder" label="Display order" type="number" defaultValue="0" />
-        <label className="flex items-center gap-2 text-sm md:self-end">
-          <input name="isActive" type="checkbox" defaultChecked className="h-4 w-4 rounded border" />
-          <span>Active</span>
-        </label>
+        <TicketTypeForecastFields />
         <div className="md:self-end">
           <SubmitButton pendingLabel="Saving ticket...">Save ticket type</SubmitButton>
         </div>

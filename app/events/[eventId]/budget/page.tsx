@@ -11,7 +11,7 @@ export default async function BudgetPage({
   searchParams,
 }: {
   params: Promise<{ eventId: string }>;
-  searchParams: Promise<{ error?: string; activated?: string; transferred?: string }>;
+  searchParams: Promise<{ error?: string; activated?: string; transferred?: string; transfers?: string }>;
 }) {
   await connection();
   const { eventId } = await params;
@@ -28,7 +28,7 @@ export default async function BudgetPage({
   }
   if (!eventAccess) notFound();
 
-  const budget = await getBudgetOverview(session.supabase, eventId);
+  const budget = await getBudgetOverview(session.supabase, eventId, query.transfers === "1");
   const capabilities = getEventCapabilities(eventAccess);
 
   if (budget.error || !budget.data) {
@@ -44,6 +44,7 @@ export default async function BudgetPage({
       error={query.error}
       activated={query.activated === "1"}
       transferred={query.transferred === "1"}
+      transferHistoryLoaded={query.transfers === "1"}
     />
   );
 }

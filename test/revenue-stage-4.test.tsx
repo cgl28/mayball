@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import {
   OtherRevenuePanel,
@@ -149,11 +150,13 @@ describe("Stage 4 revenue panels", () => {
     );
 
     expect(screen.getByText("Revenue")).toBeInTheDocument();
-    expect(screen.getByText("Forecast gross ticket revenue")).toBeInTheDocument();
-    expect(screen.getByText("Gross sales to date")).toBeInTheDocument();
+    expect(screen.getByText("Revenue position")).toBeInTheDocument();
+    expect(screen.getByText("Forecast ticket revenue")).toBeInTheDocument();
+    expect(screen.getAllByText("Actual revenue").length).toBeGreaterThan(0);
     expect(screen.getAllByText("£138,000.00").length).toBeGreaterThan(0);
     expect(screen.queryByText("£273,000.00")).not.toBeInTheDocument();
     expect(screen.getByText(/Booking fees are shown separately/)).toBeInTheDocument();
+    expect(screen.getByText(/snapshots are never added together/)).toBeInTheDocument();
   });
 
   it("shows an empty state when no revenue records exist", () => {
@@ -184,7 +187,7 @@ describe("Stage 4 revenue panels", () => {
     expect(screen.queryByText("Add or update ticket type")).not.toBeInTheDocument();
   });
 
-  it("renders ticket type validation context and treasurer form", () => {
+  it("renders simplified ticket type validation context and treasurer form", () => {
     render(
       <TicketTypesPanel
         eventId="event-id"
@@ -195,8 +198,34 @@ describe("Stage 4 revenue panels", () => {
     );
 
     expect(screen.getByText("Add or update ticket type")).toBeInTheDocument();
-    expect(screen.getByLabelText("Gross price")).toBeInTheDocument();
+    expect(screen.getByLabelText("Ticket price (gross)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Maximum available")).toBeInTheDocument();
+    expect(screen.getByLabelText("Forecast sales")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Net price")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("VAT amount")).not.toBeInTheDocument();
     expect(screen.getByText(/database does not yet define a separate ticket code/)).toBeInTheDocument();
+  });
+
+  it("previews ticket forecast revenue from gross price and forecast sales", async () => {
+    const user = userEvent.setup();
+    render(
+      <TicketTypesPanel
+        eventId="event-id"
+        ticketTypes={ticketTypes}
+        canManage
+        readOnly={false}
+      />,
+    );
+
+    await user.type(screen.getByLabelText("Ticket price (gross)"), "150.00");
+    await user.type(screen.getByLabelText("Maximum available"), "1000");
+    await user.type(screen.getByLabelText("Forecast sales"), "800");
+
+    expect(screen.getByText("Forecast preview")).toBeInTheDocument();
+    expect(screen.getByText("£120,000.00")).toBeInTheDocument();
+    expect(screen.getByText("£150,000.00")).toBeInTheDocument();
+    expect(screen.getAllByText("£125.00").length).toBeGreaterThan(0);
+    expect(screen.getByText("£25.00")).toBeInTheDocument();
   });
 
   it("labels latest snapshots and optional breakdowns", () => {

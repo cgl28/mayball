@@ -35,11 +35,24 @@ export type DepartmentFinanceTotals = {
   approvedGrossMinor: number;
   paidGrossMinor: number;
   outstandingGrossMinor: number;
+  approvedPaidNetMinor: number;
+  approvedUnpaidNetMinor: number;
+};
+
+export type FinancePositionSummary = {
+  budgetNetMinor: number | null;
+  approvedNetMinor: number;
+  approvedPaidNetMinor: number;
+  approvedUnpaidNetMinor: number;
+  submittedNetMinor: number;
+  remainingNetMinor: number | null;
+  paidGrossMinor: number;
 };
 
 export type FinancesData = {
   departments: DepartmentPosition[];
   selectedDepartment: DepartmentPosition | null;
+  wholeEvent: FinancePositionSummary;
   requests: DepartmentFinanceRequest[];
   totals: DepartmentFinanceTotals;
 };
@@ -59,6 +72,12 @@ function paymentShare(allocationGross: number, requestApprovedGross: number) {
 
 function apportion(value: number, share: number) {
   return Math.round(value * share);
+}
+
+function paidNetFromGross(approvedNet: number, approvedGross: number, paidGross: number) {
+  if (approvedNet <= 0 || approvedGross <= 0 || paidGross <= 0) return 0;
+  const cappedPaidGross = Math.min(approvedGross, paidGross);
+  return Math.min(approvedNet, Math.round((approvedNet * cappedPaidGross) / approvedGross));
 }
 
 export async function getFinancesData(
@@ -145,6 +164,9 @@ export async function getFinancesData(
     (sum, row) => {
       const isApproved = row.approvalStatus === "approved";
       const isSubmitted = row.approvalStatus === "submitted" || row.approvalStatus === "variation_pending";
+      const paidNetMinor = isApproved
+        ? paidNetFromGross(row.netMinor, row.grossMinor, row.paidGrossMinor)
+        : 0;
       return {
         requestCount: sum.requestCount + 1,
         totalNetMinor: sum.totalNetMinor + row.netMinor,
@@ -156,6 +178,8 @@ export async function getFinancesData(
         approvedGrossMinor: sum.approvedGrossMinor + (isApproved ? row.grossMinor : 0),
         paidGrossMinor: sum.paidGrossMinor + (isApproved ? row.paidGrossMinor : 0),
         outstandingGrossMinor: sum.outstandingGrossMinor + (isApproved ? row.outstandingGrossMinor : 0),
+        approvedPaidNetMinor: sum.approvedPaidNetMinor + paidNetMinor,
+        approvedUnpaidNetMinor: sum.approvedUnpaidNetMinor + (isApproved ? Math.max(0, row.netMinor - paidNetMinor) : 0),
       };
     },
     {
@@ -169,13 +193,45 @@ export async function getFinancesData(
       approvedGrossMinor: 0,
       paidGrossMinor: 0,
       outstandingGrossMinor: 0,
+      approvedPaidNetMinor: 0,
+      approvedUnpaidNetMinor: 0,
     },
   );
+
+  const wholeBudget =
+    departments.some((department) => department.has_active_allocation)
+      ? departments.reduce((sum, department) => sum + numeric(department.current_budget_minor), 0)
+      : null;
+  const wholeApprovedNet = departments.reduce((sum, department) => sum + numeric(department.approved_net_minor), 0);
+  const wholeSubmittedNet = departments.reduce((sum, department) => sum + numeric(department.pending_net_minor), 0);
+  const wholePaidNet = (paymentsResult.data ?? []).reduce(
+    (sum, payment) =>
+      sum + paidNetFromGross(
+        numeric(payment.approved_net_minor),
+        numeric(payment.approved_gross_minor),
+        numeric(payment.paid_gross_minor),
+      ),
+    0,
+  );
+  const wholePaidGross = (paymentsResult.data ?? []).reduce(
+    (sum, payment) => sum + numeric(payment.paid_gross_minor),
+    0,
+  );
+  const wholeEvent: FinancePositionSummary = {
+    budgetNetMinor: wholeBudget,
+    approvedNetMinor: wholeApprovedNet,
+    approvedPaidNetMinor: wholePaidNet,
+    approvedUnpaidNetMinor: Math.max(0, wholeApprovedNet - wholePaidNet),
+    submittedNetMinor: wholeSubmittedNet,
+    remainingNetMinor: wholeBudget === null ? null : wholeBudget - wholeApprovedNet - wholeSubmittedNet,
+    paidGrossMinor: wholePaidGross,
+  };
 
   return {
     data: {
       departments,
       selectedDepartment,
+      wholeEvent,
       requests: rows,
       totals,
     } satisfies FinancesData,

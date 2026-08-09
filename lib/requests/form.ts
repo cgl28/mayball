@@ -111,6 +111,12 @@ export function buildComponentPayload(formData: FormData) {
 }
 
 function assertComponentsReconcile(payload: DraftPayload) {
+  for (const [index, component] of payload.p_components.entries()) {
+    if (component.net_minor + component.vat_minor !== component.gross_minor) {
+      throw new Error(`Component ${index + 1} net and VAT must equal gross.`);
+    }
+  }
+
   const componentTotals = payload.p_components.reduce(
     (totals, component) => ({
       net: totals.net + component.net_minor,
@@ -129,6 +135,13 @@ function assertComponentsReconcile(payload: DraftPayload) {
   }
 }
 
+function earliestComponentDate(components: DraftPayload["p_components"]) {
+  return components
+    .map((component) => component.expected_payment_date)
+    .filter((date): date is string => Boolean(date))
+    .sort()[0];
+}
+
 export function buildDraftPayload(formData: FormData): DraftPayload {
   const title = requireText(formData.get("title"), "Request title is required.");
   const description = requireText(formData.get("description"), "Describe what this spending request is for.");
@@ -139,13 +152,14 @@ export function buildDraftPayload(formData: FormData): DraftPayload {
     throw new Error("Request net and VAT must equal gross.");
   }
 
+  const components = buildComponentPayload(formData);
   const payload = {
     p_primary_department_id: requireText(formData.get("primaryDepartmentId"), "Choose the department responsible for this request."),
     p_title: title,
     p_description: description,
     p_business_justification: optional(formData.get("businessJustification")),
     p_supplier_name: optional(formData.get("supplierName")),
-    p_expected_payment_date: optional(formData.get("expectedPaymentDate")),
+    p_expected_payment_date: earliestComponentDate(components),
     p_net_minor: netMinor,
     p_vat_minor: vatMinor,
     p_gross_minor: grossMinor,
@@ -153,7 +167,7 @@ export function buildDraftPayload(formData: FormData): DraftPayload {
     p_vat_treatment: requireText(formData.get("vatTreatment"), "Choose a VAT treatment.") as VatTreatment,
     p_vat_recoverable: clean(formData.get("vatRecoverable")) === "on",
     p_allocations: buildSingleDepartmentAllocation(formData),
-    p_components: buildComponentPayload(formData),
+    p_components: components,
     p_change_summary: optional(formData.get("changeSummary")),
   };
 

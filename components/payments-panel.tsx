@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { AlertCircle, CheckCircle, CreditCard, History, RotateCcw } from "lucide-react";
-import { recordPaymentAction, reversePaymentAction } from "@/app/events/[eventId]/payments/actions";
+import { AlertCircle, CalendarClock, CheckCircle, CreditCard, History, RotateCcw } from "lucide-react";
+import { reversePaymentAction } from "@/app/events/[eventId]/payments/actions";
+import { PaymentFormClient } from "@/components/payment-form-client";
+import { PaymentUrgencyDialog } from "@/components/payment-urgency-dialog";
 import { StatusBadge } from "@/components/status-badge";
 import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
@@ -12,11 +14,11 @@ import type {
   PaymentFormData,
   PaymentListRow,
   PaymentsData,
+  PaymentUrgency,
+  PaymentWorkloadView,
   RequestPaymentPosition,
 } from "@/lib/payments/data";
-import { formatMinor, minorToInput } from "@/lib/money";
-
-const paymentMethods = ["bank_transfer", "card", "cash", "direct_debit", "other"] as const;
+import { formatMinor } from "@/lib/money";
 
 function label(value: string | null | undefined) {
   return value ? value.replaceAll("_", " ") : "Not set";
@@ -35,22 +37,34 @@ function paymentsHref(
   params: {
     status?: string;
     search?: string;
+    view?: string;
     page?: number;
     pageSize?: number;
-    requestPage?: number;
-    requestPageSize?: number;
+    workloadPage?: number;
+    workloadPageSize?: number;
   } = {},
 ) {
   const query = new URLSearchParams();
   if (params.status) query.set("status", params.status);
+  if (params.view && params.view !== "outstanding") query.set("view", params.view);
   if (params.search?.trim()) query.set("q", params.search.trim());
   if (params.page && params.page > 1) query.set("page", String(params.page));
   if (params.pageSize && params.pageSize !== 25) query.set("pageSize", String(params.pageSize));
-  if (params.requestPage && params.requestPage > 1) query.set("requestPage", String(params.requestPage));
-  if (params.requestPageSize && params.requestPageSize !== 25) query.set("requestPageSize", String(params.requestPageSize));
+  if (params.workloadPage && params.workloadPage > 1) query.set("workloadPage", String(params.workloadPage));
+  if (params.workloadPageSize && params.workloadPageSize !== 25) query.set("workloadPageSize", String(params.workloadPageSize));
   const suffix = query.toString();
   return `/events/${eventId}/payments${suffix ? `?${suffix}` : ""}`;
 }
+
+const workloadFilters: Array<{ value: PaymentWorkloadView; label: string }> = [
+  { value: "outstanding", label: "Outstanding" },
+  { value: "overdue", label: "Overdue" },
+  { value: "due_soon", label: "Due soon" },
+  { value: "unpaid", label: "Unpaid" },
+  { value: "partially_paid", label: "Partially Paid" },
+  { value: "paid", label: "Paid" },
+  { value: "all", label: "All" },
+];
 
 function Message({
   error,
@@ -88,6 +102,114 @@ function ReadOnlyNotice() {
   );
 }
 
+function urgencyLabel(value: PaymentUrgency) {
+  switch (value) {
+    case "overdue":
+      return "Overdue";
+    case "due_soon":
+      return "Due soon";
+    case "future":
+      return "Future";
+    case "no_due_date":
+      return "No due date";
+    case "paid":
+      return "Paid";
+  }
+}
+
+function UrgencyBadge({ urgency }: { urgency: PaymentUrgency }) {
+  const className = {
+    overdue: "border-red-800 bg-red-50 text-red-900",
+    due_soon: "border-amber-600 bg-amber-50 text-amber-950",
+    future: "border-slate-300 bg-slate-100 text-slate-800",
+    no_due_date: "border-slate-400 bg-slate-50 text-slate-800",
+    paid: "border-green-900 bg-green-50 text-green-950",
+  }[urgency];
+
+  return <Badge variant="outline" className={className}>{urgencyLabel(urgency)}</Badge>;
+}
+
+function percentage(amount: number, total: number) {
+  if (total <= 0 || amount <= 0) return 0;
+  return Math.max(0, Math.min(100, (amount / total) * 100));
+}
+
+const paymentWorkloadStyles = {
+  paid: {
+    bar: "bg-emerald-200",
+    card: "border-emerald-300 bg-emerald-50 text-emerald-950",
+    label: "text-emerald-900",
+    swatch: "border-emerald-500 bg-emerald-200",
+  },
+  future: {
+    bar: "bg-sky-200",
+    card: "border-sky-300 bg-sky-50 text-sky-950",
+    label: "text-sky-900",
+    swatch: "border-sky-500 bg-sky-200",
+  },
+  dueSoon: {
+    bar: "bg-amber-200",
+    card: "border-amber-300 bg-amber-50 text-amber-950",
+    label: "text-amber-900",
+    swatch: "border-amber-500 bg-amber-200",
+  },
+  overdue: {
+    bar: "bg-red-200",
+    card: "border-red-300 bg-red-50 text-red-950",
+    label: "text-red-900",
+    swatch: "border-red-500 bg-red-200",
+  },
+} as const;
+
+function WorkloadStatusBar({ summary }: { summary: PaymentsData["operationalSummary"] }) {
+  const total = Math.max(summary.approvedGrossMinor, summary.paidGrossMinor + summary.outstandingGrossMinor);
+  const segments = [
+    { key: "paid", label: "Paid", amount: summary.paidGrossMinor, styles: paymentWorkloadStyles.paid },
+    { key: "future", label: "Future outstanding", amount: summary.futureOutstandingGrossMinor, styles: paymentWorkloadStyles.future },
+    { key: "dueSoon", label: "Due within 14 days", amount: summary.dueSoonGrossMinor, styles: paymentWorkloadStyles.dueSoon },
+    { key: "overdue", label: "Overdue", amount: summary.overdueGrossMinor, styles: paymentWorkloadStyles.overdue },
+  ];
+
+  return (
+    <section className="rounded-md border bg-white p-5">
+      <div className="flex flex-col gap-1">
+        <h2 className="font-medium">Payment workload state</h2>
+        <p className="text-sm text-muted-foreground">
+          Paid gross plus outstanding gross by urgency. Segments reconcile to approved gross unless an overpayment exists.
+        </p>
+      </div>
+      <div className="mt-4 overflow-hidden rounded-full border bg-slate-100" aria-label="Approved payment workload state">
+        <div className="flex h-3 w-full">
+          {segments.map((segment) => (
+            <div
+              key={segment.label}
+              data-workload-tone={segment.key}
+              className={`h-full shrink-0 ${segment.styles.bar}`}
+              style={{
+                flexBasis: `${percentage(segment.amount, total)}%`,
+                width: `${percentage(segment.amount, total)}%`,
+              }}
+              title={`${segment.label}: ${formatMinor(segment.amount)}`}
+            />
+          ))}
+        </div>
+      </div>
+      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4" aria-label="Payment workload legend">
+        {segments.map((segment) => (
+          <div key={segment.label} data-workload-tone={segment.key} className={`min-w-0 rounded-md border p-3 ${segment.styles.card}`}>
+            <dt className={`flex items-center gap-2 ${segment.styles.label}`}>
+              <span className={`h-2.5 w-2.5 rounded-full border ${segment.styles.swatch}`} aria-hidden="true" />
+              {segment.label}
+            </dt>
+            <dd className="mt-1 font-semibold">{formatMinor(segment.amount)}</dd>
+            <dd className="text-xs opacity-80">{percentage(segment.amount, total).toFixed(1)}%</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 export function PaymentsPanel({
   eventId,
   data,
@@ -107,12 +229,13 @@ export function PaymentsPanel({
   status?: string;
   search?: string;
 }) {
-  const requestPage = data.requestPage ?? 1;
-  const requestPageSize = data.requestPageSize ?? 25;
-  const requestCount = data.requestCount ?? data.requestPositions.length;
-  const requestTotalPages = Math.max(1, Math.ceil(requestCount / requestPageSize));
-  const hasPreviousRequests = requestPage > 1;
-  const hasNextRequests = requestPage < requestTotalPages;
+  const activeWorkloadView = data.workloadView ?? "outstanding";
+  const workloadPage = data.workloadPage ?? 1;
+  const workloadPageSize = data.workloadPageSize ?? 25;
+  const workloadCount = data.workloadCount ?? data.workload.length;
+  const workloadTotalPages = Math.max(1, Math.ceil(workloadCount / workloadPageSize));
+  const hasPreviousWorkload = workloadPage > 1;
+  const hasNextWorkload = workloadPage < workloadTotalPages;
 
   return (
     <div className="grid gap-6">
@@ -120,11 +243,11 @@ export function PaymentsPanel({
         <div>
           <h1 className="text-2xl font-semibold tracking-normal">Payments</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Payments record money leaving the event bank account. Paid status is
-            derived from non-reversed allocations and is separate from approval.
+            Track approved payment components, due dates and recorded outgoing payments.
+            Approved commitments, recorded payments and future bank reconciliation are distinct records.
           </p>
         </div>
-        {canManage ? (
+        {canManage && !readOnly ? (
           <Button asChild>
             <Link href={`/events/${eventId}/payments/new`}>
               <CreditCard className="h-4 w-4" aria-hidden="true" />
@@ -136,62 +259,134 @@ export function PaymentsPanel({
       <Message error={error} recorded={recorded} />
       {readOnly ? <ReadOnlyNotice /> : null}
 
-      <section className="grid gap-3 md:grid-cols-4">
+      <section className="grid gap-3 md:grid-cols-5">
         <div className="rounded-md border p-4">
-          <p className="text-sm text-muted-foreground">Recorded payments</p>
-          <p className="mt-1 text-xl font-semibold">{data.summary?.recorded_payment_count ?? 0}</p>
+          <p className="text-sm text-muted-foreground">Approved commitments</p>
+          <p className="mt-1 text-xl font-semibold">{formatMinor(data.operationalSummary.approvedGrossMinor)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">gross</p>
         </div>
         <div className="rounded-md border p-4">
-          <p className="text-sm text-muted-foreground">Recorded gross</p>
-          <p className="mt-1 text-xl font-semibold">{formatMinor(data.summary?.recorded_gross_minor)}</p>
+          <p className="text-sm text-muted-foreground">Outstanding approved</p>
+          <p className="mt-1 text-xl font-semibold">{formatMinor(data.operationalSummary.outstandingGrossMinor)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">gross</p>
         </div>
         <div className="rounded-md border p-4">
-          <p className="text-sm text-muted-foreground">Reversed gross</p>
-          <p className="mt-1 text-xl font-semibold">{formatMinor(data.summary?.reversed_gross_minor)}</p>
+          <p className="text-sm text-muted-foreground">Overdue</p>
+          <p className="mt-1 text-xl font-semibold">{formatMinor(data.operationalSummary.overdueGrossMinor)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">outstanding gross</p>
         </div>
         <div className="rounded-md border p-4">
-          <p className="text-sm text-muted-foreground">Payable components</p>
-          <p className="mt-1 text-xl font-semibold">{data.payableComponentCount ?? data.componentPositions?.filter((component) => Number(component.outstanding_gross_minor ?? 0) > 0).length ?? 0}</p>
+          <p className="text-sm text-muted-foreground">Due in 14 days</p>
+          <p className="mt-1 text-xl font-semibold">{formatMinor(data.operationalSummary.dueSoonGrossMinor)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">outstanding gross</p>
+        </div>
+        <div className="rounded-md border p-4">
+          <p className="text-sm text-muted-foreground">Paid to date</p>
+          <p className="mt-1 text-xl font-semibold">{formatMinor(data.operationalSummary.paidGrossMinor)}</p>
+          <p className="mt-1 text-xs text-muted-foreground">non-reversed gross</p>
         </div>
       </section>
+      {data.operationalSummary.noDueDateCount > 0 ? (
+        <div className="flex gap-2 rounded-md border border-slate-300 bg-slate-50 p-3 text-sm text-slate-800">
+          <CalendarClock className="mt-0.5 h-4 w-4" aria-hidden="true" />
+          <p>{data.operationalSummary.noDueDateCount} outstanding components have no due date.</p>
+        </div>
+      ) : null}
+
+      <WorkloadStatusBar summary={data.operationalSummary} />
 
       <section className="rounded-md border p-5">
-        <h2 className="font-medium">Approved request positions</h2>
-        {requestCount === 0 ? (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="font-medium">Payment workload</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Current approved request components. Paid amounts come from non-reversed payment allocations.
+            </p>
+          </div>
+        </div>
+        <form action={`/events/${eventId}/payments`} className="mt-4 flex max-w-xl flex-col gap-2 sm:flex-row">
+          {status ? <input type="hidden" name="status" value={status} /> : null}
+          {activeWorkloadView !== "outstanding" ? <input type="hidden" name="view" value={activeWorkloadView} /> : null}
+          <label className="grid flex-1 gap-1 text-sm">
+            <span className="sr-only">Search payment workload</span>
+            <input
+              type="search"
+              name="q"
+              defaultValue={search ?? ""}
+              placeholder="Search request, component or supplier"
+              className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </label>
+          <Button type="submit" variant="outline" size="sm">Search</Button>
+          {search ? <Button asChild variant="ghost" size="sm"><Link href={paymentsHref(eventId, { status, view: activeWorkloadView })}>Clear</Link></Button> : null}
+        </form>
+        <div className="mt-3 flex flex-wrap gap-2 text-sm">
+          {workloadFilters.map((filter) => (
+            <Button key={filter.value} asChild variant={activeWorkloadView === filter.value ? "default" : "outline"} size="sm">
+              <Link href={paymentsHref(eventId, { status, search, view: filter.value })}>{filter.label}</Link>
+            </Button>
+          ))}
+        </div>
+        {workloadCount === 0 ? (
           <p className="mt-4 rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-            No approved requests are currently visible for payment tracking.
+            {activeWorkloadView === "outstanding"
+              ? "All approved payment components are fully paid."
+              : "No approved payment components match those filters."}
           </p>
         ) : (
           <div className="mt-4 grid gap-4">
             <p className="text-sm text-muted-foreground">
-              Showing {data.requestPositions.length} of {requestCount} approved request positions. Page {requestPage} of {requestTotalPages}.
+              Showing {data.workload.length} of {workloadCount} approved payment components. Page {workloadPage} of {workloadTotalPages}.
             </p>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[60rem] text-left text-sm">
+            <div className="max-w-full overflow-x-auto">
+              <table className="w-full min-w-[74rem] text-left text-sm">
                 <thead className="border-b text-muted-foreground">
                   <tr>
+                    <th className="py-2 pr-4 font-medium">Due</th>
                     <th className="py-2 pr-4 font-medium">Request</th>
-                    <th className="py-2 pr-4 text-right font-medium">Approved</th>
+                    <th className="py-2 pr-4 font-medium">Component</th>
+                    <th className="py-2 pr-4 font-medium">Supplier</th>
+                    <th className="py-2 pr-4 text-right font-medium">Approved gross</th>
                     <th className="py-2 pr-4 text-right font-medium">Paid</th>
                     <th className="py-2 pr-4 text-right font-medium">Outstanding</th>
                     <th className="py-2 pr-4 font-medium">Status</th>
+                    <th className="py-2 pr-4 font-medium">
+                      <span className="inline-flex items-center gap-1">
+                        Urgency
+                        <PaymentUrgencyDialog />
+                      </span>
+                    </th>
                     <th className="py-2 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.requestPositions.map((position) => (
-                    <tr key={position.request_id} className="border-b last:border-b-0">
-                      <td className="py-3 pr-4 font-medium">{position.code}</td>
-                      <td className="py-3 pr-4 text-right">{formatMinor(position.approved_gross_minor)}</td>
-                      <td className="py-3 pr-4 text-right">{formatMinor(position.paid_gross_minor)}</td>
-                      <td className="py-3 pr-4 text-right">{formatMinor(position.outstanding_gross_minor)}</td>
-                      <td className="py-3 pr-4"><StatusBadge kind="payment" status={position.payment_status} /></td>
+                  {data.workload.map((component) => (
+                    <tr key={component.request_component_id} className="border-b last:border-b-0">
+                      <td className="py-3 pr-4">
+                        <p>{date(component.effective_due_date)}</p>
+                        {component.due_date_source === "event" ? <p className="text-xs text-muted-foreground">Event date</p> : null}
+                      </td>
+                      <td className="py-3 pr-4 font-medium">
+                        <Link className="underline-offset-4 hover:underline" href={`/events/${eventId}/requests/${component.request_id}`}>
+                          {component.request_code}
+                        </Link>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <p className="font-medium">{component.description}</p>
+                        <p className="text-xs text-muted-foreground">{component.component_code}</p>
+                      </td>
+                      <td className="py-3 pr-4">{component.supplier_name ?? "Supplier not set"}</td>
+                      <td className="py-3 pr-4 text-right">{formatMinor(component.approved_gross_minor)}</td>
+                      <td className="py-3 pr-4 text-right">{formatMinor(component.paid_gross_minor)}</td>
+                      <td className="py-3 pr-4 text-right">{formatMinor(component.outstanding_gross_minor)}</td>
+                      <td className="py-3 pr-4"><StatusBadge kind="payment" status={component.payment_status} /></td>
+                      <td className="py-3 pr-4"><UrgencyBadge urgency={component.urgency} /></td>
                       <td className="py-3">
                         <div className="flex flex-wrap gap-2">
-                          <Button asChild variant="outline" size="sm"><Link href={`/events/${eventId}/requests/${position.request_id}/payments`}>History</Link></Button>
-                          {canManage && Number(position.outstanding_gross_minor ?? 0) > 0 ? (
-                            <Button asChild variant="outline" size="sm"><Link href={`/events/${eventId}/requests/${position.request_id}/payments/new`}>Pay</Link></Button>
+                          {canManage && !readOnly && Number(component.outstanding_gross_minor ?? 0) > 0 ? (
+                            <Button asChild variant="outline" size="sm"><Link href={`/events/${eventId}/requests/${component.request_id}/payments/new?componentId=${component.request_component_id}`}>Record payment</Link></Button>
                           ) : null}
+                          <Button asChild variant="outline" size="sm"><Link href={`/events/${eventId}/requests/${component.request_id}/payments`}>History</Link></Button>
                         </div>
                       </td>
                     </tr>
@@ -200,21 +395,21 @@ export function PaymentsPanel({
               </table>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <Button asChild variant="outline" size="sm" aria-disabled={!hasPreviousRequests}>
+              <Button asChild variant="outline" size="sm" aria-disabled={!hasPreviousWorkload}>
                 <Link
-                  aria-disabled={!hasPreviousRequests}
-                  tabIndex={hasPreviousRequests ? undefined : -1}
-                  href={hasPreviousRequests ? paymentsHref(eventId, { status, search, requestPage: requestPage - 1, requestPageSize, page: data.page, pageSize: data.pageSize }) : paymentsHref(eventId, { status, search, requestPage, requestPageSize, page: data.page, pageSize: data.pageSize })}
+                  aria-disabled={!hasPreviousWorkload}
+                  tabIndex={hasPreviousWorkload ? undefined : -1}
+                  href={hasPreviousWorkload ? paymentsHref(eventId, { status, search, view: activeWorkloadView, workloadPage: workloadPage - 1, workloadPageSize, page: data.page, pageSize: data.pageSize }) : paymentsHref(eventId, { status, search, view: activeWorkloadView, workloadPage, workloadPageSize, page: data.page, pageSize: data.pageSize })}
                 >
                   Previous
                 </Link>
               </Button>
-              <span className="text-sm text-muted-foreground">Page {requestPage} of {requestTotalPages}</span>
-              <Button asChild variant="outline" size="sm" aria-disabled={!hasNextRequests}>
+              <span className="text-sm text-muted-foreground">Page {workloadPage} of {workloadTotalPages}</span>
+              <Button asChild variant="outline" size="sm" aria-disabled={!hasNextWorkload}>
                 <Link
-                  aria-disabled={!hasNextRequests}
-                  tabIndex={hasNextRequests ? undefined : -1}
-                  href={hasNextRequests ? paymentsHref(eventId, { status, search, requestPage: requestPage + 1, requestPageSize, page: data.page, pageSize: data.pageSize }) : paymentsHref(eventId, { status, search, requestPage, requestPageSize, page: data.page, pageSize: data.pageSize })}
+                  aria-disabled={!hasNextWorkload}
+                  tabIndex={hasNextWorkload ? undefined : -1}
+                  href={hasNextWorkload ? paymentsHref(eventId, { status, search, view: activeWorkloadView, workloadPage: workloadPage + 1, workloadPageSize, page: data.page, pageSize: data.pageSize }) : paymentsHref(eventId, { status, search, view: activeWorkloadView, workloadPage, workloadPageSize, page: data.page, pageSize: data.pageSize })}
                 >
                   Next
                 </Link>
@@ -254,8 +449,11 @@ function PaymentHistory({
     <section className="rounded-md border p-5">
       <h2 className="flex items-center gap-2 font-medium">
         <History className="h-4 w-4" aria-hidden="true" />
-        Payment history
+        Recorded payments
       </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Payments recorded as having been made. These records may later be reconciled against bank transactions.
+      </p>
       <form action={`/events/${eventId}/payments`} className="mt-4 flex max-w-xl flex-col gap-2 sm:flex-row">
         {status ? <input type="hidden" name="status" value={status} /> : null}
         <label className="grid flex-1 gap-1 text-sm">
@@ -285,15 +483,17 @@ function PaymentHistory({
           <p className="text-sm text-muted-foreground">
             Showing {payments.length} of {count} payments. Page {page} of {totalPages}.
           </p>
-          <div className="overflow-x-auto">
+          <div className="max-w-full overflow-x-auto">
             <table className="w-full min-w-[62rem] text-left text-sm">
               <thead className="border-b text-muted-foreground">
                 <tr>
-                  <th className="py-2 pr-4 font-medium">Reference</th>
                   <th className="py-2 pr-4 font-medium">Date</th>
+                  <th className="py-2 pr-4 font-medium">Reference</th>
                   <th className="py-2 pr-4 font-medium">Payee</th>
                   <th className="py-2 pr-4 text-right font-medium">Gross</th>
-                  <th className="py-2 pr-4 font-medium">Requests</th>
+                  <th className="py-2 pr-4 font-medium">Method</th>
+                  <th className="py-2 pr-4 font-medium">Allocated to</th>
+                  <th className="py-2 pr-4 font-medium">Bank reference</th>
                   <th className="py-2 pr-4 font-medium">Status</th>
                   <th className="py-2 font-medium">Action</th>
                 </tr>
@@ -301,11 +501,18 @@ function PaymentHistory({
               <tbody>
                 {payments.map((payment) => (
                   <tr key={payment.payment_id} className="border-b last:border-b-0">
-                    <td className="py-3 pr-4 font-medium">{payment.code}</td>
                     <td className="py-3 pr-4">{date(payment.payment_date)}</td>
+                    <td className="py-3 pr-4 font-medium">{payment.code}</td>
                     <td className="py-3 pr-4">{payment.payee}</td>
                     <td className="py-3 pr-4 text-right">{formatMinor(payment.gross_minor)}</td>
-                    <td className="py-3 pr-4">{payment.request_codes ?? "Not allocated"}</td>
+                    <td className="py-3 pr-4">{label(payment.method)}</td>
+                    <td className="py-3 pr-4">
+                      <p>{payment.request_codes ?? "Not allocated"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {Number(payment.allocation_count ?? 0) === 1 ? "1 component" : `${payment.allocation_count ?? 0} components`}
+                      </p>
+                    </td>
+                    <td className="py-3 pr-4">{payment.bank_reference ?? "Not set"}</td>
                     <td className="py-3 pr-4"><Badge variant={payment.status === "reversed" ? "secondary" : "default"}>{label(payment.status)}</Badge></td>
                     <td className="py-3">
                       <Button asChild variant="outline" size="sm"><Link href={`/events/${eventId}/payments/${payment.payment_id}`}>Open</Link></Button>
@@ -353,9 +560,6 @@ export function PaymentFormPanel({
   data: PaymentFormData;
   error?: string;
 }) {
-  const idempotencyKey = crypto.randomUUID();
-  const suggestedGross = data.componentPositions.reduce((total, component) => total + Number(component.outstanding_gross_minor ?? 0), 0);
-
   return (
     <div className="grid gap-6">
       <div>
@@ -371,62 +575,8 @@ export function PaymentFormPanel({
           No approved unpaid components are available for this payment.
         </div>
       ) : (
-        <form action={recordPaymentAction} className="grid gap-6">
-          <input type="hidden" name="eventId" value={eventId} />
-          <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
-          {requestId ? <input type="hidden" name="requestId" value={requestId} /> : null}
-          <section className="rounded-md border p-5">
-            <h2 className="font-medium">Payment information</h2>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <Field name="paymentDate" label="Payment date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} />
-              <Field name="payee" label="Payee" required />
-              <Field name="gross" label="Gross amount" required defaultValue={minorToInput(suggestedGross)} />
-              <Field name="bankReference" label="Bank reference" />
-              <label className="grid gap-1 text-sm">
-                <span className="font-medium">Method</span>
-                <select name="method" defaultValue="bank_transfer" className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-                  {paymentMethods.map((method) => <option key={method} value={method}>{label(method)}</option>)}
-                </select>
-              </label>
-              <label className="grid gap-1 text-sm md:col-span-2">
-                <span className="font-medium">Note</span>
-                <textarea name="note" rows={2} className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-              </label>
-            </div>
-          </section>
-
-          <section className="rounded-md border p-5">
-            <h2 className="font-medium">Allocations</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Allocation totals must equal the payment gross amount.</p>
-            <div className="mt-4 grid gap-3">
-              {data.componentPositions.map((component) => (
-                <ComponentAllocationRow key={component.request_component_id} component={component} />
-              ))}
-            </div>
-          </section>
-
-          <div className="flex flex-wrap gap-2">
-            <SubmitButton pendingLabel="Recording payment...">Record payment</SubmitButton>
-            <Button asChild variant="outline"><Link href={requestId ? `/events/${eventId}/requests/${requestId}/payments` : `/events/${eventId}/payments`}>Cancel</Link></Button>
-          </div>
-        </form>
+        <PaymentFormClient eventId={eventId} requestId={requestId} data={data} />
       )}
-    </div>
-  );
-}
-
-function ComponentAllocationRow({ component }: { component: ComponentPaymentPosition }) {
-  const outstanding = Number(component.outstanding_gross_minor ?? 0);
-  return (
-    <div className="grid gap-3 rounded-md border p-3 md:grid-cols-[1.5rem_1fr_10rem] md:items-end">
-      <input type="hidden" name="componentId" value={component.request_component_id ?? ""} />
-      <input name={`selected_${component.request_component_id}`} type="checkbox" defaultChecked={outstanding > 0} className="h-4 w-4 rounded border md:mb-3" aria-label={`Allocate ${component.component_code}`} />
-      <div className="text-sm">
-        <p className="font-medium">{component.request_code} / {component.component_code}</p>
-        <p>{component.description}</p>
-        <p className="text-muted-foreground">Approved {formatMinor(component.approved_gross_minor)}; paid {formatMinor(component.paid_gross_minor)}; outstanding {formatMinor(component.outstanding_gross_minor)}</p>
-      </div>
-      <Field name={`gross_${component.request_component_id}`} label="Allocation" defaultValue={minorToInput(outstanding)} />
     </div>
   );
 }
@@ -580,7 +730,7 @@ function PaymentAllocationsTable({
           No allocations have been recorded.
         </p>
       ) : (
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 max-w-full overflow-x-auto">
           <table className="w-full min-w-[56rem] text-left text-sm">
             <thead className="border-b text-muted-foreground">
               <tr>
@@ -610,26 +760,5 @@ function PaymentAllocationsTable({
         </div>
       )}
     </section>
-  );
-}
-
-function Field({
-  name,
-  label,
-  type = "text",
-  required,
-  defaultValue,
-}: {
-  name: string;
-  label: string;
-  type?: string;
-  required?: boolean;
-  defaultValue?: string;
-}) {
-  return (
-    <label className="grid gap-1 text-sm">
-      <span className="font-medium">{label}</span>
-      <input name={name} type={type} required={required} defaultValue={defaultValue} className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
-    </label>
   );
 }

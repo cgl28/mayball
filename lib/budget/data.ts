@@ -24,20 +24,21 @@ export type BudgetTransfer = Pick<
 >;
 export type BudgetDepartment = Pick<
   Tables<"departments">,
-  "id" | "name" | "code" | "is_active" | "display_order"
+  "id" | "name" | "code" | "colour" | "is_active" | "display_order"
 >;
 
 export type BudgetOverview = {
   activeBudget: ActiveBudgetSummary | null;
   departmentPositions: ActiveDepartmentPosition[];
   versions: BudgetVersionSummary[];
-  transfers: BudgetTransfer[];
+  transfers: BudgetTransfer[] | null;
   departments: BudgetDepartment[];
 };
 
 export async function getBudgetOverview(
   supabase: SupabaseClient<Database>,
   eventId: string,
+  includeTransfers = false,
 ) {
   const [active, positions, versions, transfers, departments] = await Promise.all([
     supabase
@@ -55,14 +56,16 @@ export async function getBudgetOverview(
       .select("*")
       .eq("event_id", eventId)
       .order("version_number", { ascending: false }),
-    supabase
-      .from("budget_transfers")
-      .select("id,event_id,budget_version_id,from_department_id,to_department_id,amount_minor,reason,effective_at,created_by,reverses_transfer_id,created_at")
-      .eq("event_id", eventId)
-      .order("effective_at", { ascending: false }),
+    includeTransfers
+      ? supabase
+          .from("budget_transfers")
+          .select("id,event_id,budget_version_id,from_department_id,to_department_id,amount_minor,reason,effective_at,created_by,reverses_transfer_id,created_at")
+          .eq("event_id", eventId)
+          .order("effective_at", { ascending: false })
+      : Promise.resolve({ data: null, error: null }),
     supabase
       .from("departments")
-      .select("id,name,code,is_active,display_order")
+      .select("id,name,code,colour,is_active,display_order")
       .eq("event_id", eventId)
       .order("display_order", { ascending: true }),
   ]);
@@ -78,7 +81,7 @@ export async function getBudgetOverview(
       activeBudget: active.data,
       departmentPositions: positions.data ?? [],
       versions: versions.data ?? [],
-      transfers: transfers.data ?? [],
+      transfers: transfers.data,
       departments: departments.data ?? [],
     } satisfies BudgetOverview,
     error: null,

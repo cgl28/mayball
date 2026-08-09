@@ -5,7 +5,6 @@ import SignupPage from "@/app/auth/sign-up/page";
 import { SignUpForm } from "@/components/sign-up-form";
 
 const router = {
-  back: vi.fn(),
   push: vi.fn(),
 };
 const signUp = vi.fn();
@@ -31,12 +30,11 @@ describe("sign-up page controls", () => {
     });
   });
 
-  it("renders the shared Back control on the actual sign-up page", async () => {
+  it("renders the shared Home control and logo on the actual sign-up page", () => {
     render(<SignupPage />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Back" }));
-
-    expect(router.push).toHaveBeenCalledWith("/");
+    expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("img", { name: "May Ball Finance" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign up" })).toBeInTheDocument();
   });
 

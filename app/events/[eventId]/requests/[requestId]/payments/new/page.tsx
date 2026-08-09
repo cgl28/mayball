@@ -11,7 +11,7 @@ export default async function NewRequestPaymentPage({
   searchParams,
 }: {
   params: Promise<{ eventId: string; requestId: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; componentId?: string }>;
 }) {
   await connection();
   const { eventId, requestId } = await params;
@@ -27,7 +27,7 @@ export default async function NewRequestPaymentPage({
   const capabilities = getEventCapabilities(eventAccess);
   if (!capabilities.canManageFinance) redirect(`/events/${eventId}/requests/${requestId}/payments`);
 
-  const data = await getPaymentFormData(session.supabase, eventId, requestId);
+  const data = await getPaymentFormData(session.supabase, eventId, requestId, query.componentId, eventAccess.event.event_date);
   if (data.error || !data.data) {
     return <div role="alert" className="rounded-md border border-destructive/40 p-4 text-sm text-destructive">{data.error ?? "Payment form could not be loaded."}</div>;
   }

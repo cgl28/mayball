@@ -55,6 +55,7 @@ describe("Stage 9 lifecycle panel", () => {
         eventAccess={makeEventAccess({ roles: ["president"] })}
         lifecycle={lifecycle}
         canManageLifecycle
+        canViewReadiness
       />,
     );
 
@@ -63,13 +64,16 @@ describe("Stage 9 lifecycle panel", () => {
     expect(screen.getByRole("listitem", { name: "Setup: Completed stage" })).toBeInTheDocument();
     expect(screen.getByRole("listitem", { name: "Planning: Current stage" })).toBeInTheDocument();
     expect(screen.getByRole("listitem", { name: "Live: Future stage" })).toBeInTheDocument();
-    expect(screen.getByText("Readiness warnings")).toBeInTheDocument();
+    expect(screen.getByText("Lifecycle readiness")).toBeInTheDocument();
+    expect(screen.getByText("Next normal stage")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Live" })).toBeInTheDocument();
     expect(screen.getAllByText("Requests are awaiting review").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText(/2 items; £6,240.00/)).toBeInTheDocument();
-    expect(screen.getByText("Completion allowed with acknowledgement")).toBeInTheDocument();
-    expect(screen.getByText("Change Lifecycle Stage")).toBeInTheDocument();
-    expect(screen.getByText("Review and confirm completion")).toBeInTheDocument();
-    expect(screen.getByText(/completion is not bank reconciliation/i)).toBeInTheDocument();
+    expect(screen.getByText("Progression is available with acknowledgement")).toBeInTheDocument();
+    expect(screen.getByText("Ready to progress?")).toBeInTheDocument();
+    expect(screen.getAllByText("Progress to Live").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Review and confirm Live")).toBeInTheDocument();
+    expect(screen.getByText(/reviewed the outstanding warnings/i)).toBeInTheDocument();
   });
 
   it("shows lifecycle status and history without mutation controls to historical viewers", () => {
@@ -110,11 +114,12 @@ describe("Stage 9 lifecycle panel", () => {
           readiness: [],
         }}
         canManageLifecycle={false}
+        canViewReadiness={false}
       />,
     );
 
     expect(screen.getByText("Historical read-only event")).toBeInTheDocument();
-    expect(screen.getByText(/Detailed completion readiness is available to event Presidents/)).toBeInTheDocument();
+    expect(screen.getByText(/Detailed lifecycle readiness is available to event Presidents and Treasurers/)).toBeInTheDocument();
     expect(screen.getByText(/Only event Presidents can change the lifecycle stage/)).toBeInTheDocument();
     expect(screen.queryByText("Complete event")).not.toBeInTheDocument();
     expect(screen.getByText("Moved from Planning to Completed")).toBeInTheDocument();
@@ -136,6 +141,7 @@ describe("Stage 9 lifecycle panel", () => {
           readiness: [],
         }}
         canManageLifecycle
+        canViewReadiness
         archived
         reopened
       />,
@@ -143,7 +149,7 @@ describe("Stage 9 lifecycle panel", () => {
 
     expect(screen.getByText(/Event archived/)).toBeInTheDocument();
     expect(screen.getByText(/Event reopened into Reconciliation/)).toBeInTheDocument();
-    expect(screen.getByText("Reopen for Reconciliation")).toBeInTheDocument();
+    expect(screen.getByText("Exceptional actions")).toBeInTheDocument();
     expect(screen.getByText("Review and confirm exceptional reopening")).toBeInTheDocument();
   });
 
@@ -167,12 +173,13 @@ describe("Stage 9 lifecycle panel", () => {
           readiness: [],
         }}
         canManageLifecycle
+        canViewReadiness
       />,
     );
 
     expect(screen.queryByText("Review and confirm completion")).not.toBeInTheDocument();
-    expect(screen.getByText("Archive Event")).toBeInTheDocument();
-    expect(screen.getByText("Reopen for Reconciliation")).toBeInTheDocument();
+    expect(screen.getAllByText("Archive Event").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Exceptional actions")).toBeInTheDocument();
   });
 
   it("does not show lifecycle controls to treasurers without president role", () => {
@@ -181,10 +188,12 @@ describe("Stage 9 lifecycle panel", () => {
         eventAccess={makeEventAccess({ roles: ["treasurer"] })}
         lifecycle={lifecycle}
         canManageLifecycle={false}
+        canViewReadiness
       />,
     );
 
     expect(screen.getByText(/Only event Presidents can change/)).toBeInTheDocument();
+    expect(screen.getByText("Lifecycle readiness")).toBeInTheDocument();
     expect(screen.queryByText("Review and confirm completion")).not.toBeInTheDocument();
   });
 });

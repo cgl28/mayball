@@ -15,11 +15,12 @@ export default async function PaymentsPage({
     error?: string;
     recorded?: string;
     status?: string;
+    view?: string;
     q?: string;
     page?: string;
     pageSize?: string;
-    requestPage?: string;
-    requestPageSize?: string;
+    workloadPage?: string;
+    workloadPageSize?: string;
   }>;
 }) {
   await connection();
@@ -35,15 +36,17 @@ export default async function PaymentsPage({
 
   const page = Number.parseInt(query.page ?? "1", 10);
   const pageSize = Number.parseInt(query.pageSize ?? "25", 10);
-  const requestPage = Number.parseInt(query.requestPage ?? "1", 10);
-  const requestPageSize = Number.parseInt(query.requestPageSize ?? "25", 10);
+  const workloadPage = Number.parseInt(query.workloadPage ?? "1", 10);
+  const workloadPageSize = Number.parseInt(query.workloadPageSize ?? "25", 10);
   const payments = await getPaymentsData(session.supabase, eventId, {
     status: query.status,
     search: query.q,
+    workloadView: query.view,
     page: Number.isFinite(page) ? page : 1,
     pageSize: Number.isFinite(pageSize) ? pageSize : 25,
-    requestPage: Number.isFinite(requestPage) ? requestPage : 1,
-    requestPageSize: Number.isFinite(requestPageSize) ? requestPageSize : 25,
+    workloadPage: Number.isFinite(workloadPage) ? workloadPage : 1,
+    workloadPageSize: Number.isFinite(workloadPageSize) ? workloadPageSize : 25,
+    eventDate: eventAccess.event.event_date,
   });
   if (payments.error || !payments.data) {
     return <div role="alert" className="rounded-md border border-destructive/40 p-4 text-sm text-destructive">{payments.error ?? "Payments could not be loaded."}</div>;

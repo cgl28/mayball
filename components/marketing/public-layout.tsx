@@ -123,7 +123,13 @@ export function PublicFooter() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.5fr_1fr_1fr] lg:px-8">
         <div>
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-md bg-white text-sm font-semibold text-[hsl(var(--marketing-brand-hover))]">MBF</span>
+            <Image
+              src="/brand/mbf-logo.png"
+              alt="May Ball Finance"
+              width={54}
+              height={36}
+              className="h-9 w-auto"
+            />
             <p className="font-semibold">May Ball Finance</p>
           </div>
           <p className="mt-4 max-w-md text-sm leading-6 text-slate-300">

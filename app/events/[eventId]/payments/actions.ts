@@ -64,9 +64,11 @@ function allocationRows(formData: FormData) {
 export async function recordPaymentAction(formData: FormData) {
   const eventId = clean(formData.get("eventId"));
   const requestId = optional(formData.get("requestId"));
+  const contextComponentId = optional(formData.get("contextComponentId"));
+  const contextQuery = contextComponentId ? `?componentId=${encodeURIComponent(contextComponentId)}` : "";
   const returnPath = requestId
-    ? `/events/${eventId}/requests/${requestId}/payments/new`
-    : `/events/${eventId}/payments/new`;
+    ? `/events/${eventId}/requests/${requestId}/payments/new${contextQuery}`
+    : `/events/${eventId}/payments/new${contextQuery}`;
   const supabase = await rpcClient(returnPath);
 
   try {

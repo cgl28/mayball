@@ -4,6 +4,7 @@ import { activateBudgetVersionAction, transferContingencyAction } from "@/app/ev
 import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AllocationDonut } from "@/components/financial-visuals";
 import type { BudgetOverview } from "@/lib/budget/data";
 import { formatMinor } from "@/lib/money";
 
@@ -43,6 +44,7 @@ export function BudgetPanel({
   error,
   activated,
   transferred,
+  transferHistoryLoaded,
 }: {
   eventId: string;
   budget: BudgetOverview;
@@ -51,9 +53,30 @@ export function BudgetPanel({
   error?: string;
   activated?: boolean;
   transferred?: boolean;
+  transferHistoryLoaded?: boolean;
 }) {
   const active = budget.activeBudget;
   const departmentById = new Map(budget.departments.map((department) => [department.id, department]));
+  const departmentColours = new Map(budget.departments.map((department) => [department.id, department.colour]));
+  const fallbackColours = ["#6AAED6", "#7CC7A2", "#F2C572", "#E99292", "#A7B4D6", "#B9A6D3", "#89C5C7", "#D8A36F"];
+  const allocationSegments = active
+    ? [
+        ...budget.departmentPositions.map((position, index) => ({
+          key: position.department_id ?? `department-${index}`,
+          label: position.department_name ?? "Unnamed department",
+          amountMinor: Number(position.current_budget_minor ?? 0),
+          colour:
+            (position.department_id ? departmentColours.get(position.department_id) : null) ??
+            fallbackColours[index % fallbackColours.length],
+        })),
+        {
+          key: "contingency",
+          label: "Unallocated contingency",
+          amountMinor: Number(active.unallocated_contingency_minor ?? 0),
+          colour: "#cbd5e1",
+        },
+      ]
+    : [];
 
   return (
     <div className="grid gap-6">
@@ -130,9 +153,17 @@ export function BudgetPanel({
             </dl>
           </section>
 
+          <AllocationDonut
+            title="Budget allocation by department"
+            description="Current active net budget split across departments, with unallocated contingency kept as a reserve."
+            totalMinor={Number(active.total_cost_budget_minor ?? 0)}
+            centreLabel="Total event budget"
+            segments={allocationSegments}
+          />
+
           <section className="rounded-md border p-5">
             <h2 className="font-medium">Department budgets</h2>
-            <div className="mt-4 overflow-x-auto">
+            <div className="mt-4 max-w-full overflow-x-auto">
               <table className="w-full min-w-[48rem] text-left text-sm">
                 <thead className="border-b text-muted-foreground">
                   <tr>
@@ -233,8 +264,16 @@ export function BudgetPanel({
 
       <section className="rounded-md border p-5">
         <h2 className="font-medium">Transfer history</h2>
+        {!transferHistoryLoaded ? (
+          <div className="mt-4 rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+            <p>Transfer history is loaded on request so the Budget page opens quickly.</p>
+            <Button asChild variant="outline" className="mt-3">
+              <Link href={`/events/${eventId}/budget?transfers=1`}>View transfer history</Link>
+            </Button>
+          </div>
+        ) : (
         <div className="mt-4 grid gap-3">
-          {budget.transfers.map((transfer) => {
+          {(budget.transfers ?? []).map((transfer) => {
             const destination = transfer.to_department_id ? departmentById.get(transfer.to_department_id) : null;
             return (
               <div key={transfer.id} className="rounded-md border p-4 text-sm">
@@ -246,12 +285,13 @@ export function BudgetPanel({
               </div>
             );
           })}
-          {budget.transfers.length === 0 ? (
+          {(budget.transfers ?? []).length === 0 ? (
             <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
               No contingency transfers have been recorded.
             </p>
           ) : null}
         </div>
+        )}
       </section>
     </div>
   );

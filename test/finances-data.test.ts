@@ -40,6 +40,10 @@ describe("getFinancesData", () => {
           department_name: "Food",
           department_code: "FOOD",
           display_order: 1,
+          has_active_allocation: true,
+          current_budget_minor: 20000,
+          approved_net_minor: 10000,
+          pending_net_minor: 0,
         },
       ],
       v_spending_request_current_revisions: [
@@ -61,6 +65,7 @@ describe("getFinancesData", () => {
       v_request_payment_positions: [
         {
           request_id: "request-1",
+          approved_net_minor: 10000,
           approved_gross_minor: 12000,
           paid_gross_minor: 6000,
           payment_status: "partially_paid",
@@ -85,6 +90,10 @@ describe("getFinancesData", () => {
 
     expect(result.error).toBeNull();
     expect(result.data?.requests).toHaveLength(1);
+    expect(result.data?.wholeEvent.approvedPaidNetMinor).toBe(5000);
+    expect(result.data?.wholeEvent.approvedUnpaidNetMinor).toBe(5000);
+    expect(result.data?.totals.approvedPaidNetMinor).toBe(5000);
+    expect(result.data?.totals.approvedUnpaidNetMinor).toBe(5000);
 
     const allocationQuery = records.find(
       (record) => record.table === "spending_request_department_allocations",

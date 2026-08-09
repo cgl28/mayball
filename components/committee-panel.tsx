@@ -50,9 +50,11 @@ function Message({ error, saved, revoked }: { error?: string; saved?: boolean; r
 function RoleControls({
   eventId,
   member,
+  isOnlyActivePresident,
 }: {
   eventId: string;
   member: CommitteeMember;
+  isOnlyActivePresident: boolean;
 }) {
   return (
     <div className="grid gap-2">
@@ -60,19 +62,31 @@ function RoleControls({
       <div className="flex flex-wrap gap-2">
         {ROLE_OPTIONS.map((role) => {
           const hasRole = member.roles.includes(role);
+          const protectedPresidentRemoval =
+            role === "president" && hasRole && isOnlyActivePresident;
           return (
             <form key={role} action={updateRoleAction}>
               <input type="hidden" name="eventId" value={eventId} />
               <input type="hidden" name="eventMemberId" value={member.id} />
               <input type="hidden" name="role" value={role} />
               <input type="hidden" name="intent" value={hasRole ? "remove" : "assign"} />
-              <SubmitButton variant={hasRole ? "default" : "outline"} pendingLabel="Saving...">
+              <SubmitButton
+                variant={hasRole ? "default" : "outline"}
+                pendingLabel="Saving..."
+                disabled={protectedPresidentRemoval}
+                aria-describedby={protectedPresidentRemoval ? `only-president-${member.id}` : undefined}
+              >
                 {role.replaceAll("_", " ")}
               </SubmitButton>
             </form>
           );
         })}
       </div>
+      {isOnlyActivePresident ? (
+        <p id={`only-president-${member.id}`} className="text-sm text-muted-foreground">
+          This is the event&apos;s only active President. Assign another President before removing this role.
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -118,10 +132,20 @@ function DepartmentControls({
 function StatusControl({
   eventId,
   member,
+  isOnlyActivePresident,
 }: {
   eventId: string;
   member: CommitteeMember;
+  isOnlyActivePresident: boolean;
 }) {
+  if (isOnlyActivePresident) {
+    return (
+      <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+        This member cannot be suspended, marked as left or removed while they are the event&apos;s only active President.
+      </div>
+    );
+  }
+
   return (
     <form action={updateMemberStatusAction} className="flex flex-wrap items-end gap-2">
       <input type="hidden" name="eventId" value={eventId} />
@@ -217,6 +241,12 @@ export function CommitteePanel({
   saved?: boolean;
   revoked?: boolean;
 }) {
+  const activePresidentIds = members
+    .filter((member) => member.status === "active" && member.roles.includes("president"))
+    .map((member) => member.id);
+  const onlyActivePresidentId =
+    activePresidentIds.length === 1 ? activePresidentIds[0] : null;
+
   return (
     <div className="grid gap-6">
       <div>
@@ -264,13 +294,21 @@ export function CommitteePanel({
               </div>
               {canManage ? (
                 <div className="mt-4 grid gap-4">
-                  <RoleControls eventId={eventId} member={member} />
+                  <RoleControls
+                    eventId={eventId}
+                    member={member}
+                    isOnlyActivePresident={member.id === onlyActivePresidentId}
+                  />
                   <DepartmentControls
                     eventId={eventId}
                     member={member}
                     departments={departments}
                   />
-                  <StatusControl eventId={eventId} member={member} />
+                  <StatusControl
+                    eventId={eventId}
+                    member={member}
+                    isOnlyActivePresident={member.id === onlyActivePresidentId}
+                  />
                 </div>
               ) : null}
             </section>

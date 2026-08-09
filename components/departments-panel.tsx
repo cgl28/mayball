@@ -77,7 +77,7 @@ function DepartmentForm({
     <form action={saveDepartmentAction} className="grid gap-3 rounded-md border p-4">
       <input type="hidden" name="eventId" value={eventId} />
       {department ? <input type="hidden" name="departmentId" value={department.id} /> : null}
-      <div className="grid gap-3 md:grid-cols-[1fr_8rem_7rem]">
+      <div className="grid gap-3 md:grid-cols-[1fr_8rem]">
         <label className="grid gap-1 text-sm">
           <span className="font-medium">Name</span>
           <input
@@ -94,16 +94,6 @@ function DepartmentForm({
             required
             defaultValue={department?.code}
             className="rounded-md border bg-background px-3 py-2 uppercase focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          />
-        </label>
-        <label className="grid gap-1 text-sm">
-          <span className="font-medium">Order</span>
-          <input
-            name="displayOrder"
-            type="number"
-            min="0"
-            defaultValue={department?.display_order ?? 0}
-            className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         </label>
       </div>

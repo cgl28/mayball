@@ -6,6 +6,13 @@ import { AlertTriangle, Plus, RotateCcw, Split, Wand2, X } from "lucide-react";
 import { saveSpendingRequestDraftAction } from "@/app/events/[eventId]/requests/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
+import {
+  allocateGrossByPercentages,
+  computeFromGrossMinor,
+  computeFromNetMinor,
+  isBalancedMoney,
+  type MoneyBreakdown,
+} from "@/lib/requests/component-allocation";
 import type { RequestComponent, RequestDepartment, SpendingRequestDetail } from "@/lib/requests/data";
 import { formatMinor, minorToInput } from "@/lib/money";
 
@@ -24,6 +31,7 @@ type ComponentDraft = {
   key: number;
   description: string;
   expectedDate: string;
+  legacySupplier: boolean;
   supplier: string;
   net: string;
   vat: string;
@@ -51,23 +59,18 @@ function parseRateBasisPoints(value: string) {
   return basisPoints >= 0 && basisPoints <= 10000 ? basisPoints : null;
 }
 
-function roundDivide(numerator: bigint, denominator: bigint) {
-  return Number((numerator + denominator / BigInt(2)) / denominator);
-}
-
-function computeFromNet(netMinor: number, rateBasisPoints: number) {
-  const vatMinor = roundDivide(BigInt(netMinor) * BigInt(rateBasisPoints), BigInt(10000));
-  return { net: netMinor, vat: vatMinor, gross: netMinor + vatMinor };
-}
-
-function computeFromGross(grossMinor: number, rateBasisPoints: number) {
-  const divisor = BigInt(10000 + rateBasisPoints);
-  const netMinor = roundDivide(BigInt(grossMinor) * BigInt(10000), divisor);
-  return { net: netMinor, vat: grossMinor - netMinor, gross: grossMinor };
-}
-
 function label(value: string) {
   return value.replaceAll("_", " ");
+}
+
+function defaultComponentName(position: number) {
+  if (position === 1) return "Full payment";
+  if (position === 2) return "Final Payment";
+  return `Instalment ${position}`;
+}
+
+function isUntouchedSinglePaymentName(value: string) {
+  return value.trim() === "" || value.trim().toLowerCase() === "full payment";
 }
 
 function componentFromExisting(component: RequestComponent | undefined, fallback: {
@@ -85,6 +88,7 @@ function componentFromExisting(component: RequestComponent | undefined, fallback
     key: fallback.key,
     description: component?.description ?? fallback.title,
     expectedDate: component?.expected_payment_date ?? fallback.expectedDate,
+    legacySupplier: Boolean(component?.supplier_name && component.supplier_name !== fallback.supplier),
     supplier: component?.supplier_name ?? fallback.supplier,
     net: minorToInput(component?.net_minor ?? parseInputMinor(fallback.net) ?? 0),
     vat: minorToInput(component?.vat_minor ?? parseInputMinor(fallback.vat) ?? 0),
@@ -94,10 +98,12 @@ function componentFromExisting(component: RequestComponent | undefined, fallback
   };
 }
 
-function splitMinor(total: number, count: number) {
-  const base = Math.floor(total / count);
-  const remainder = total - base * count;
-  return Array.from({ length: count }, (_, index) => base + (index === count - 1 ? remainder : 0));
+function componentMoney(component: ComponentDraft): MoneyBreakdown | null {
+  const net = parseInputMinor(component.net);
+  const vat = parseInputMinor(component.vat);
+  const gross = parseInputMinor(component.gross);
+  if (net === null || vat === null || gross === null) return null;
+  return { net, vat, gross };
 }
 
 function Field({
@@ -147,7 +153,6 @@ export function SpendingRequestForm({
   const [departmentId, setDepartmentId] = useState(request?.primary_department_id ?? defaultDepartmentId ?? "");
   const [supplierName, setSupplierName] = useState(request?.supplier_name ?? "");
   const [description, setDescription] = useState(request?.description ?? "");
-  const [expectedDate, setExpectedDate] = useState(request?.expected_payment_date ?? "");
   const [vatTreatment, setVatTreatment] = useState<VatTreatmentValue>(request?.vat_treatment ?? "standard");
   const [vatRate, setVatRate] = useState(request?.vat_rate?.toString() ?? defaultVatRates.standard);
   const [net, setNet] = useState(minorToInput(request?.net_minor ?? 0));
@@ -158,12 +163,12 @@ export function SpendingRequestForm({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [manualVat, setManualVat] = useState(false);
   const [businessJustification, setBusinessJustification] = useState(request?.business_justification ?? "");
-  const [changeSummary, setChangeSummary] = useState("");
+  const [changeSummary, setChangeSummary] = useState(detail?.currentRevisionChangeSummary ?? detail?.latestChangeRequestReview?.reason ?? "");
   const [components, setComponents] = useState<ComponentDraft[]>(() => {
     const fallback = {
       key: 1,
       title: existingComponents[0]?.description ?? "Full payment",
-      expectedDate: request?.expected_payment_date ?? "",
+      expectedDate: existingComponents[0]?.expected_payment_date ?? request?.expected_payment_date ?? "",
       supplier: request?.supplier_name ?? "",
       net: minorToInput(request?.net_minor ?? 0),
       vat: minorToInput(request?.vat_minor ?? 0),
@@ -190,14 +195,37 @@ export function SpendingRequestForm({
     }),
     { net: 0, vat: 0, gross: 0 },
   );
+  const componentBalance = {
+    net: requestTotals.net === null ? null : requestTotals.net - componentTotals.net,
+    vat: requestTotals.vat === null ? null : requestTotals.vat - componentTotals.vat,
+    gross: requestTotals.gross === null ? null : requestTotals.gross - componentTotals.gross,
+  };
+  const componentsOverAllocated = [componentBalance.net, componentBalance.vat, componentBalance.gross]
+    .some((value) => value !== null && value < 0);
+  const parentTotals: MoneyBreakdown | null = requestTotals.net !== null && requestTotals.vat !== null && requestTotals.gross !== null
+    ? { net: requestTotals.net, vat: requestTotals.vat, gross: requestTotals.gross }
+    : null;
+  const parentTotalsValid = parentTotals !== null && isBalancedMoney(parentTotals);
   const reconciled =
-    requestTotals.net !== null &&
-    requestTotals.vat !== null &&
-    requestTotals.gross !== null &&
-    requestTotals.net + requestTotals.vat === requestTotals.gross &&
+    parentTotalsValid &&
     componentTotals.net === requestTotals.net &&
     componentTotals.vat === requestTotals.vat &&
     componentTotals.gross === requestTotals.gross;
+  const validationIssues = [
+    !title.trim() ? "Request title is required." : null,
+    !departmentId ? "Choose the department responsible for this request." : null,
+    !description.trim() ? "Describe what this spending request is for." : null,
+    parentTotals === null ? "Enter valid request amounts using pounds and pence." : null,
+    parentTotals !== null && parentTotals.gross <= 0 ? "Request gross must be greater than zero." : null,
+    parentTotals !== null && parentTotals.net + parentTotals.vat !== parentTotals.gross ? "Request totals have not been calculated. Use Compute from Gross before creating the payment schedule." : null,
+    parentTotalsValid && components.some((component) => {
+      const money = componentMoney(component);
+      return money === null || money.net + money.vat !== money.gross;
+    }) ? "Each payment component must have net plus VAT equal to gross." : null,
+    parentTotalsValid && componentTotals.net !== requestTotals.net ? `Payment components are ${formatMinor(Math.abs((requestTotals.net ?? 0) - componentTotals.net))} ${componentTotals.net > (requestTotals.net ?? 0) ? "over" : "short of"} the request net total.` : null,
+    parentTotalsValid && componentTotals.vat !== requestTotals.vat ? `Payment components are ${formatMinor(Math.abs((requestTotals.vat ?? 0) - componentTotals.vat))} ${componentTotals.vat > (requestTotals.vat ?? 0) ? "over" : "short of"} the request VAT total.` : null,
+    parentTotalsValid && componentTotals.gross !== requestTotals.gross ? `Payment components are ${formatMinor(Math.abs((requestTotals.gross ?? 0) - componentTotals.gross))} ${componentTotals.gross > (requestTotals.gross ?? 0) ? "over" : "short of"} the request gross total.` : null,
+  ].filter((issue): issue is string => Boolean(issue));
 
   const computeDisabled = useMemo(() => {
     const rate = parseRateBasisPoints(vatRate);
@@ -217,22 +245,21 @@ export function SpendingRequestForm({
     setComponents((current) => [{
       ...current[0],
       description: current[0]?.description || "Full payment",
-      expectedDate,
-      supplier: supplierName,
+      supplier: current[0]?.legacySupplier ? current[0].supplier : supplierName,
       net,
       vat,
       gross,
       vatRate,
       vatTreatment,
     }]);
-  }, [components.length, expectedDate, gross, net, supplierName, vat, vatRate, vatTreatment]);
+  }, [components.length, gross, net, supplierName, vat, vatRate, vatTreatment]);
 
   function computeVat() {
     const rate = parseRateBasisPoints(vatRate);
     if (rate === null) return;
     const sourceAmount = computeMode === "gross" ? parseInputMinor(gross) : parseInputMinor(net);
     if (sourceAmount === null) return;
-    const computed = computeMode === "gross" ? computeFromGross(sourceAmount, rate) : computeFromNet(sourceAmount, rate);
+    const computed = computeMode === "gross" ? computeFromGrossMinor(sourceAmount, rate) : computeFromNetMinor(sourceAmount, rate);
     setNet(formatInputMinor(computed.net));
     setVat(formatInputMinor(computed.vat));
     setGross(formatInputMinor(computed.gross));
@@ -243,23 +270,31 @@ export function SpendingRequestForm({
   }
 
   function addComponent() {
-    setComponents((current) => [
-      ...current.map((component, index) => ({
-        ...component,
-        description: component.description || (index === 0 ? "Full payment" : ""),
-      })),
-      {
-        key: Math.max(...current.map((component) => component.key)) + 1,
-        description: "",
-        expectedDate: "",
-        supplier: supplierName,
-        net: "0.00",
-        vat: "0.00",
-        gross: "0.00",
-        vatRate,
-        vatTreatment,
-      },
-    ]);
+    if (!parentTotalsValid) return;
+    setComponents((current) => {
+      const nextPosition = current.length + 1;
+      const nextName = defaultComponentName(nextPosition);
+      return [
+        ...current.map((component, index) => ({
+          ...component,
+          description: index === 0 && current.length === 1 && isUntouchedSinglePaymentName(component.description)
+            ? "Deposit"
+            : component.description || defaultComponentName(index + 1),
+        })),
+        {
+          key: Math.max(...current.map((component) => component.key)) + 1,
+          description: nextName,
+          expectedDate: "",
+          legacySupplier: false,
+          supplier: supplierName,
+          net: "0.00",
+          vat: "0.00",
+          gross: "0.00",
+          vatRate,
+          vatTreatment,
+        },
+      ];
+    });
   }
 
   function removeComponent(key: number) {
@@ -267,7 +302,7 @@ export function SpendingRequestForm({
   }
 
   function allocateRemaining(key: number) {
-    if (requestTotals.net === null || requestTotals.vat === null || requestTotals.gross === null) return;
+    if (!parentTotalsValid || parentTotals === null) return;
     const otherTotals = components
       .filter((component) => component.key !== key)
       .reduce(
@@ -278,24 +313,45 @@ export function SpendingRequestForm({
         }),
         { net: 0, vat: 0, gross: 0 },
       );
+    const remaining = {
+      net: parentTotals.net - otherTotals.net,
+      vat: parentTotals.vat - otherTotals.vat,
+      gross: parentTotals.gross - otherTotals.gross,
+    };
+    if (remaining.net < 0 || remaining.vat < 0 || remaining.gross < 0) return;
     updateComponent(key, {
-      net: formatInputMinor(Math.max(0, requestTotals.net - otherTotals.net)),
-      vat: formatInputMinor(Math.max(0, requestTotals.vat - otherTotals.vat)),
-      gross: formatInputMinor(Math.max(0, requestTotals.gross - otherTotals.gross)),
+      net: formatInputMinor(remaining.net),
+      vat: formatInputMinor(remaining.vat),
+      gross: formatInputMinor(remaining.gross),
     });
   }
 
-  function splitEqually() {
-    if (requestTotals.net === null || requestTotals.vat === null || requestTotals.gross === null) return;
-    const netParts = splitMinor(requestTotals.net, components.length);
-    const vatParts = splitMinor(requestTotals.vat, components.length);
-    const grossParts = splitMinor(requestTotals.gross, components.length);
+  function computeComponentFromGross(key: number) {
+    setComponents((current) => current.map((component) => {
+      if (component.key !== key) return component;
+      const rate = parseRateBasisPoints(component.vatRate);
+      const grossMinor = parseInputMinor(component.gross);
+      if (rate === null || grossMinor === null) return component;
+      const computed = computeFromGrossMinor(grossMinor, rate);
+      return {
+        ...component,
+        net: formatInputMinor(computed.net),
+        vat: formatInputMinor(computed.vat),
+        gross: formatInputMinor(computed.gross),
+      };
+    }));
+  }
+
+  function applyTwoWaySplit(firstPercentage: number, secondPercentage: number) {
+    const rate = parseRateBasisPoints(vatRate);
+    if (!parentTotalsValid || parentTotals === null || rate === null || components.length !== 2) return;
+    const parts = allocateGrossByPercentages(parentTotals, rate, [firstPercentage, secondPercentage]);
     setComponents((current) => current.map((component, index) => ({
       ...component,
       description: component.description || (index === 0 ? "Deposit" : "Balance"),
-      net: formatInputMinor(netParts[index]),
-      vat: formatInputMinor(vatParts[index]),
-      gross: formatInputMinor(grossParts[index]),
+      net: formatInputMinor(parts[index].net),
+      vat: formatInputMinor(parts[index].vat),
+      gross: formatInputMinor(parts[index].gross),
     })));
   }
 
@@ -323,7 +379,6 @@ export function SpendingRequestForm({
             {!departmentId ? <span className="text-xs text-muted-foreground">Select the department responsible for this request.</span> : null}
           </label>
           <Field name="supplierName" label="Supplier or proposed supplier" value={supplierName} onChange={setSupplierName} />
-          <Field name="expectedPaymentDate" label="Expected payment date" type="date" value={expectedDate} onChange={setExpectedDate} />
           <label className="grid gap-1 text-sm md:col-span-2">
             <span className="font-medium">Description</span>
             <textarea
@@ -379,7 +434,13 @@ export function SpendingRequestForm({
             </select>
           </label>
           <div className="flex items-end">
-            <Button type="button" variant="outline" disabled={computeDisabled} onClick={computeVat}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={computeDisabled}
+              onClick={computeVat}
+              className="border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 hover:text-emerald-950"
+            >
               <Wand2 className="h-4 w-4" aria-hidden="true" />
               Compute from {computeMode === "gross" ? "Gross" : "Net"}
             </Button>
@@ -398,70 +459,125 @@ export function SpendingRequestForm({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="font-medium">Payment Components</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Use one full-payment component or add instalments when the supplier will be paid in stages.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Use one full-payment component or add instalments when the supplier will be paid in stages. Component due dates are the payment schedule.</p>
           </div>
-          <Button type="button" variant="outline" onClick={addComponent}>
+          <Button type="button" variant="outline" onClick={addComponent} disabled={!parentTotalsValid}>
             <Plus className="h-4 w-4" aria-hidden="true" />
             Add Component
           </Button>
         </div>
 
-        <div className="mt-4 grid gap-3">
-          {components.map((component, index) => (
-            <div key={component.key} className="rounded-md border p-3">
-              <input type="hidden" name="componentSequence" value={component.key} />
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium">Component {index + 1}</p>
-                {components.length > 1 ? (
-                  <Button type="button" variant="ghost" size="sm" onClick={() => removeComponent(component.key)}>
-                    <X className="h-4 w-4" aria-hidden="true" />
-                    Remove
-                  </Button>
-                ) : null}
-              </div>
-              <div className="mt-3 grid gap-3 md:grid-cols-3">
-                <Field name={`componentDescription_${component.key}`} label="Component description" required={multiComponent} value={component.description} onChange={(value) => updateComponent(component.key, { description: value })} />
-                <Field name={`componentDate_${component.key}`} label="Expected date" type="date" value={component.expectedDate} onChange={(value) => updateComponent(component.key, { expectedDate: value })} />
-                <Field name={`componentSupplier_${component.key}`} label="Supplier override" value={component.supplier} onChange={(value) => updateComponent(component.key, { supplier: value })} />
-                <Field name={`componentNet_${component.key}`} label="Net" required value={component.net} onChange={(value) => updateComponent(component.key, { net: value })} />
-                <Field name={`componentVat_${component.key}`} label="VAT" required value={component.vat} onChange={(value) => updateComponent(component.key, { vat: value })} />
-                <Field name={`componentGross_${component.key}`} label="Gross" required value={component.gross} onChange={(value) => updateComponent(component.key, { gross: value })} />
-                <input type="hidden" name={`componentVatRate_${component.key}`} value={component.vatRate} />
-                <input type="hidden" name={`componentVatTreatment_${component.key}`} value={component.vatTreatment} />
-              </div>
-              {components.length > 1 ? (
-                <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => allocateRemaining(component.key)}>
-                  <RotateCcw className="h-4 w-4" aria-hidden="true" />
-                  Allocate Remaining
-                </Button>
-              ) : null}
-            </div>
-          ))}
-        </div>
-
-        {components.length > 1 ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={splitEqually}>
-              <Split className="h-4 w-4" aria-hidden="true" />
-              Split Equally
-            </Button>
-            {components.length === 2 ? (
-              <Button type="button" variant="outline" size="sm" onClick={splitEqually}>50 / 50</Button>
-            ) : null}
+        {!parentTotalsValid ? (
+          <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+            <p className="font-medium">Complete the request totals above before creating the payment schedule.</p>
+            <p className="mt-1">Enter the gross amount and VAT treatment, then use Compute from Gross.</p>
           </div>
-        ) : null}
+        ) : (
+          <>
+            <div className="mt-4 grid gap-3">
+              {components.map((component, index) => {
+                const legacySupplier = component.legacySupplier && component.supplier;
+                return (
+                  <div key={component.key} className="rounded-md border p-3">
+                    <input type="hidden" name="componentSequence" value={component.key} />
+                    <input type="hidden" name={`componentSupplier_${component.key}`} value={component.supplier || supplierName} />
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium">Component {index + 1}{component.description ? ` - ${component.description}` : ""}</p>
+                      {components.length > 1 ? (
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeComponent(component.key)}>
+                          <X className="h-4 w-4" aria-hidden="true" />
+                          Remove
+                        </Button>
+                      ) : null}
+                    </div>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                      <Field name={`componentDescription_${component.key}`} label="Component name" required={multiComponent} value={component.description} onChange={(value) => updateComponent(component.key, { description: value })} />
+                      <Field name={`componentDate_${component.key}`} label="Due date" type="date" value={component.expectedDate} onChange={(value) => updateComponent(component.key, { expectedDate: value })} />
+                      <Field name={`componentGross_${component.key}`} label="Gross" required value={component.gross} onChange={(value) => updateComponent(component.key, { gross: value })} />
+                      <label className="grid gap-1 text-sm">
+                        <span className="font-medium">VAT treatment</span>
+                        <select
+                          name={`componentVatTreatment_${component.key}`}
+                          required
+                          value={component.vatTreatment}
+                          onChange={(event) => {
+                            const nextTreatment = event.target.value as VatTreatmentValue;
+                            updateComponent(component.key, {
+                              vatTreatment: nextTreatment,
+                              vatRate: defaultVatRates[nextTreatment] || component.vatRate,
+                            });
+                          }}
+                          className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        >
+                          {vatTreatments.map((value) => <option key={value} value={value}>{label(value)}</option>)}
+                        </select>
+                      </label>
+                      <Field name={`componentVatRate_${component.key}`} label="VAT rate" value={component.vatRate} onChange={(value) => updateComponent(component.key, { vatRate: value })} />
+                      <Field name={`componentVat_${component.key}`} label="VAT" required value={component.vat} onChange={(value) => updateComponent(component.key, { vat: value })} />
+                      <Field name={`componentNet_${component.key}`} label="Net" required value={component.net} onChange={(value) => updateComponent(component.key, { net: value })} />
+                      <div className="flex items-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={parseRateBasisPoints(component.vatRate) === null || parseInputMinor(component.gross) === null}
+                          onClick={() => computeComponentFromGross(component.key)}
+                          className="border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 hover:text-emerald-950"
+                        >
+                          <Wand2 className="h-4 w-4" aria-hidden="true" />
+                          Compute from Gross
+                        </Button>
+                      </div>
+                    </div>
+                    {legacySupplier ? (
+                      <p className="mt-3 rounded-md border bg-slate-50 p-3 text-xs text-muted-foreground">
+                        This legacy component keeps its stored supplier value for compatibility.
+                      </p>
+                    ) : null}
+                    {components.length > 1 ? (
+                      <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => allocateRemaining(component.key)}>
+                        <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                        Allocate Remaining
+                      </Button>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
 
-        <div className={`mt-4 rounded-md border p-3 text-sm ${reconciled ? "border-emerald-300 bg-emerald-50 text-emerald-950" : "border-amber-300 bg-amber-50 text-amber-950"}`}>
-          <p>Request total: {requestTotals.gross === null ? "Enter a valid gross amount" : formatMinor(requestTotals.gross)}</p>
-          <p>Components total: {formatMinor(componentTotals.gross)}</p>
-          {requestTotals.gross !== null && componentTotals.gross !== requestTotals.gross ? (
-            <p>Remaining to allocate: {formatMinor(requestTotals.gross - componentTotals.gross)}</p>
-          ) : reconciled ? (
-            <p>Fully allocated</p>
-          ) : (
-            <p>Net, VAT and gross component totals must match the request totals.</p>
-          )}
-        </div>
+            {components.length === 2 ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => applyTwoWaySplit(50, 50)}>
+                  <Split className="h-4 w-4" aria-hidden="true" />
+                  50 / 50
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => applyTwoWaySplit(20, 80)}>20 / 80</Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => applyTwoWaySplit(10, 90)}>10 / 90</Button>
+              </div>
+            ) : null}
+
+            <div className={`mt-4 rounded-md border p-3 text-sm ${reconciled ? "border-emerald-300 bg-emerald-50 text-emerald-950" : "border-amber-300 bg-amber-50 text-amber-950"}`}>
+              <dl className="grid gap-2 sm:grid-cols-3">
+                <div><dt className="font-medium">Request net</dt><dd>{formatMinor(requestTotals.net)}</dd></div>
+                <div><dt className="font-medium">Components net</dt><dd>{formatMinor(componentTotals.net)}</dd></div>
+                <div><dt className="font-medium">Remaining net</dt><dd>{componentBalance.net === null ? "Not available" : formatMinor(componentBalance.net)}</dd></div>
+                <div><dt className="font-medium">Request VAT</dt><dd>{formatMinor(requestTotals.vat)}</dd></div>
+                <div><dt className="font-medium">Components VAT</dt><dd>{formatMinor(componentTotals.vat)}</dd></div>
+                <div><dt className="font-medium">Remaining VAT</dt><dd>{componentBalance.vat === null ? "Not available" : formatMinor(componentBalance.vat)}</dd></div>
+                <div><dt className="font-medium">Request gross</dt><dd>{formatMinor(requestTotals.gross)}</dd></div>
+                <div><dt className="font-medium">Components gross</dt><dd>{formatMinor(componentTotals.gross)}</dd></div>
+                <div><dt className="font-medium">Remaining gross</dt><dd>{componentBalance.gross === null ? "Not available" : formatMinor(componentBalance.gross)}</dd></div>
+              </dl>
+              {componentsOverAllocated ? (
+                <p className="mt-3">Components exceed the request total. Reduce component amounts before saving or submitting.</p>
+              ) : reconciled ? (
+                <p className="mt-3">Fully allocated</p>
+              ) : (
+                <p className="mt-3">Net, VAT and gross component totals must match the request totals.</p>
+              )}
+            </div>
+          </>
+        )}
       </section>
 
       <section className="rounded-md border p-5">
@@ -498,10 +614,15 @@ export function SpendingRequestForm({
         )}
       </section>
 
-      {!reconciled ? (
+      {validationIssues.length > 0 ? (
         <div role="alert" className="flex gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
           <AlertTriangle className="mt-0.5 h-4 w-4" aria-hidden="true" />
-          <p>Save and submission need request totals and payment components to reconcile exactly.</p>
+          <div>
+            <p className="font-medium">This request cannot be submitted yet:</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {validationIssues.map((issue) => <li key={issue}>{issue}</li>)}
+            </ul>
+          </div>
         </div>
       ) : null}
 

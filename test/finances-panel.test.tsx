@@ -58,6 +58,15 @@ const data: FinancesData = {
     },
   ],
   selectedDepartment: null,
+  wholeEvent: {
+    budgetNetMinor: 6200000,
+    approvedNetMinor: 2840000,
+    approvedPaidNetMinor: 1000000,
+    approvedUnpaidNetMinor: 1840000,
+    submittedNetMinor: 335000,
+    remainingNetMinor: 3025000,
+    paidGrossMinor: 1200000,
+  },
   requests: [
     {
       requestId: "request-approved",
@@ -107,6 +116,8 @@ const data: FinancesData = {
     approvedGrossMinor: 3408000,
     paidGrossMinor: 1200000,
     outstandingGrossMinor: 2208000,
+    approvedPaidNetMinor: 1000000,
+    approvedUnpaidNetMinor: 1840000,
   },
 };
 
@@ -128,15 +139,22 @@ describe("FinancesPanel", () => {
     render(<FinancesPanel eventAccess={makeEventAccess()} data={selectedData} canCreateRequest canManageSetup approvalStatus="all" paymentStatus="all" />);
 
     expect(screen.getByText("Current budget")).toBeInTheDocument();
+    expect(screen.getByText("Whole-event budget use")).toBeInTheDocument();
+    expect(screen.getByText("Food budget use")).toBeInTheDocument();
+    expect(screen.getAllByText("Approved and paid").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Approved but unpaid").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Submitted / potential").length).toBeGreaterThan(1);
     expect(screen.getByText("£42,000.00")).toBeInTheDocument();
-    expect(screen.getAllByText("Approved spend").length).toBeGreaterThan(1);
+    expect(screen.getByText("Approved spend")).toBeInTheDocument();
     expect(screen.getAllByText("£28,400.00").length).toBeGreaterThan(1);
-    expect(screen.getAllByText("Submitted spend").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Approved outstanding").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("£18,400.00").length).toBeGreaterThan(1);
+    expect(screen.getByText("Submitted spend")).toBeInTheDocument();
     expect(screen.getByText("Recoverable VAT")).toBeInTheDocument();
     expect(screen.getAllByText("£5,680.00").length).toBeGreaterThan(1);
-    expect(screen.getByText("Paid to date")).toBeInTheDocument();
+    expect(screen.getAllByText("Paid to date").length).toBeGreaterThan(1);
     expect(screen.getAllByText("£12,000.00").length).toBeGreaterThan(1);
-    expect(screen.getByText(/67.6% of budget approved/)).toBeInTheDocument();
+    expect(screen.getAllByText(/net budget basis/).length).toBeGreaterThan(1);
   });
 
   it("renders request rows with separate approval and payment badges", () => {

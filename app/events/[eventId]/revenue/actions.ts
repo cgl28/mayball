@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Enums } from "@/src/types/database.generated";
 import { parseMoneyToMinor } from "@/lib/money";
+import {
+  calculateTicketPriceBreakdown,
+  defaultTicketVatRate,
+  ticketVatRateApplies,
+} from "@/lib/revenue/ticket-pricing";
 import { createClient } from "@/lib/supabase/server";
 
 type VatTreatment = Enums<"vat_treatment">;
@@ -51,6 +56,12 @@ function optionalRate(value: FormDataEntryValue | null) {
   return parsed;
 }
 
+function vatTreatment(value: FormDataEntryValue | null) {
+  const text = clean(value);
+  if (!text) return "standard" as VatTreatment;
+  return text as VatTreatment;
+}
+
 function isFrameworkRedirect(error: unknown) {
   return (
     typeof error === "object" &&
@@ -61,10 +72,33 @@ function isFrameworkRedirect(error: unknown) {
   );
 }
 
+function errorMessage(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message?: unknown }).message === "string"
+  ) {
+    return (error as { message: string }).message;
+  }
+  return "";
+}
+
 function safeMessage(error: unknown) {
-  if (error instanceof Error && error.message) {
-    if (/authorised|ticket|revenue|snapshot|amount|VAT|gross|net|capacity|quantity|owner|date|breakdown|negative|required|display/i.test(error.message)) {
-      return error.message;
+  const message = errorMessage(error);
+  if (message) {
+    if (/Ticket price net and VAT must equal gross/i.test(message)) {
+      return "Ticket type could not be created. Check the gross ticket price and VAT settings.";
+    }
+    if (/Forecast and complimentary tickets cannot exceed capacity/i.test(message)) {
+      return "Ticket type could not be created. Forecast sales and complimentary tickets cannot exceed the maximum available.";
+    }
+    if (/Ticket type name is required/i.test(message)) {
+      return "Ticket type could not be created. Enter a ticket type name.";
+    }
+    if (/authorised|ticket|revenue|snapshot|amount|VAT|gross|net|capacity|quantity|maximum|forecast|exceed|owner|date|breakdown|negative|required|display/i.test(message)) {
+      return message;
     }
   }
   return "Revenue action could not be completed.";
@@ -88,19 +122,46 @@ export async function saveTicketTypeAction(formData: FormData) {
   const supabase = await rpcClient(returnPath);
 
   try {
+    const treatment = vatTreatment(formData.get("vatTreatment"));
+    const requestedRate = optionalRate(formData.get("vatRate"));
+    const effectiveRate = ticketVatRateApplies(treatment)
+      ? requestedRate ?? defaultTicketVatRate(treatment)
+      : 0;
+    const grossMinor = parseMoneyToMinor(clean(formData.get("grossPrice")));
+    if (grossMinor <= 0) {
+      throw new Error("Ticket price must be greater than £0.");
+    }
+    const maximumQuantity = requiredInt(formData.get("maximumQuantity"), "Maximum available");
+    const forecastQuantity = requiredInt(formData.get("forecastQuantity"), "Forecast sales");
+    const complimentaryQuantity = optionalInt(formData.get("complimentaryQuantity"), "Complimentary tickets") ?? 0;
+    if (maximumQuantity <= 0) {
+      throw new Error("Maximum available must be greater than 0.");
+    }
+    if (forecastQuantity > maximumQuantity) {
+      throw new Error("Forecast sales cannot exceed the maximum available.");
+    }
+    if (forecastQuantity + complimentaryQuantity > maximumQuantity) {
+      throw new Error("Forecast sales and complimentary tickets cannot exceed the maximum available.");
+    }
+    const price = calculateTicketPriceBreakdown({
+      grossMinor,
+      vatRate: effectiveRate,
+      vatTreatment: treatment,
+    });
+
     const { error } = await supabase.rpc("save_ticket_type", {
       p_event_id: eventId,
       p_ticket_type_id: ticketTypeId,
       p_name: clean(formData.get("name")),
       p_description: optional(formData.get("description")),
-      p_net_price_minor: parseMoneyToMinor(clean(formData.get("netPrice"))),
-      p_vat_minor: parseMoneyToMinor(clean(formData.get("vatAmount"))),
-      p_gross_price_minor: parseMoneyToMinor(clean(formData.get("grossPrice"))),
-      p_vat_rate: optionalRate(formData.get("vatRate")),
-      p_vat_treatment: clean(formData.get("vatTreatment")) as VatTreatment,
-      p_maximum_quantity: requiredInt(formData.get("maximumQuantity"), "Maximum allocation"),
-      p_forecast_quantity: requiredInt(formData.get("forecastQuantity"), "Forecast sales"),
-      p_complimentary_quantity: optionalInt(formData.get("complimentaryQuantity"), "Complimentary tickets") ?? 0,
+      p_net_price_minor: price.netMinor,
+      p_vat_minor: price.vatMinor,
+      p_gross_price_minor: price.grossMinor,
+      p_vat_rate: price.vatRate,
+      p_vat_treatment: treatment,
+      p_maximum_quantity: maximumQuantity,
+      p_forecast_quantity: forecastQuantity,
+      p_complimentary_quantity: complimentaryQuantity,
       p_display_order: optionalInt(formData.get("displayOrder"), "Display order") ?? 0,
       p_is_active: clean(formData.get("isActive")) === "on",
     });

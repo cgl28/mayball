@@ -4,6 +4,13 @@ import { updateEventSettingsAction } from "@/app/events/actions";
 import { SubmitButton } from "@/components/submit-button";
 import type { EventAccess } from "@/lib/events/access";
 
+function stageLabel(value: string) {
+  return value
+    .split("_")
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
+}
+
 export function EventSettingsPanel({
   eventAccess,
   canManage,
@@ -24,8 +31,8 @@ export function EventSettingsPanel({
       <div>
         <h1 className="text-2xl font-semibold tracking-normal">Event settings</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Configure non-financial event identity. Lifecycle completion, archiving
-          and reopening are managed separately.
+          Configure event identity and operational settings. Lifecycle stage
+          changes and history are managed on the separate Lifecycle page.
         </p>
       </div>
 
@@ -127,14 +134,14 @@ export function EventSettingsPanel({
           Lifecycle
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Review completion readiness, lifecycle history and exceptional archive
-          or reopen actions.
+          Current stage: {stageLabel(event.status)}. Review stage progression,
+          readiness and lifecycle history separately.
         </p>
         <Link
           href={`/events/${event.id}/settings/lifecycle`}
           className="mt-4 inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
-          Open lifecycle settings
+          Manage lifecycle
         </Link>
       </section>
     </div>

@@ -41,6 +41,19 @@ const member = {
   departments: [department],
 };
 
+const presidentMember = {
+  ...member,
+  id: "president-member-id",
+  user_id: "president-user-id",
+  profile: {
+    id: "president-user-id",
+    display_name: "Pat President",
+    preferred_name: null,
+  },
+  roles: ["president" as const],
+  departments: [],
+};
+
 describe("Stage 2 capability helpers", () => {
   it("separates president setup power from treasurer finance power", () => {
     expect(
@@ -134,6 +147,7 @@ describe("department panel", () => {
     expect(screen.getByText("Standard department template")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add all missing standard departments" })).toBeInTheDocument();
     expect(screen.queryByLabelText("Colour")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Order")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add" })).not.toBeInTheDocument();
   });
 
@@ -251,5 +265,43 @@ describe("committee panel", () => {
     expect(screen.getByText("pending")).toBeInTheDocument();
     expect(screen.queryByText(/token_hash/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/[a-f0-9]{64}/i)).not.toBeInTheDocument();
+  });
+
+  it("protects the only active President controls with an explanation", () => {
+    render(
+      <CommitteePanel
+        eventId="event-id"
+        members={[presidentMember, member]}
+        departments={[department]}
+        invitations={[]}
+        canManage
+        readOnly={false}
+      />,
+    );
+
+    expect(screen.getAllByText(/only active President/).length).toBeGreaterThan(0);
+    const presidentButtons = screen.getAllByRole("button", { name: "president" });
+    expect(presidentButtons.filter((button) => button.hasAttribute("disabled"))).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Update status" })).toHaveLength(1);
+  });
+
+  it("allows President role removal controls when another active President remains", () => {
+    render(
+      <CommitteePanel
+        eventId="event-id"
+        members={[
+          presidentMember,
+          { ...member, id: "second-president-id", roles: ["president" as const, "committee_member" as const] },
+        ]}
+        departments={[department]}
+        invitations={[]}
+        canManage
+        readOnly={false}
+      />,
+    );
+
+    expect(screen.queryByText(/only active President/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "president" }).every((button) => !button.hasAttribute("disabled"))).toBe(true);
+    expect(screen.getAllByRole("button", { name: "Update status" })).toHaveLength(2);
   });
 });

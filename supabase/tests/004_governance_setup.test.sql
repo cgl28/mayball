@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(35);
+select plan(47);
 
 set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
@@ -36,7 +36,11 @@ select throws_ok($$select public.create_recurring_event((select organisation_id 
 
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
 select lives_ok($$select public.create_department('30000000-0000-0000-0000-000000000027','Food','FOOD','#336699'::text,'Food operations'::text,5::smallint)$$,'president can create department');
-select lives_ok($$select public.update_department((select id from public.departments where event_id='30000000-0000-0000-0000-000000000027' and code='FOOD'),'Food and Drink','FOD','#336699'::text,'Food operations'::text,5::smallint,true)$$,'president can edit department');
+select is((select display_order from public.departments where event_id='30000000-0000-0000-0000-000000000027' and code='FOOD'),3::smallint,'standard department creation uses canonical template order instead of caller order');
+select lives_ok($$select public.update_department((select id from public.departments where event_id='30000000-0000-0000-0000-000000000027' and code='FOOD'),'Food and Drink','FOD','#336699'::text,'Food operations'::text,99::smallint,true)$$,'president can edit department');
+select is((select display_order from public.departments where event_id='30000000-0000-0000-0000-000000000027' and code='FOD'),3::smallint,'department update preserves existing order instead of caller order');
+create temp table custom_department as select public.create_department('30000000-0000-0000-0000-000000000027','Fireworks','FIRE','#336699'::text,'Custom department'::text,1::smallint) id;
+select ok((select display_order > 16 from public.departments where id=(select id from custom_department)),'custom department order is assigned after standard departments');
 select throws_ok($$select public.create_department('30000000-0000-0000-0000-000000000027','Duplicate Security','SEC',null::text,null::text,1::smallint)$$,'P0001','Department code or name already exists','department codes are unique within event');
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000007',true);
 create temp table clare_department as select public.create_department((select event_id from bootstrapped),'Security','SEC',null::text,null::text,1::smallint) id;
@@ -54,7 +58,26 @@ select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000003'
 select ok(public.is_event_treasurer('30000000-0000-0000-0000-000000000027'),'assigned treasurer role is recognised for that user');
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
 select lives_ok($$select public.remove_event_role('31000000-0000-0000-0000-000000000003','treasurer')$$,'president can remove non-final role');
-select throws_ok($$select public.remove_event_role('31000000-0000-0000-0000-000000000001','president')$$,'P0001','An active event must keep at least one president','final president cannot be removed');
+select throws_ok($$select public.remove_event_role('31000000-0000-0000-0000-000000000001','president')$$,'P0001','Every event must retain at least one active President. Assign another President before removing this role.','final president cannot be removed');
+create temp table pending_president_invitation as
+  select * from public.issue_invitation(
+    '30000000-0000-0000-0000-000000000027',
+    'pending-president@example.test',
+    array['president']::public.event_role[],
+    array[]::uuid[],
+    14
+  );
+select throws_ok($$select public.remove_event_role('31000000-0000-0000-0000-000000000001','president')$$,'P0001','Every event must retain at least one active President. Assign another President before removing this role.','pending president invitation does not satisfy active-president invariant');
+select lives_ok($$select public.assign_event_role('31000000-0000-0000-0000-000000000004','president')$$,'president can assign a second active president');
+select lives_ok($$select public.remove_event_role('31000000-0000-0000-0000-000000000001','president')$$,'one president can step down when another active president remains');
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000004',true);
+select ok(public.is_event_president('30000000-0000-0000-0000-000000000027'),'remaining active president keeps authority');
+select throws_ok($$select public.remove_event_role('31000000-0000-0000-0000-000000000004','president')$$,'P0001','Every event must retain at least one active President. Assign another President before removing this role.','final remaining president cannot remove own president role');
+select throws_ok($$select public.update_event_member_status('31000000-0000-0000-0000-000000000004','removed')$$,'P0001','Every event must retain at least one active President. Assign another President before removing this role.','final active president cannot be removed through membership status');
+select lives_ok($$select public.assign_event_role('31000000-0000-0000-0000-000000000001','president')$$,'remaining president can restore another active president');
+select lives_ok($$select public.update_event_member_status('31000000-0000-0000-0000-000000000004','removed')$$,'one active president can be removed when another remains');
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
+select throws_ok($$select public.remove_event_role('31000000-0000-0000-0000-000000000001','president')$$,'P0001','Every event must retain at least one active President. Assign another President before removing this role.','inactive president role does not count toward active-president invariant');
 
 select lives_ok($$select public.assign_department_member('31000000-0000-0000-0000-000000000003','40000000-0000-0000-0000-000000000003')$$,'president can assign department membership');
 select lives_ok($$select public.assign_department_member('31000000-0000-0000-0000-000000000003','40000000-0000-0000-0000-000000000004')$$,'member can belong to multiple departments');

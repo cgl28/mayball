@@ -39,6 +39,13 @@ describe("authenticated sidebar", () => {
     expect(links[1]).toHaveAttribute("href", "/app/profile");
   });
 
+  it("renders the application logo linked to Home", () => {
+    render(<AppSidebar events={[makeEventAccess()]} />);
+
+    expect(screen.getAllByRole("img", { name: "May Ball Finance" })[0]).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /May Ball Finance/ })[0]).toHaveAttribute("href", "/app");
+  });
+
   it("keeps Home available and shows event navigation on event pages", () => {
     pathname = "/events/30000000-0000-0000-0000-000000000027/dashboard";
 
@@ -62,6 +69,31 @@ describe("authenticated sidebar", () => {
       "href",
       "/events/30000000-0000-0000-0000-000000000027/committee",
     );
+    expect(screen.getAllByText("Downing May Ball 2027").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Active · Planning").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Treasurer").length).toBeGreaterThan(0);
+  });
+
+  it("renders historical current-event context as read-only", () => {
+    pathname = "/events/30000000-0000-0000-0000-000000000027/dashboard";
+
+    render(
+      <AppSidebar
+        events={[
+          makeEventAccess({
+            event: { status: "completed" },
+            membership: null,
+            roles: [],
+            accessMode: "historical",
+            isReadOnly: true,
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByText("Historical · Completed").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Read-only").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("No event role").length).toBeGreaterThan(0);
   });
 
   it("keeps approvals visible but marked locked for non-treasurers", () => {

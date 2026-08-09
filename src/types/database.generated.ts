@@ -4978,6 +4978,10 @@ export type Database = {
           request_id: string
         }[]
       }
+      assert_event_retains_active_president: {
+        Args: { p_event_id: string; p_excluding_event_member_id?: string }
+        Returns: undefined
+      }
       assert_president_can_manage_event: {
         Args: { p_event_id: string }
         Returns: {
@@ -5191,6 +5195,22 @@ export type Database = {
           target_route: string
         }[]
       }
+      event_lifecycle_readiness: {
+        Args: {
+          p_event_id: string
+          p_to_status?: Database["public"]["Enums"]["event_status"]
+        }
+        Returns: {
+          acknowledgement_allowed: boolean
+          amount_minor: number
+          blocks_completion: boolean
+          category: string
+          code: string
+          item_count: number
+          severity: string
+          target_route: string
+        }[]
+      }
       finalise_document_upload: {
         Args: {
           p_document_id: string
@@ -5261,6 +5281,14 @@ export type Database = {
           invitation_token: string
         }[]
       }
+      next_custom_department_display_order: {
+        Args: { p_event_id: string }
+        Returns: number
+      }
+      normal_lifecycle_target: {
+        Args: { p_status: Database["public"]["Enums"]["event_status"] }
+        Returns: Database["public"]["Enums"]["event_status"]
+      }
       normalise_document_extension: {
         Args: { p_mime_type: string }
         Returns: string
@@ -5268,6 +5296,15 @@ export type Database = {
       normalise_email: { Args: { p_email: string }; Returns: string }
       normalise_event_code: { Args: { p_code: string }; Returns: string }
       normalise_slug: { Args: { p_slug: string }; Returns: string }
+      progress_event_lifecycle: {
+        Args: {
+          p_acknowledge_warnings?: boolean
+          p_event_id: string
+          p_reason?: string
+          p_to_status: Database["public"]["Enums"]["event_status"]
+        }
+        Returns: Json
+      }
       record_component_payment: {
         Args: {
           p_allocations: Json
@@ -5373,6 +5410,10 @@ export type Database = {
           p_vat_treatment?: Database["public"]["Enums"]["vat_treatment"]
         }
         Returns: string
+      }
+      standard_department_display_order: {
+        Args: { p_code: string }
+        Returns: number
       }
       start_request_variation: {
         Args: { p_request_id: string }

@@ -16,6 +16,7 @@ export default async function EventLifecyclePage({
     completed?: string;
     archived?: string;
     reopened?: string;
+    progressed?: string;
     acknowledgementRequired?: string;
   }>;
 }) {
@@ -32,7 +33,8 @@ export default async function EventLifecyclePage({
 
   const capabilities = getEventCapabilities(eventAccess);
   const canManageLifecycle = capabilities.isPresident;
-  const lifecycle = await getLifecycleData(session.supabase, eventId, canManageLifecycle);
+  const canViewReadiness = capabilities.isPresident || capabilities.isTreasurer;
+  const lifecycle = await getLifecycleData(session.supabase, eventId, canViewReadiness);
 
   if (lifecycle.error) {
     return <div role="alert" className="rounded-md border border-destructive/40 p-4 text-sm text-destructive">{lifecycle.error}</div>;
@@ -44,10 +46,12 @@ export default async function EventLifecyclePage({
       eventAccess={eventAccess}
       lifecycle={lifecycle.data}
       canManageLifecycle={canManageLifecycle}
+      canViewReadiness={canViewReadiness}
       error={query.error}
       completed={query.completed === "1"}
       archived={query.archived === "1"}
       reopened={query.reopened === "1"}
+      progressed={query.progressed === "1"}
       acknowledgementRequired={query.acknowledgementRequired === "1"}
     />
   );

@@ -38,6 +38,7 @@ export type RequestDepartment = Pick<
   "id" | "name" | "code" | "display_order" | "is_active"
 >;
 export type RequestPaymentPosition = Tables<"v_request_payment_positions">;
+export type RequestReviewHistoryRow = Tables<"v_request_review_history">;
 export type RequestListRow = Pick<
   RequestSummary,
   | "request_id"
@@ -77,6 +78,11 @@ export type SpendingRequestDetail = {
   departments: RequestDepartment[];
   paymentPosition?: RequestPaymentPosition | null;
   documents?: VisibleDocument[];
+  currentRevisionChangeSummary?: string | null;
+  latestChangeRequestReview?: Pick<
+    RequestReviewHistoryRow,
+    "reason" | "reviewer_display_name" | "reviewer_preferred_name" | "created_at"
+  > | null;
 };
 
 export async function getSpendingRequestsData(
@@ -221,7 +227,7 @@ export async function getSpendingRequestDetail(
   if (requestError) return { data: null, error: "Spending request could not be loaded." };
   if (!request?.revision_id) return { data: null, error: null };
 
-  const [allocations, components, departments, paymentPosition, documents] = await Promise.all([
+  const [allocations, components, departments, paymentPosition, documents, currentRevision, latestChangeRequestReview] = await Promise.all([
     supabase
       .from("spending_request_department_allocations")
       .select("id,event_id,revision_id,department_id,net_minor,vat_minor,gross_minor")
@@ -249,6 +255,22 @@ export async function getSpendingRequestDetail(
       .eq("event_id", eventId)
       .eq("request_id", requestId)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("spending_request_revisions")
+      .select("change_summary")
+      .eq("event_id", eventId)
+      .eq("request_id", requestId)
+      .eq("id", request.revision_id)
+      .maybeSingle(),
+    supabase
+      .from("v_request_review_history")
+      .select("reason,reviewer_display_name,reviewer_preferred_name,created_at")
+      .eq("event_id", eventId)
+      .eq("request_id", requestId)
+      .eq("decision", "changes_requested")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (allocations.error) return { data: null, error: "Department allocations could not be loaded." };
@@ -256,6 +278,8 @@ export async function getSpendingRequestDetail(
   if (departments.error) return { data: null, error: "Departments could not be loaded." };
   if (paymentPosition.error) return { data: null, error: "Payment position could not be loaded." };
   if (documents.error) return { data: null, error: "Documents could not be loaded." };
+  if (currentRevision.error) return { data: null, error: "Current revision could not be loaded." };
+  if (latestChangeRequestReview.error) return { data: null, error: "Review history could not be loaded." };
 
   return {
     data: {
@@ -265,6 +289,8 @@ export async function getSpendingRequestDetail(
       departments: departments.data ?? [],
       paymentPosition: paymentPosition.data ?? null,
       documents: documents.data ?? [],
+      currentRevisionChangeSummary: currentRevision.data?.change_summary ?? null,
+      latestChangeRequestReview: latestChangeRequestReview.data ?? null,
     } satisfies SpendingRequestDetail,
     error: null,
   };

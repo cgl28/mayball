@@ -146,7 +146,7 @@ export function DocumentsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="max-w-full overflow-x-auto">
       <table className="w-full min-w-[68rem] text-left text-sm">
         <thead className="border-b text-muted-foreground">
           <tr>
