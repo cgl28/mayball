@@ -16,11 +16,11 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-svh bg-[hsl(var(--marketing-surface))] text-slate-950">
+    <div className="min-h-svh bg-[hsl(var(--marketing-surface))] text-slate-950 lg:grid lg:grid-cols-[18rem_minmax(0,1fr)]">
       <AppSidebar events={events} />
-      <div className="lg:pl-72">
+      <div className="min-w-0">
         <header className="border-b bg-white">
-          <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex w-full max-w-full flex-col gap-2 px-4 py-4 sm:px-6 lg:px-8">
             <p className="text-sm text-muted-foreground">Signed in as</p>
             <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
               <h1 className="text-lg font-semibold tracking-normal">
@@ -36,7 +36,7 @@ export function AppShell({
             ) : null}
           </div>
         </header>
-        <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="min-w-0 max-w-full px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>
   );

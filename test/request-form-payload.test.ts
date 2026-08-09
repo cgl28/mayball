@@ -24,6 +24,7 @@ describe("spending request form payload", () => {
       vatRecoverable: "on",
       componentSequence: "10",
       componentDescription_10: "Full payment",
+      componentDate_10: "2027-03-01",
       componentNet_10: "1000.00",
       componentVat_10: "200.00",
       componentGross_10: "1200.00",
@@ -48,6 +49,55 @@ describe("spending request form payload", () => {
         gross_minor: 120000,
       },
     ]);
+    expect(payload.p_expected_payment_date).toBe("2027-03-01");
+  });
+
+  it("derives the compatibility expected payment date from the earliest component due date", () => {
+    const payload = buildDraftPayload(formData({
+      title: "Lighting split",
+      primaryDepartmentId: "40000000-0000-0000-0000-000000000001",
+      description: "Two supplier payments",
+      net: "1666.67",
+      vat: "333.33",
+      gross: "2000.00",
+      vatRate: "20",
+      vatTreatment: "standard",
+      componentSequence: ["1", "2"],
+      componentDescription_1: "Deposit",
+      componentDate_1: "2027-04-01",
+      componentNet_1: "833.33",
+      componentVat_1: "166.67",
+      componentGross_1: "1000.00",
+      componentDescription_2: "Final Payment",
+      componentDate_2: "2027-03-01",
+      componentNet_2: "833.34",
+      componentVat_2: "166.66",
+      componentGross_2: "1000.00",
+    }));
+
+    expect(payload.p_expected_payment_date).toBe("2027-03-01");
+  });
+
+  it("rejects a component whose net and VAT do not equal gross", () => {
+    expect(() => buildDraftPayload(formData({
+      title: "Lighting split",
+      primaryDepartmentId: "40000000-0000-0000-0000-000000000001",
+      description: "Two supplier payments",
+      net: "1666.67",
+      vat: "333.33",
+      gross: "2000.00",
+      vatRate: "20",
+      vatTreatment: "standard",
+      componentSequence: ["1", "2"],
+      componentDescription_1: "Deposit",
+      componentNet_1: "833.33",
+      componentVat_1: "166.66",
+      componentGross_1: "1000.00",
+      componentDescription_2: "Final Payment",
+      componentNet_2: "833.34",
+      componentVat_2: "166.67",
+      componentGross_2: "1000.00",
+    }))).toThrow("Component 1 net and VAT must equal gross.");
   });
 
   it("requires a description", () => {

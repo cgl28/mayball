@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
   title: "May Ball Finance",
   description: "Collaborative budgeting and expenditure control for May Balls",
+  icons: {
+    icon: "/brand/mbf-logo.png",
+    apple: "/brand/mbf-logo.png",
+  },
 };
 
 export default function RootLayout({

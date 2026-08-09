@@ -3,7 +3,9 @@ import { AlertTriangle, ArrowRight, FileText } from "lucide-react";
 import { StatusBadge, statusLabel } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { DepartmentFinanceRequest, FinancesData } from "@/lib/finances/data";
+import { StackedFinancialBar } from "@/components/financial-visuals";
+import { responsiveMetricGridClassName } from "@/components/responsive-metric-grid";
+import type { DepartmentFinanceRequest, FinancePositionSummary, FinancesData } from "@/lib/finances/data";
 import { formatMinor } from "@/lib/money";
 import type { EventAccess } from "@/lib/events/access";
 
@@ -25,10 +27,10 @@ function url(eventId: string, params: Record<string, string | null | undefined>)
 
 function metric(label: string, value: string, basis: string, help: string) {
   return (
-    <section className="rounded-md border bg-white p-4">
-      <div className="flex items-start justify-between gap-3">
-        <h3 className="text-sm font-medium text-muted-foreground">{label}</h3>
-        <Badge variant="outline">{basis}</Badge>
+    <section className="min-w-0 rounded-md border bg-white p-4">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <h3 className="min-w-0 text-sm font-medium text-muted-foreground">{label}</h3>
+        <Badge variant="outline" className="shrink-0">{basis}</Badge>
       </div>
       <p className="mt-2 text-xl font-semibold tracking-normal">{value}</p>
       <p className="mt-2 text-xs text-muted-foreground">{help}</p>
@@ -36,64 +38,73 @@ function metric(label: string, value: string, basis: string, help: string) {
   );
 }
 
-function percent(value: number, total: number) {
-  if (total <= 0) return 0;
-  return Math.max(0, Math.min(100, (value / total) * 100));
+function budgetUseSegments(summary: FinancePositionSummary) {
+  const committed = summary.approvedPaidNetMinor + summary.approvedUnpaidNetMinor + summary.submittedNetMinor;
+  const remaining = summary.budgetNetMinor === null ? 0 : Math.max(0, summary.budgetNetMinor - committed);
+  return [
+    {
+      key: "approved-paid",
+      label: "Approved and paid",
+      amountMinor: summary.approvedPaidNetMinor,
+      tone: "paid" as const,
+      description: "net equivalent",
+    },
+    {
+      key: "approved-unpaid",
+      label: "Approved but unpaid",
+      amountMinor: summary.approvedUnpaidNetMinor,
+      tone: "approvedUnpaid" as const,
+      description: "net outstanding",
+    },
+    {
+      key: "submitted-potential",
+      label: "Submitted / potential",
+      amountMinor: summary.submittedNetMinor,
+      tone: "potential" as const,
+      description: "net pending",
+    },
+    {
+      key: "remaining",
+      label: "Remaining budget",
+      amountMinor: remaining,
+      tone: "remaining" as const,
+      description: "net uncommitted",
+    },
+  ];
 }
 
-function BudgetProgress({
-  budget,
-  approved,
-  submitted,
+function BudgetUseVisual({
+  title,
+  description,
+  summary,
 }: {
-  budget: number | null;
-  approved: number;
-  submitted: number;
+  title: string;
+  description: string;
+  summary: FinancePositionSummary;
 }) {
-  if (budget === null) {
+  if (summary.budgetNetMinor === null) {
     return (
       <section className="rounded-md border bg-white p-5">
-        <h2 className="font-medium">Budget use</h2>
+        <h2 className="font-medium">{title}</h2>
         <p className="mt-3 rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-          No active budget is available for this department. Spending can still be reviewed, but remaining budget cannot be calculated.
+          No active budget is available. Spending can still be reviewed, but remaining budget cannot be calculated.
         </p>
       </section>
     );
   }
 
-  const potential = approved + submitted;
-  const remaining = budget - potential;
-  const approvedWidth = percent(approved, budget);
-  const submittedWidth = percent(submitted, budget);
-  const remainingWidth = Math.max(0, 100 - approvedWidth - submittedWidth);
-  const overspent = potential > budget;
+  const committed = summary.approvedPaidNetMinor + summary.approvedUnpaidNetMinor + summary.submittedNetMinor;
+  const overspend = Math.max(0, committed - summary.budgetNetMinor);
 
   return (
-    <section className="rounded-md border bg-white p-5">
-      <h2 className="font-medium">Budget use</h2>
-      <p className="mt-1 text-sm text-muted-foreground">Department budget: {formatMinor(budget)} net</p>
-      <div className="mt-4 overflow-hidden rounded-full border bg-slate-100" aria-label="Department budget use">
-        <div className="flex h-5 w-full">
-          <div className="bg-[hsl(var(--marketing-brand))]" style={{ width: `${approvedWidth}%` }} title="Approved commitments" />
-          <div className="bg-sky-400" style={{ width: `${submittedWidth}%` }} title="Submitted commitments" />
-          <div className="bg-emerald-100" style={{ width: `${remainingWidth}%` }} title="Potential remaining budget" />
-        </div>
-      </div>
-      <dl className="mt-4 grid gap-3 text-sm md:grid-cols-3">
-        <div><dt className="text-muted-foreground">Approved spend</dt><dd className="font-medium">{formatMinor(approved)} net</dd></div>
-        <div><dt className="text-muted-foreground">Submitted spend</dt><dd className="font-medium">{formatMinor(submitted)} net</dd></div>
-        <div><dt className="text-muted-foreground">Potential remaining</dt><dd className="font-medium">{formatMinor(remaining)} net</dd></div>
-      </dl>
-      <p className="mt-3 text-sm text-muted-foreground">
-        {(approvedWidth).toFixed(1)}% of budget approved. {(percent(potential, budget)).toFixed(1)}% potentially committed.
-      </p>
-      {overspent ? (
-        <div role="alert" className="mt-3 flex gap-2 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-900">
-          <AlertTriangle className="mt-0.5 h-4 w-4" aria-hidden="true" />
-          <p>Potential commitments exceed the department budget by {formatMinor(Math.abs(remaining))}.</p>
-        </div>
-      ) : null}
-    </section>
+    <StackedFinancialBar
+      title={title}
+      description={description}
+      basis="net budget basis"
+      totalMinor={summary.budgetNetMinor}
+      segments={budgetUseSegments(summary)}
+      overspendMinor={overspend}
+    />
   );
 }
 
@@ -130,7 +141,7 @@ export function FinancesPanel({
 
   if (data.departments.length === 0 || !department?.department_id) {
     return (
-      <div className="grid gap-6">
+      <div className="grid min-w-0 gap-6">
         <h1 className="text-2xl font-semibold tracking-normal">Finances</h1>
         <section className="rounded-md border bg-white p-5">
           <p className="text-sm text-muted-foreground">No departments have been configured for this event.</p>
@@ -147,9 +158,18 @@ export function FinancesPanel({
   const submittedNet = Number(department.pending_net_minor ?? 0);
   const remaining = department.remaining_approved_minor;
   const potentialRemaining = department.potential_remaining_minor;
+  const departmentSummary: FinancePositionSummary = {
+    budgetNetMinor: currentBudget,
+    approvedNetMinor: approvedNet,
+    approvedPaidNetMinor: data.totals.approvedPaidNetMinor,
+    approvedUnpaidNetMinor: data.totals.approvedUnpaidNetMinor,
+    submittedNetMinor: submittedNet,
+    remainingNetMinor: currentBudget === null ? null : currentBudget - data.totals.approvedPaidNetMinor - data.totals.approvedUnpaidNetMinor - submittedNet,
+    paidGrossMinor: data.totals.paidGrossMinor,
+  };
 
   return (
-    <div className="grid gap-6">
+    <div className="grid min-w-0 gap-6">
       {eventAccess.isReadOnly ? (
         <div className="flex gap-3 rounded-md border border-amber-300 bg-amber-50 p-4 text-amber-950">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
@@ -160,8 +180,8 @@ export function FinancesPanel({
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-normal">Finances</h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             Department-level budget, commitment and payment monitoring. Approval status and payment status are shown separately.
@@ -177,7 +197,22 @@ export function FinancesPanel({
         ) : null}
       </div>
 
-      <nav role="tablist" aria-label="Departments" className="flex gap-2 overflow-x-auto border-b pb-2">
+      <BudgetUseVisual
+        title="Whole-event budget use"
+        description="Net budget position split into approved paid, approved unpaid, submitted/potential and remaining budget. Gross cash paid is shown separately below."
+        summary={data.wholeEvent}
+      />
+
+      <section className={responsiveMetricGridClassName}>
+        {metric("Event budget", data.wholeEvent.budgetNetMinor === null ? "Not configured" : formatMinor(data.wholeEvent.budgetNetMinor), "net", "Total current department budget across the event.")}
+        {metric("Approved commitments", formatMinor(data.wholeEvent.approvedNetMinor), "net", "Approved spend split into paid and unpaid in the bar above.")}
+        {metric("Approved outstanding", formatMinor(data.wholeEvent.approvedUnpaidNetMinor), "net", "Approved commitment still unpaid on a net-equivalent basis.")}
+        {metric("Submitted / potential", formatMinor(data.wholeEvent.submittedNetMinor), "net", "Submitted requests plus pending variation exposure.")}
+        {metric("Paid to date", formatMinor(data.wholeEvent.paidGrossMinor), "gross cash", "Non-reversed recorded payments. Kept separate from the net budget bar.")}
+        {metric("Potential remaining", data.wholeEvent.remainingNetMinor === null ? "Not available" : formatMinor(data.wholeEvent.remainingNetMinor), "net", "Budget remaining after approved and submitted exposure.")}
+      </section>
+
+      <nav role="tablist" aria-label="Departments" className="flex max-w-full gap-2 overflow-x-auto border-b pb-2">
         {data.departments.map((item) => {
           const active = item.department_id === department.department_id;
           return (
@@ -194,15 +229,15 @@ export function FinancesPanel({
         })}
       </nav>
 
-      <section className="rounded-md border bg-white p-5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-          <div>
+      <section className="min-w-0 rounded-md border bg-white p-5">
+        <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
             <h2 className="text-xl font-semibold tracking-normal">{department.department_name}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {department.department_code} department. Active department position from the shared dashboard reporting view.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex shrink-0 flex-wrap gap-2">
             <Badge variant={department.has_active_allocation ? "default" : "secondary"}>
               {department.has_active_allocation ? "Active budget" : "No active budget"}
             </Badge>
@@ -211,18 +246,22 @@ export function FinancesPanel({
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <BudgetUseVisual
+        title={`${department.department_name} budget use`}
+        description="Selected department net budget position using the same categories as the whole-event view."
+        summary={departmentSummary}
+      />
+
+      <section className={responsiveMetricGridClassName}>
         {metric("Current budget", currentBudget === null ? "Not configured" : formatMinor(currentBudget), "net", "Active departmental budget after transfers.")}
         {metric("Approved spend", formatMinor(approvedNet), "net", "Approved commitments, not paid cash.")}
+        {metric("Approved outstanding", formatMinor(data.totals.approvedUnpaidNetMinor), "net", "Approved department commitment still unpaid on a net-equivalent basis.")}
         {metric("Submitted spend", formatMinor(submittedNet), "net", "Submitted requests plus positive pending variation exposure.")}
-        {metric("Gross approved spend", formatMinor(department.approved_gross_minor), "gross", "Approved commitment amount including VAT.")}
-        {metric("Recoverable VAT", formatMinor(data.totals.recoverableVatMinor), "VAT", "VAT on approved visible department allocations.")}
         {metric("Paid to date", formatMinor(data.totals.paidGrossMinor), "gross cash", "Non-reversed payments apportioned by department allocation share.")}
         {metric("Remaining budget", remaining === null ? "Not available" : formatMinor(remaining), "net", "Current budget minus approved net commitments.")}
         {metric("Potential remaining", potentialRemaining === null ? "Not available" : formatMinor(potentialRemaining), "net", "Current budget minus approved and submitted exposure.")}
+        {metric("Recoverable VAT", formatMinor(data.totals.recoverableVatMinor), "VAT", "VAT on approved visible department allocations.")}
       </section>
-
-      <BudgetProgress budget={currentBudget} approved={approvedNet} submitted={submittedNet} />
 
       <section className="rounded-md border bg-white p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -257,7 +296,7 @@ export function FinancesPanel({
             No spending requests have been recorded for {department.department_name} with the current filters.
           </div>
         ) : (
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 max-w-full overflow-x-auto">
             <table className="w-full min-w-[78rem] text-left text-sm">
               <thead className="border-b text-muted-foreground">
                 <tr>

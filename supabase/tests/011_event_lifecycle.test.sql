@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(50);
+select plan(69);
 
 set local role authenticated;
 select set_config('request.jwt.claim.role','authenticated',true);
@@ -17,6 +17,59 @@ select ok(exists(select 1 from public.event_completion_readiness('30000000-0000-
 select ok(exists(select 1 from public.event_completion_readiness('30000000-0000-0000-0000-000000000027') where code='unpaid_approved_requests' and amount_minor=1080000),'unpaid approved request readiness amount is canonical');
 select ok(exists(select 1 from public.event_completion_readiness('30000000-0000-0000-0000-000000000027') where code='private_spending_drafts' and item_count=4),'president sees event-wide draft warning for completion');
 select ok(not exists(select 1 from public.event_completion_readiness('30000000-0000-0000-0000-000000000027') where blocks_completion),'seed planning event has no hard blockers');
+
+select is(public.normal_lifecycle_target('setup'::public.event_status)::text,'planning','setup normally progresses to planning');
+select is(public.normal_lifecycle_target('planning'::public.event_status)::text,'live','planning normally progresses to live');
+select ok(public.normal_lifecycle_target('archived'::public.event_status) is null,'archived has no normal forward transition');
+
+create temp table lifecycle_progress_event as
+select public.create_recurring_event(
+  '20000000-0000-0000-0000-000000000001',
+  'Lifecycle Progression Test',
+  'LPT',
+  2031::smallint,
+  '2031-06-18'::date,
+  '2030-08-01'::date,
+  'setup'::public.event_status
+)::uuid id;
+
+select ok(not exists(select 1 from public.event_lifecycle_readiness((select id from lifecycle_progress_event),'planning'::public.event_status) where code='unpaid_approved_requests'),'setup to planning readiness does not include final payment warnings');
+select is((public.progress_event_lifecycle((select id from lifecycle_progress_event),'planning'::public.event_status,false,'Start planning')->>'progressed')::boolean,false,'normal progression with warnings requires acknowledgement');
+select is((select status::text from public.events where id=(select id from lifecycle_progress_event)),'setup','unacknowledged progression does not change status');
+select is((public.progress_event_lifecycle((select id from lifecycle_progress_event),'planning'::public.event_status,true,'Start planning')->>'progressed')::boolean,true,'president progresses setup to planning with acknowledgement');
+select is((select status::text from public.events where id=(select id from lifecycle_progress_event)),'planning','progression updates event to planning');
+select is((select count(*)::bigint from public.event_lifecycle_history where event_id=(select id from lifecycle_progress_event) and action='progressed'),1::bigint,'normal progression writes lifecycle history');
+select ok(exists(select 1 from public.activity_log where event_id=(select id from lifecycle_progress_event) and action='event.lifecycle_progressed'),'normal progression writes activity log');
+select throws_ok(
+  $$select public.progress_event_lifecycle((select id from lifecycle_progress_event),'archived'::public.event_status,true,'Skip ahead')$$,
+  'P0001',
+  'Invalid lifecycle transition',
+  'normal progression cannot skip stages'
+);
+
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
+select lives_ok($$select * from public.event_lifecycle_readiness('30000000-0000-0000-0000-000000000027','live'::public.event_status)$$,'treasurer can inspect lifecycle readiness');
+select throws_ok(
+  $$select public.progress_event_lifecycle((select id from lifecycle_progress_event),'live'::public.event_status,true,'Treasurer attempt')$$,
+  'P0001',
+  'Not authorised',
+  'treasurer without president cannot progress lifecycle'
+);
+
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000004',true);
+select throws_ok(
+  $$select * from public.event_lifecycle_readiness('30000000-0000-0000-0000-000000000027','live'::public.event_status)$$,
+  'P0001',
+  'Not authorised',
+  'ordinary member cannot inspect detailed lifecycle readiness'
+);
+
+select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
+select ok(exists(select 1 from public.event_lifecycle_readiness((select id from lifecycle_progress_event),'live'::public.event_status) where code='no_active_budget' and severity='warning' and not blocks_completion),'planning to live readiness reports budget as an acknowledgeable warning');
+select ok(not exists(select 1 from public.event_lifecycle_readiness((select id from lifecycle_progress_event),'live'::public.event_status) where code='unpaid_approved_requests'),'planning to live readiness does not include final payment warnings');
+select is((public.progress_event_lifecycle((select id from lifecycle_progress_event),'live'::public.event_status,true,'Move to live')->>'progressed')::boolean,true,'president progresses planning to live');
+select is((public.progress_event_lifecycle((select id from lifecycle_progress_event),'reconciliation'::public.event_status,true,'Close down')->>'progressed')::boolean,true,'president progresses live to reconciliation');
+select is((select status::text from public.events where id=(select id from lifecycle_progress_event)),'reconciliation','progression updates event to reconciliation');
 
 select is(
   (public.complete_event('30000000-0000-0000-0000-000000000027',false,'Closing review')->>'completed')::boolean,

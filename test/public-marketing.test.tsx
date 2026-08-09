@@ -45,6 +45,7 @@ describe("public marketing navigation", () => {
   it("renders footer links including privacy and security placeholder", () => {
     render(<PublicFooter />);
 
+    expect(screen.getByRole("img", { name: "May Ball Finance" })).toBeInTheDocument();
     expect(screen.getByText("May Ball Finance")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Privacy and Security" })).toHaveAttribute("href", "/guides#security");
     expect(screen.getByText(/All rights reserved/)).toBeInTheDocument();

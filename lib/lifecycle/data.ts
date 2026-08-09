@@ -31,13 +31,13 @@ export async function getLifecycleData(
       .eq("event_id", eventId)
       .order("created_at", { ascending: false }),
     canViewReadiness
-      ? supabase.rpc("event_completion_readiness", { p_event_id: eventId })
+      ? supabase.rpc("event_lifecycle_readiness", { p_event_id: eventId })
       : Promise.resolve({ data: [], error: null }),
   ]);
 
   if (summary.error) return { data: null, error: "Lifecycle status could not be loaded." };
   if (history.error) return { data: null, error: "Lifecycle history could not be loaded." };
-  if (readiness.error) return { data: null, error: "Completion readiness could not be loaded." };
+  if (readiness.error) return { data: null, error: "Lifecycle readiness could not be loaded." };
 
   return {
     data: {

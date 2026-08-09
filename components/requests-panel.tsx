@@ -86,6 +86,25 @@ function ReadOnlyNotice() {
   );
 }
 
+function ChangesRequestedNotice({
+  comment,
+}: {
+  comment?: string | null;
+}) {
+  return (
+    <div className="grid gap-2 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+      <p className="font-medium">Changes requested</p>
+      <p>The Treasurer has requested changes before this request can be approved.</p>
+      {comment ? (
+        <div>
+          <p className="font-medium">Treasurer comment</p>
+          <p className="mt-1">{comment}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function RequestsListPanel({
   eventId,
   requests,
@@ -197,7 +216,7 @@ export function RequestsListPanel({
             <p className="text-sm text-muted-foreground">
               Showing {filtered.length} of {totalCount} visible requests. Page {page} of {totalPages}.
             </p>
-            <div className="overflow-x-auto">
+            <div className="max-w-full overflow-x-auto">
               <table className="w-full min-w-[56rem] text-left text-sm">
                 <thead className="border-b text-muted-foreground">
                   <tr>
@@ -329,6 +348,7 @@ export function RequestDetailPanel({
       </div>
       <Message error={error} created={created} saved={saved} submitted={submitted} />
       {readOnly ? <ReadOnlyNotice /> : null}
+      {request.approval_status === "changes_requested" ? <ChangesRequestedNotice comment={detail.latestChangeRequestReview?.reason} /> : null}
       {review ? (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
           Submission makes this request visible to the active committee and locks
@@ -398,7 +418,7 @@ export function RequestDetailPanel({
       />
 
       <div className="flex flex-wrap gap-2">
-        {canEdit && !review ? <Button asChild><Link href={`/events/${eventId}/requests/${request.request_id}/edit`}>Edit draft</Link></Button> : null}
+        {canEdit && !review ? <Button asChild><Link href={`/events/${eventId}/requests/${request.request_id}/edit`}>{request.approval_status === "changes_requested" ? "Edit returned request" : "Edit draft"}</Link></Button> : null}
         {canSubmit && !review ? <Button asChild variant="outline"><Link href={`/events/${eventId}/requests/${request.request_id}/review`}>Review and submit</Link></Button> : null}
         {canStartVariation && !review ? (
           <form action={startVariationAction}>
@@ -436,7 +456,7 @@ export function RequestEditor({
   error?: string;
 }) {
   const request = detail?.request;
-  const editable = !request || request.approval_status === "draft";
+  const editable = !request || Boolean(request.can_edit_draft && request.current_draft_revision_id && request.revision_status === "draft");
   const hasComplexDraftAllocations = Boolean(request && (detail?.allocations.length ?? 0) > 1);
 
   return (
@@ -448,8 +468,9 @@ export function RequestEditor({
         </p>
       </div>
       <Message error={error} />
+      {request?.approval_status === "changes_requested" ? <ChangesRequestedNotice comment={detail?.latestChangeRequestReview?.reason} /> : null}
       {!editable ? (
-        <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">Submitted requests cannot be edited.</div>
+        <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">This request is not currently editable.</div>
       ) : hasComplexDraftAllocations ? (
         <div className="grid gap-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
           <p className="font-medium">This draft uses multiple department allocations.</p>

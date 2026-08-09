@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertCircle, CheckCircle, History, Scale, TriangleAlert } from "lucide-react";
+import { AlertCircle, CheckCircle, History, MessageSquareWarning, Scale, TriangleAlert, XCircle } from "lucide-react";
 import { decideSpendingRequestAction } from "@/app/events/[eventId]/approvals/actions";
 import { StatusBadge } from "@/components/status-badge";
 import { SubmitButton } from "@/components/submit-button";
@@ -23,6 +23,39 @@ function person(row: { owner_preferred_name?: string | null; owner_display_name?
 function dateTime(value: string | null | undefined) {
   return value ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "Not submitted";
 }
+
+const decisionUi = {
+  approved: {
+    label: "Approve",
+    heading: "Approve",
+    description: "Authorise this submitted revision for spending. This does not record payment.",
+    pendingLabel: "Approving...",
+    buttonVariant: "success",
+    cardClassName: "border-emerald-300 bg-emerald-50/70",
+    iconClassName: "text-emerald-700",
+    icon: CheckCircle,
+  },
+  changes_requested: {
+    label: "Request Changes",
+    heading: "Request changes",
+    description: "Return this request to the requester with clear instructions for revision.",
+    pendingLabel: "Requesting changes...",
+    buttonVariant: "warning",
+    cardClassName: "border-amber-300 bg-amber-50/80",
+    iconClassName: "text-amber-700",
+    icon: MessageSquareWarning,
+  },
+  rejected: {
+    label: "Reject",
+    heading: "Reject",
+    description: "Decline this submitted revision. Include the reason for the audit trail.",
+    pendingLabel: "Rejecting...",
+    buttonVariant: "destructive",
+    cardClassName: "border-red-300 bg-red-50/70",
+    iconClassName: "text-red-700",
+    icon: XCircle,
+  },
+} as const;
 
 function Message({
   error,
@@ -108,7 +141,7 @@ export function ApprovalQueuePanel({
             No queue rows match those filters.
           </p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 max-w-full overflow-x-auto">
             <table className="w-full min-w-[60rem] text-left text-sm">
               <thead className="border-b text-muted-foreground">
                 <tr>
@@ -214,7 +247,7 @@ export function ApprovalReviewPanel({
         {impacts.length === 0 ? (
           <p className="mt-3 text-sm text-muted-foreground">No active budget impact is available for this request.</p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 max-w-full overflow-x-auto">
             <table className="w-full min-w-[58rem] text-left text-sm">
               <thead className="border-b text-muted-foreground">
                 <tr>
@@ -283,10 +316,10 @@ export function ApprovalReviewPanel({
         <section className="rounded-md border p-5">
           <h2 className="font-medium">Decision</h2>
           <p className="mt-2 text-sm text-muted-foreground">Confirm the exact submitted revision above. Approval does not mean paid.</p>
-          <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          <div data-testid="decision-action-grid" className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <DecisionForm eventId={eventId} requestId={request.request_id ?? ""} revisionId={request.revision_id ?? ""} decision="approved" />
-            <DecisionForm eventId={eventId} requestId={request.request_id ?? ""} revisionId={request.revision_id ?? ""} decision="rejected" reasonLabel="Rejection reason" />
             <DecisionForm eventId={eventId} requestId={request.request_id ?? ""} revisionId={request.revision_id ?? ""} decision="changes_requested" reasonLabel="Change instructions" />
+            <DecisionForm eventId={eventId} requestId={request.request_id ?? ""} revisionId={request.revision_id ?? ""} decision="rejected" reasonLabel="Rejection reason" />
           </div>
         </section>
       ) : (
@@ -309,7 +342,7 @@ function RevisionComparison({
   return (
     <section className="rounded-md border p-5">
       <h2 className="font-medium">Revision comparison</h2>
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4 max-w-full overflow-x-auto">
         <table className="w-full min-w-[44rem] text-left text-sm">
           <thead className="border-b text-muted-foreground">
             <tr>
@@ -387,13 +420,21 @@ function DecisionForm({
   decision: "approved" | "rejected" | "changes_requested";
   reasonLabel?: string;
 }) {
+  const ui = decisionUi[decision];
+  const Icon = ui.icon;
   return (
-    <form action={decideSpendingRequestAction} className="grid gap-3 rounded-md border p-4">
+    <form action={decideSpendingRequestAction} className={`grid gap-3 rounded-md border p-4 ${ui.cardClassName}`}>
       <input type="hidden" name="eventId" value={eventId} />
       <input type="hidden" name="requestId" value={requestId} />
       <input type="hidden" name="revisionId" value={revisionId} />
       <input type="hidden" name="decision" value={decision} />
-      <h3 className="font-medium">{label(decision)}</h3>
+      <div className="flex items-start gap-2">
+        <Icon className={`mt-0.5 h-4 w-4 ${ui.iconClassName}`} aria-hidden="true" />
+        <div>
+          <h3 className="font-medium">{ui.heading}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{ui.description}</p>
+        </div>
+      </div>
       {reasonLabel ? (
         <label className="grid gap-1 text-sm">
           <span className="font-medium">{reasonLabel}</span>
@@ -404,7 +445,7 @@ function DecisionForm({
         <input type="checkbox" required className="mt-1 h-4 w-4 rounded border" />
         <span>I confirm this decision applies to the submitted revision shown.</span>
       </label>
-      <SubmitButton pendingLabel="Recording...">{label(decision)}</SubmitButton>
+      <SubmitButton pendingLabel={ui.pendingLabel} variant={ui.buttonVariant}>{ui.label}</SubmitButton>
     </form>
   );
 }

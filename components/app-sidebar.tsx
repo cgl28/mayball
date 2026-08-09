@@ -44,6 +44,30 @@ function selectedEventId(pathname: string) {
   return match?.[1] ?? null;
 }
 
+function stageLabel(status: EventAccess["event"]["status"]) {
+  return status
+    .split("_")
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
+}
+
+function roleSummary(roles: EventAccess["roles"]) {
+  if (roles.length === 0) return "No event role";
+
+  return roles
+    .map((role) => role.replaceAll("_", " "))
+    .map((role) => `${role.charAt(0).toUpperCase()}${role.slice(1)}`)
+    .join(", ");
+}
+
+function activityLabel(eventAccess: EventAccess) {
+  if (eventAccess.isReadOnly || eventAccess.accessMode === "historical") {
+    return "Historical";
+  }
+
+  return "Active";
+}
+
 function eventNavItems(eventAccess: EventAccess): NavItem[] {
   const eventId = eventAccess.event.id;
   const capabilities = getEventCapabilities(eventAccess);
@@ -114,10 +138,10 @@ function SidebarContents({
   const currentEvent = eventId ? events.find((eventAccess) => eventAccess.event.id === eventId) : null;
 
   return (
-    <div className="flex h-full flex-col gap-5">
-      <Link href="/app" className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--marketing-brand))]">
+    <div className="flex h-full min-w-0 flex-col gap-5">
+      <Link href="/app" className="flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--marketing-brand))]">
         <Image src="/brand/mbf-logo.png" alt="May Ball Finance" width={45} height={30} priority className="h-8 w-auto" />
-        <span className="text-base font-semibold tracking-normal text-slate-950">May Ball Finance</span>
+        <span className="min-w-0 truncate text-base font-semibold tracking-normal text-slate-950">May Ball Finance</span>
       </Link>
 
       <nav aria-label="Application navigation" className="grid gap-1">
@@ -130,7 +154,11 @@ function SidebarContents({
         <div className="grid gap-3 border-t pt-4">
           <div className="px-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current Event</p>
-            <p className="mt-1 text-sm font-medium text-slate-950">{currentEvent.event.name}</p>
+            <p className="mt-1 truncate text-sm font-medium text-slate-950">{currentEvent.event.name}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {activityLabel(currentEvent)} · {stageLabel(currentEvent.event.status)}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{roleSummary(currentEvent.roles)}</p>
             <div className="mt-2 flex flex-wrap gap-1">
               <Badge variant={currentEvent.isReadOnly ? "secondary" : "default"}>
                 {currentEvent.isReadOnly ? "Read-only" : "Active"}
@@ -157,7 +185,7 @@ export function AppSidebar({ events }: { events: EventAccess[] }) {
 
   return (
     <>
-      <aside className="hidden min-h-svh w-72 border-r bg-white px-4 py-5 lg:fixed lg:inset-y-0 lg:flex lg:flex-col">
+      <aside className="hidden h-svh w-72 min-w-0 border-r bg-white px-4 py-5 lg:sticky lg:top-0 lg:flex lg:flex-col">
         <SidebarContents events={events} pathname={pathname} />
       </aside>
       <div className="border-b bg-white px-4 py-3 lg:hidden">

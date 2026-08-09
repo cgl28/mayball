@@ -45,9 +45,22 @@ function codeValue(value: string, label: string) {
 }
 
 function safeMessage(error: unknown) {
-  if (error instanceof Error && error.message) {
-    if (/duplicate|already exists|required|invalid|authorised|expiry|expired|pending|email|invitation|read-only|same event|president/i.test(error.message)) {
-      return error.message;
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" &&
+          error !== null &&
+          "message" in error &&
+          typeof (error as { message?: unknown }).message === "string"
+        ? (error as { message: string }).message
+        : "";
+
+  if (message) {
+    if (/retain at least one active President|keep at least one president/i.test(message)) {
+      return "Every event must have at least one active President. Assign another President before removing this role or changing this member's status.";
+    }
+    if (/duplicate|already exists|required|invalid|authorised|expiry|expired|pending|email|invitation|read-only|same event|president|department|order/i.test(message)) {
+      return message;
     }
   }
   return "The request could not be completed.";
@@ -180,9 +193,8 @@ export async function saveDepartmentAction(formData: FormData) {
   const eventId = clean(formData.get("eventId"));
   const departmentId = clean(formData.get("departmentId"));
   try {
-    const displayOrder = Number(clean(formData.get("displayOrder")) || "0");
     const departmentCode = codeValue(clean(formData.get("code")), "Department code");
-    let colour = departmentColourForCode(departmentCode, displayOrder);
+    let colour = departmentColourForCode(departmentCode);
 
     if (departmentId) {
       const { data: existingDepartment, error: departmentError } = await supabase
@@ -203,7 +215,7 @@ export async function saveDepartmentAction(formData: FormData) {
       p_code: departmentCode,
       p_colour: colour,
       p_description: clean(formData.get("description")) || undefined,
-      p_display_order: displayOrder,
+      p_display_order: 0,
     };
     const { error } = departmentId
       ? await supabase.rpc("update_department", {

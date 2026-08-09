@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ApprovalQueuePanel, ApprovalReviewPanel } from "@/components/approvals-panel";
 import type {
@@ -211,10 +211,48 @@ describe("Stage 6 approval panels", () => {
     expect(screen.getByText("Department impact")).toBeInTheDocument();
     expect(screen.getByText("Event approval context")).toBeInTheDocument();
     expect(screen.getByText("Formal net position")).toBeInTheDocument();
-    expect(screen.getAllByText("approved").length).toBeGreaterThan(1);
-    expect(screen.getAllByText("rejected").length).toBeGreaterThan(1);
-    expect(screen.getAllByText("changes requested").length).toBeGreaterThan(1);
+    expect(screen.getByRole("button", { name: "Approve" })).toHaveClass("bg-emerald-700");
+    expect(screen.getByRole("button", { name: "Approve" })).toHaveClass("disabled:bg-emerald-100");
+    expect(screen.getByRole("button", { name: "Approve" })).toHaveClass("disabled:text-emerald-900");
+    expect(screen.getByRole("button", { name: "Request Changes" })).toHaveClass("bg-amber-400");
+    expect(screen.getByRole("button", { name: "Reject" })).toHaveClass("bg-destructive");
+    expect(screen.getByText("Authorise this submitted revision for spending. This does not record payment.")).toBeInTheDocument();
+    expect(screen.getByText("Return this request to the requester with clear instructions for revision.")).toBeInTheDocument();
+    expect(screen.getByText("Decline this submitted revision. Include the reason for the audit trail.")).toBeInTheDocument();
     expect(screen.getByText(/Approval does not mean paid/)).toBeInTheDocument();
+  });
+
+  it("keeps request changes and rejection reason inputs with semantic action labels", () => {
+    render(<ApprovalReviewPanel eventId="event-id" data={reviewData} canDecide readOnly={false} />);
+
+    const changeInstructions = screen.getByLabelText("Change instructions");
+    const rejectionReason = screen.getByLabelText("Rejection reason");
+
+    expect(changeInstructions).toBeRequired();
+    expect(rejectionReason).toBeRequired();
+    expect(screen.getByRole("button", { name: "Request Changes" })).toHaveTextContent("Request Changes");
+    expect(screen.getByRole("button", { name: "Reject" })).toHaveTextContent("Reject");
+  });
+
+  it("keeps action buttons distinct from status badges", () => {
+    render(<ApprovalReviewPanel eventId="event-id" data={reviewData} canDecide readOnly={false} />);
+
+    const submittedBadge = screen.getAllByText("Submitted")[0].closest("div");
+    expect(submittedBadge).not.toHaveClass("bg-emerald-700");
+    expect(screen.getByRole("button", { name: "Approve" })).not.toHaveClass("bg-emerald-600");
+  });
+
+  it("uses responsive decision card layout without duplicate action buttons", () => {
+    render(<ApprovalReviewPanel eventId="event-id" data={reviewData} canDecide readOnly={false} />);
+
+    const decisionSection = screen.getByText("Decision").closest("section");
+    expect(decisionSection).toBeInTheDocument();
+    const actionGrid = within(decisionSection as HTMLElement).getByTestId("decision-action-grid");
+    expect(actionGrid).toHaveClass("md:grid-cols-2");
+    expect(actionGrid).toHaveClass("xl:grid-cols-3");
+    expect(screen.getAllByRole("button", { name: "Approve" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Request Changes" })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: "Reject" })).toHaveLength(1);
   });
 
   it("shows over-budget warning with text, not colour alone", () => {

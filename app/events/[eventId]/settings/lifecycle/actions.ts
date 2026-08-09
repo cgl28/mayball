@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { Enums } from "@/src/types/database.generated";
 
 function clean(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
@@ -55,6 +56,29 @@ export async function completeEventAction(formData: FormData) {
     const completed = typeof data === "object" && data !== null && "completed" in data && data.completed === true;
     revalidatePath(`/events/${eventId}`);
     redirect(`/events/${eventId}/settings/lifecycle?${completed ? "completed=1" : "acknowledgementRequired=1"}`);
+  } catch (error) {
+    if (isFrameworkRedirect(error)) throw error;
+    redirect(`/events/${eventId}/settings/lifecycle?error=${encodeURIComponent(safeMessage(error))}`);
+  }
+}
+
+export async function progressEventLifecycleAction(formData: FormData) {
+  const eventId = clean(formData.get("eventId"));
+  const supabase = await lifecycleClient(eventId);
+
+  try {
+    const targetStatus = clean(formData.get("targetStatus")) as Enums<"event_status">;
+    const { data, error } = await supabase.rpc("progress_event_lifecycle", {
+      p_event_id: eventId,
+      p_to_status: targetStatus,
+      p_acknowledge_warnings: formData.get("acknowledgeWarnings") === "on",
+      p_reason: clean(formData.get("reason")) || undefined,
+    });
+    if (error) throw error;
+
+    const progressed = typeof data === "object" && data !== null && "progressed" in data && data.progressed === true;
+    revalidatePath(`/events/${eventId}`);
+    redirect(`/events/${eventId}/settings/lifecycle?${progressed ? "progressed=1" : "acknowledgementRequired=1"}`);
   } catch (error) {
     if (isFrameworkRedirect(error)) throw error;
     redirect(`/events/${eventId}/settings/lifecycle?error=${encodeURIComponent(safeMessage(error))}`);

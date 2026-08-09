@@ -165,19 +165,37 @@ describe("Stage 8 dashboard panel", () => {
   it("renders populated headline cards with net and gross labels", () => {
     render(<DashboardPanel eventAccess={makeEventAccess()} data={data} canManageFinance />);
 
-    expect(screen.getByText("Forecast revenue")).toBeInTheDocument();
+    expect(screen.getByText("Forecast income")).toBeInTheDocument();
     expect(screen.getByText("£207,084.30")).toBeInTheDocument();
-    expect(screen.getByText("Actual revenue recorded")).toBeInTheDocument();
-    expect(screen.getAllByText("£125,000.00").length).toBeGreaterThan(1);
+    expect(screen.getByText("Actual income recorded")).toBeInTheDocument();
+    expect(screen.getByText("£125,000.00")).toBeInTheDocument();
+    expect(screen.getByText("Approved commitments")).toBeInTheDocument();
+    expect(screen.getByText("Paid to date")).toBeInTheDocument();
     expect(screen.getAllByText("net").length).toBeGreaterThan(3);
-    expect(screen.getAllByText("gross").length).toBeGreaterThan(2);
+    expect(screen.getAllByText(/gross/).length).toBeGreaterThan(2);
+  });
+
+  it("removes legacy dashboard shortcut navigation while preserving contextual links", () => {
+    render(<DashboardPanel eventAccess={makeEventAccess()} data={data} canManageFinance canManageLifecycle />);
+
+    expect(screen.queryByRole("link", { name: /^Budget$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^Revenue$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^Requests$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^Approvals$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^Payments$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^Lifecycle$/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Review approvals" })).toHaveAttribute(
+      "href",
+      "/events/30000000-0000-0000-0000-000000000027/approvals",
+    );
+    expect(screen.getAllByRole("link", { name: /Open module/ }).length).toBeGreaterThan(0);
   });
 
   it("distinguishes formal and potential positions and explains pending exposure", () => {
     render(<DashboardPanel eventAccess={makeEventAccess()} data={data} canManageFinance />);
 
-    expect(screen.getAllByText("Formal forecast").length).toBeGreaterThan(1);
-    expect(screen.getAllByText("Potential forecast").length).toBeGreaterThan(1);
+    expect(screen.getByText("Formal forecast")).toBeInTheDocument();
+    expect(screen.getAllByText(/Potential/).length).toBeGreaterThan(1);
     expect(screen.getAllByText("£183,084.30").length).toBeGreaterThan(1);
     expect(screen.getAllByText("£177,884.30").length).toBeGreaterThan(1);
     expect(screen.getByText(/Potential adds submitted requests and pending variation increments/)).toBeInTheDocument();
@@ -186,9 +204,12 @@ describe("Stage 8 dashboard panel", () => {
   it("shows department positions including missing allocation state", () => {
     render(<DashboardPanel eventAccess={makeEventAccess()} data={data} canManageFinance />);
 
-    expect(screen.getByText("Aesthetics")).toBeInTheDocument();
-    expect(screen.getByText("No active allocation")).toBeInTheDocument();
-    expect(screen.getAllByText("Not available").length).toBeGreaterThan(1);
+    expect(screen.getByText("Whole-event spending position")).toBeInTheDocument();
+    expect(screen.getByText("Spending by department budget")).toBeInTheDocument();
+    expect(screen.getByText("Department pressure")).toBeInTheDocument();
+    expect(screen.getByText("Approved but unpaid")).toBeInTheDocument();
+    expect(screen.getAllByText("Aesthetics").length).toBeGreaterThan(1);
+    expect(screen.getByText(/No active allocation/)).toBeInTheDocument();
   });
 
   it("shows revenue snapshot details and keeps booking fees separate", () => {
@@ -215,8 +236,7 @@ describe("Stage 8 dashboard panel", () => {
       />,
     );
 
-    expect(screen.getByText("My visible drafts")).toBeInTheDocument();
-    expect(screen.getByText(/This is not complete event draft exposure/)).toBeInTheDocument();
+    expect(screen.queryByText("My visible drafts")).not.toBeInTheDocument();
     expect(screen.getByText("Approval queue details are available to treasurers only.")).toBeInTheDocument();
     expect(screen.queryByText("DMB_AE_2: Floral arch")).not.toBeInTheDocument();
   });
@@ -253,8 +273,7 @@ describe("Stage 8 dashboard panel", () => {
       />,
     );
 
-    expect(screen.getAllByText("Not configured").length).toBeGreaterThan(1);
+    expect(screen.getByText("Not configured")).toBeInTheDocument();
     expect(screen.getAllByText("No snapshot").length).toBeGreaterThan(1);
-    expect(screen.getAllByText("Not available").length).toBeGreaterThan(1);
   });
 });

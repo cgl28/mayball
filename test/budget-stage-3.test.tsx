@@ -6,8 +6,8 @@ import { formatMinor, parseMoneyToMinor } from "@/lib/money";
 import type { BudgetOverview } from "@/lib/budget/data";
 
 const departments = [
-  { id: "dep-a", name: "Aesthetics", code: "AE", is_active: true, display_order: 1 },
-  { id: "dep-s", name: "Security", code: "SEC", is_active: true, display_order: 2 },
+  { id: "dep-a", name: "Aesthetics", code: "AE", colour: "#6AAED6", is_active: true, display_order: 1 },
+  { id: "dep-s", name: "Security", code: "SEC", colour: "#E99292", is_active: true, display_order: 2 },
 ];
 
 const budget: BudgetOverview = {
@@ -93,7 +93,7 @@ describe("budget panel", () => {
     render(
       <BudgetPanel
         eventId="event-id"
-        budget={{ ...budget, activeBudget: null, departmentPositions: [], transfers: [] }}
+        budget={{ ...budget, activeBudget: null, departmentPositions: [], transfers: null }}
         canManage={false}
         readOnly={false}
       />,
@@ -109,8 +109,18 @@ describe("budget panel", () => {
     expect(screen.getByText("Active budget v1: Original budget")).toBeInTheDocument();
     expect(screen.getByText("Original allocation")).toBeInTheDocument();
     expect(screen.getByText("Current budget")).toBeInTheDocument();
+    expect(screen.getByText("Budget allocation by department")).toBeInTheDocument();
+    expect(screen.getAllByText("Unallocated contingency").length).toBeGreaterThan(1);
     expect(screen.getByText("Transfer contingency")).toBeInTheDocument();
+    expect(screen.getByText("View transfer history")).toBeInTheDocument();
+    expect(screen.queryByText("Extra build")).not.toBeInTheDocument();
+  });
+
+  it("shows transfer history only when requested", () => {
+    render(<BudgetPanel eventId="event-id" budget={budget} canManage readOnly={false} transferHistoryLoaded />);
+
     expect(screen.getByText("Extra build")).toBeInTheDocument();
+    expect(screen.queryByText("View transfer history")).not.toBeInTheDocument();
   });
 
   it("hides mutation controls from president without treasurer", () => {

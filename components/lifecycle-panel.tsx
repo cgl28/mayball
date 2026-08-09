@@ -12,6 +12,7 @@ import {
 import {
   archiveEventAction,
   completeEventAction,
+  progressEventLifecycleAction,
   reopenEventAction,
 } from "@/app/events/[eventId]/settings/lifecycle/actions";
 import { Badge } from "@/components/ui/badge";
@@ -110,6 +111,49 @@ function currentStage(status: EventStatus) {
   );
 }
 
+function normalTarget(status: EventStatus): EventStatus | null {
+  switch (status) {
+    case "setup":
+      return "planning";
+    case "planning":
+      return "live";
+    case "live":
+      return "reconciliation";
+    case "reconciliation":
+      return "completed";
+    case "completed":
+      return "archived";
+    case "archived":
+      return null;
+  }
+}
+
+function actionLabel(status: EventStatus, target: EventStatus) {
+  if (status === "reconciliation" && target === "completed") return "Complete Event";
+  if (status === "completed" && target === "archived") return "Archive Event";
+  return `Progress to ${stageLabel(target)}`;
+}
+
+function transitionDescription(status: EventStatus, target: EventStatus | null) {
+  if (!target) return "This event has no further normal lifecycle progression.";
+  if (status === "setup" && target === "planning") {
+    return "Move into active planning once core event details and committee leadership are ready.";
+  }
+  if (status === "planning" && target === "live") {
+    return "Move into Live when the event is actively being delivered and financial controls should remain open.";
+  }
+  if (status === "live" && target === "reconciliation") {
+    return "Move into Reconciliation for financial close-down. Outstanding payments may still remain.";
+  }
+  if (status === "reconciliation" && target === "completed") {
+    return "Complete the event after reviewing unresolved requests, payments and revenue. Completion makes normal records read-only.";
+  }
+  if (status === "completed" && target === "archived") {
+    return "Archive the completed event for long-term historical reference.";
+  }
+  return "Review the next lifecycle step before progressing.";
+}
+
 function stageEntered(summary: LifecycleSummary | null, status: EventStatus) {
   if (status === "completed") {
     return {
@@ -139,10 +183,12 @@ function readinessTitle(item: CompletionReadinessItem) {
     changes_requested_open: "Changes-requested revisions remain open",
     draft_budget_versions: "Draft budget exists",
     expected_other_revenue: "Other revenue remains expected",
+    invalid_transition: "Lifecycle transition is not supported",
     invalid_status: "Event cannot be completed from this stage",
     missing_event_date: "Event date is missing",
     no_active_budget: "No active budget",
     no_actual_revenue_snapshot: "No recent ticket revenue snapshot",
+    no_departments_configured: "No departments configured",
     no_final_budget: "No final budget version",
     no_president_assigned: "No president assigned",
     no_treasurer_assigned: "No treasurer assigned",
@@ -167,12 +213,16 @@ function readinessDescription(item: CompletionReadinessItem) {
       "Some other revenue items still have expected amounts outstanding.",
     invalid_status:
       "Completion is only available from Planning, Live or Reconciliation.",
+    invalid_transition:
+      "This lifecycle transition is not supported.",
     missing_event_date:
       "The event date has not been set in event settings.",
     no_active_budget:
       "No active budget is available for current reporting.",
     no_actual_revenue_snapshot:
       "No ticket revenue snapshot has been recorded for this event.",
+    no_departments_configured:
+      "No active departments have been configured for this event.",
     no_final_budget:
       "A final budget has not been recorded before completion.",
     no_president_assigned:
@@ -315,6 +365,48 @@ function CurrentStageSummary({
   );
 }
 
+function NextStageSummary({ status }: { status: EventStatus }) {
+  const target = normalTarget(status);
+
+  return (
+    <section className="rounded-md border bg-white p-5 shadow-sm">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-[hsl(var(--marketing-brand))]">
+            Current stage
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-normal">
+            {stageLabel(status)}
+          </h2>
+        </div>
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-[hsl(var(--marketing-brand))]">
+            Next normal stage
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-normal">
+            {target ? stageLabel(target) : "No normal forward transition"}
+          </h2>
+        </div>
+      </div>
+      <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">
+        {transitionDescription(status, target)}
+      </p>
+      {target ? (
+        <div className="mt-4 rounded-md border border-dashed p-4 text-sm">
+          <p className="font-medium">
+            Before moving to {stageLabel(target)}
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            The readiness checks below are evaluated for this transition only.
+            Advisory warnings can be acknowledged where the database allows;
+            blockers must be resolved first.
+          </p>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function ReadinessCard({
   eventId,
   item,
@@ -361,13 +453,16 @@ function ReadinessCard({
 
 function LifecycleReadinessPanel({
   eventId,
+  status,
   readiness,
   canViewReadiness,
 }: {
   eventId: string;
+  status: EventStatus;
   readiness: CompletionReadinessItem[];
   canViewReadiness: boolean;
 }) {
+  const target = normalTarget(status);
   const blockers = readiness.filter((item) => warningGroup(item) === "blocking");
   const warnings = readiness.filter(
     (item) => warningGroup(item) === "acknowledgement",
@@ -375,16 +470,18 @@ function LifecycleReadinessPanel({
   const info = readiness.filter((item) => warningGroup(item) === "info");
   const summary =
     blockers.length > 0
-      ? "Action required before completion"
+      ? "Resolve blocking issues before progressing"
       : warnings.length > 0
-        ? "Completion allowed with acknowledgement"
-        : "Ready for completion review";
+        ? "Progression is available with acknowledgement"
+        : target
+          ? `Ready to move to ${stageLabel(target)}`
+          : "No normal progression checks are required";
 
   return (
     <section className="rounded-md border bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="font-medium">Readiness warnings</h2>
+          <h2 className="font-medium">Lifecycle readiness</h2>
           <p className="mt-1 text-sm text-muted-foreground">{summary}</p>
         </div>
         <Badge
@@ -406,11 +503,13 @@ function LifecycleReadinessPanel({
 
       {!canViewReadiness ? (
         <div className="mt-4 rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-          Detailed completion readiness is available to event Presidents.
+          Detailed lifecycle readiness is available to event Presidents and
+          Treasurers.
         </div>
       ) : readiness.length === 0 ? (
         <div className="mt-4 rounded-md border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-950">
-          No blockers or warnings are currently reported by the database readiness check.
+          No blockers or warnings are currently reported for this lifecycle
+          transition.
         </div>
       ) : (
         <div className="mt-5 grid gap-5">
@@ -476,124 +575,154 @@ function LifecycleControls({
   status: EventStatus;
   readiness: CompletionReadinessItem[];
 }) {
-  const blockers = readiness.filter((item) => item.blocks_completion);
+  const target = normalTarget(status);
+  const blockers = readiness.filter((item) => warningGroup(item) === "blocking");
   const warnings = readiness.filter(
-    (item) => !item.blocks_completion && item.severity === "warning",
+    (item) => warningGroup(item) === "acknowledgement",
   );
-  const canComplete = ["planning", "live", "reconciliation"].includes(status);
-  const canArchive = status === "completed";
   const canReopen = isHistoricalStatus(status);
+  const canProgress = Boolean(target) && blockers.length === 0;
+  const routineProgression =
+    target === "planning" || target === "live" || target === "reconciliation";
+  const description = transitionDescription(status, target);
+  const submitLabel = target ? actionLabel(status, target) : "No action available";
 
   return (
     <section className="rounded-md border bg-white p-5 shadow-sm">
-      <h2 className="font-medium">Change Lifecycle Stage</h2>
+      <h2 className="font-medium">Ready to progress?</h2>
       <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-        Only supported database transitions are offered here. Each change is
-        confirmed before the server action calls the lifecycle RPC.
+        Only the next normal database-backed transition is offered here.
+        Advisory warnings can be acknowledged; blockers must be resolved first.
       </p>
-      <div className="mt-5 grid gap-4 lg:grid-cols-3">
-        {canComplete ? (
-          <article className="rounded-md border p-4">
-            <h3 className="flex items-center gap-2 font-medium">
-              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-              Complete Event
-            </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Completing the event makes normal financial records read-only and
-              keeps the workspace available historically.
-            </p>
-            {blockers.length > 0 ? (
-              <div className="mt-4 rounded-md border border-destructive/40 p-3 text-sm text-destructive">
-                Resolve blocking issues before completion.
-              </div>
-            ) : (
-              <ConfirmationSummary title="Review and confirm completion">
-                <form action={completeEventAction} className="grid gap-4">
-                  <input type="hidden" name="eventId" value={eventId} />
-                  {warnings.length > 0 ? (
-                    <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
-                      <p className="font-medium">
-                        {warnings.length} warning{warnings.length === 1 ? "" : "s"} require acknowledgement.
-                      </p>
-                      <ul className="mt-2 list-disc space-y-1 pl-5">
-                        {warnings.map((item) => (
-                          <li key={item.code}>{readinessTitle(item)}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                  <label className="grid gap-1 text-sm">
-                    <span className="font-medium">Completion note</span>
-                    <textarea
-                      name="reason"
-                      rows={3}
-                      className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    />
-                  </label>
+
+      <div className="mt-5 grid gap-5">
+        <article className="rounded-md border p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="flex items-center gap-2 font-medium">
+                {target === "archived" ? (
+                  <Archive className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                )}
+                {target ? submitLabel : "No normal forward transition"}
+              </h3>
+              <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+            </div>
+            <Badge
+              variant={
+                blockers.length > 0
+                  ? "destructive"
+                  : warnings.length > 0
+                    ? "secondary"
+                    : "outline"
+              }
+            >
+              {blockers.length > 0
+                ? "Blocked"
+                : warnings.length > 0
+                  ? "Acknowledgement required"
+                  : target
+                    ? "Ready"
+                    : "No action"}
+            </Badge>
+          </div>
+
+          {!target ? (
+            <div className="mt-4 rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+              Archived events have no further normal progression.
+            </div>
+          ) : blockers.length > 0 ? (
+            <div className="mt-4 rounded-md border border-destructive/40 p-3 text-sm text-destructive">
+              Resolve {blockers.length} blocking issue
+              {blockers.length === 1 ? "" : "s"} before progressing.
+            </div>
+          ) : (
+            <ConfirmationSummary title={`Review and confirm ${stageLabel(target)}`}>
+              <form
+                action={
+                  routineProgression
+                    ? progressEventLifecycleAction
+                    : status === "reconciliation"
+                      ? completeEventAction
+                      : archiveEventAction
+                }
+                className="grid gap-4"
+              >
+                <input type="hidden" name="eventId" value={eventId} />
+                {routineProgression ? (
+                  <input type="hidden" name="targetStatus" value={target} />
+                ) : null}
+                {warnings.length > 0 ? (
+                  <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+                    <p className="font-medium">
+                      {warnings.length} warning
+                      {warnings.length === 1 ? "" : "s"} require acknowledgement.
+                    </p>
+                    <ul className="mt-2 list-disc space-y-1 pl-5">
+                      {warnings.map((item) => (
+                        <li key={item.code}>{readinessTitle(item)}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                <label className="grid gap-1 text-sm">
+                  <span className="font-medium">
+                    {target === "archived" ? "Archive reason" : "Progress note"}
+                  </span>
+                  <textarea
+                    name="reason"
+                    rows={3}
+                    required={target === "archived"}
+                    className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  />
+                </label>
+                {warnings.length > 0 ? (
                   <label className="flex gap-2 text-sm">
                     <input
                       name="acknowledgeWarnings"
                       type="checkbox"
                       className="mt-1 h-4 w-4"
-                      required={warnings.length > 0}
+                      required
                     />
                     <span>
-                      I understand that unresolved financial items may remain
-                      and that completion is not bank reconciliation.
+                      I have reviewed the outstanding warnings and understand
+                      they will remain unresolved after this transition.
                     </span>
                   </label>
-                  <div>
-                    <SubmitButton pendingLabel="Completing...">
-                      Complete event
-                    </SubmitButton>
-                  </div>
-                </form>
-              </ConfirmationSummary>
-            )}
-          </article>
-        ) : null}
-
-        {canArchive ? (
-          <article className="rounded-md border p-4">
-            <h3 className="flex items-center gap-2 font-medium">
-              <Archive className="h-4 w-4" aria-hidden="true" />
-              Archive Event
-            </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Archiving is a long-term historical classification. It does not
-              delete event data.
-            </p>
-            <ConfirmationSummary title="Review and confirm archive">
-              <form action={archiveEventAction} className="grid gap-4">
-                <input type="hidden" name="eventId" value={eventId} />
-                <label className="grid gap-1 text-sm">
-                  <span className="font-medium">Archive reason</span>
-                  <textarea
-                    name="reason"
-                    rows={3}
-                    required
-                    className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  />
-                </label>
+                ) : null}
+                {target === "completed" ? (
+                  <p className="text-sm text-muted-foreground">
+                    Completion makes normal records read-only, but it is not
+                    bank reconciliation.
+                  </p>
+                ) : null}
                 <div>
-                  <SubmitButton pendingLabel="Archiving..." variant="secondary">
-                    Archive event
+                  <SubmitButton
+                    pendingLabel={
+                      target === "archived" ? "Archiving..." : "Progressing..."
+                    }
+                    variant={target === "archived" ? "secondary" : "default"}
+                    disabled={!canProgress}
+                  >
+                    {submitLabel}
                   </SubmitButton>
                 </div>
               </form>
             </ConfirmationSummary>
-          </article>
-        ) : null}
+          )}
+        </article>
 
         {canReopen ? (
           <article className="rounded-md border border-amber-300 p-4">
             <h3 className="flex items-center gap-2 font-medium">
               <RotateCcw className="h-4 w-4" aria-hidden="true" />
-              Reopen for Reconciliation
+              Exceptional actions
             </h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              This exceptional action returns the event to Reconciliation.
-              Financial permissions remain role-based.
+              Reopening returns a completed or archived event to Reconciliation.
+              This is separate from normal forward progression and requires a
+              reason.
             </p>
             <ConfirmationSummary title="Review and confirm exceptional reopening">
               <form action={reopenEventAction} className="grid gap-4">
@@ -609,18 +738,12 @@ function LifecycleControls({
                 </label>
                 <div>
                   <SubmitButton pendingLabel="Reopening..." variant="outline">
-                    Reopen event
+                    Reopen to Reconciliation
                   </SubmitButton>
                 </div>
               </form>
             </ConfirmationSummary>
           </article>
-        ) : null}
-
-        {!canComplete && !canArchive && !canReopen ? (
-          <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground lg:col-span-3">
-            No lifecycle transitions are available from {stageLabel(status)}.
-          </div>
         ) : null}
       </div>
     </section>
@@ -680,19 +803,23 @@ export function LifecyclePanel({
   eventAccess,
   lifecycle,
   canManageLifecycle,
+  canViewReadiness,
   error,
   completed,
   archived,
   reopened,
+  progressed,
   acknowledgementRequired,
 }: {
   eventAccess: EventAccess;
   lifecycle: LifecycleData;
   canManageLifecycle: boolean;
+  canViewReadiness: boolean;
   error?: string;
   completed?: boolean;
   archived?: boolean;
   reopened?: boolean;
+  progressed?: boolean;
   acknowledgementRequired?: boolean;
 }) {
   const { event } = eventAccess;
@@ -713,7 +840,13 @@ export function LifecyclePanel({
       ) : null}
       {acknowledgementRequired ? (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
-          Warnings must be explicitly acknowledged before this event can be completed.
+          Warnings must be explicitly acknowledged before this lifecycle
+          transition can proceed.
+        </div>
+      ) : null}
+      {progressed ? (
+        <div className="rounded-md border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-950">
+          Lifecycle progressed. The event is now in its next stage.
         </div>
       ) : null}
       {completed ? (
@@ -747,10 +880,12 @@ export function LifecyclePanel({
 
       <CurrentStageSummary eventAccess={eventAccess} summary={lifecycle.summary} />
       <LifecycleProgress status={event.status} />
+      <NextStageSummary status={event.status} />
       <LifecycleReadinessPanel
         eventId={event.id}
+        status={event.status}
         readiness={lifecycle.readiness}
-        canViewReadiness={canManageLifecycle}
+        canViewReadiness={canViewReadiness}
       />
 
       {canManageLifecycle ? (
