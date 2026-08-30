@@ -2,7 +2,9 @@ import Link from "next/link";
 import { AlertCircle, CalendarClock, CheckCircle, CreditCard, History, RotateCcw } from "lucide-react";
 import { reversePaymentAction } from "@/app/events/[eventId]/payments/actions";
 import { PaymentFormClient } from "@/components/payment-form-client";
+import { RequestEvidenceList } from "@/components/documents-panel";
 import { PaymentUrgencyDialog } from "@/components/payment-urgency-dialog";
+import { RequestComponentSurface } from "@/components/request-component-surface";
 import { StatusBadge } from "@/components/status-badge";
 import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +20,7 @@ import type {
   PaymentWorkloadView,
   RequestPaymentPosition,
 } from "@/lib/payments/data";
+import type { VisibleDocument } from "@/lib/documents/data";
 import { formatMinor } from "@/lib/money";
 
 function label(value: string | null | undefined) {
@@ -575,7 +578,10 @@ export function PaymentFormPanel({
           No approved unpaid components are available for this payment.
         </div>
       ) : (
-        <PaymentFormClient eventId={eventId} requestId={requestId} data={data} />
+        <>
+          {requestId ? <RequestEvidenceList eventId={eventId} documents={data.requestDocuments ?? []} heading="Supporting documents for this request" /> : null}
+          <PaymentFormClient eventId={eventId} requestId={requestId} data={data} />
+        </>
       )}
     </div>
   );
@@ -662,6 +668,7 @@ export function RequestPaymentsPanel({
   position,
   components,
   allocations,
+  documents = [],
   canManage,
   readOnly,
 }: {
@@ -670,6 +677,7 @@ export function RequestPaymentsPanel({
   position: RequestPaymentPosition;
   components: ComponentPaymentPosition[];
   allocations: PaymentAllocationDetail[];
+  documents?: VisibleDocument[];
   canManage: boolean;
   readOnly: boolean;
 }) {
@@ -700,16 +708,17 @@ export function RequestPaymentsPanel({
         <h2 className="font-medium">Current approved components</h2>
         <div className="mt-4 grid gap-3">
           {components.map((component) => (
-            <div key={component.request_component_id} className="rounded-md border p-3 text-sm">
+            <RequestComponentSurface key={component.request_component_id} className="text-sm">
               <div className="flex flex-wrap justify-between gap-3">
                 <p className="font-medium">{component.component_code}: {component.description}</p>
                 <StatusBadge kind="payment" status={component.payment_status} />
               </div>
               <p className="mt-1 text-muted-foreground">Approved {formatMinor(component.approved_gross_minor)}; paid {formatMinor(component.paid_gross_minor)}; outstanding {formatMinor(component.outstanding_gross_minor)}</p>
-            </div>
+            </RequestComponentSurface>
           ))}
         </div>
       </section>
+      <RequestEvidenceList eventId={eventId} documents={documents} heading="Supporting documents for this request" />
       <PaymentAllocationsTable eventId={eventId} allocations={allocations} />
     </div>
   );

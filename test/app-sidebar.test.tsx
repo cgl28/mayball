@@ -42,8 +42,8 @@ describe("authenticated sidebar", () => {
   it("renders the application logo linked to Home", () => {
     render(<AppSidebar events={[makeEventAccess()]} />);
 
-    expect(screen.getAllByRole("img", { name: "May Ball Finance" })[0]).toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: /May Ball Finance/ })[0]).toHaveAttribute("href", "/app");
+    expect(screen.getAllByRole("img", { name: "Chiffre" })[0]).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Chiffre home" })[0]).toHaveAttribute("href", "/app");
   });
 
   it("keeps Home available and shows event navigation on event pages", () => {

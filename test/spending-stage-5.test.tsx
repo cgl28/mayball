@@ -204,6 +204,32 @@ describe("Stage 5 spending request panels", () => {
     expect(screen.queryByText("Member B private draft")).not.toBeInTheDocument();
   });
 
+  it("shows compact, accessible invoice and receipt evidence badges without changing request evidence data", () => {
+    render(
+      <RequestsListPanel
+        eventId="event-id"
+        requests={[
+          request(),
+          request({ request_id: "request-missing-evidence", code: "DMB_AE_2", title: "Missing evidence" }),
+        ]}
+        departments={departments}
+        documentEvidence={[
+          { request_id: "request-a", invoicePresent: true, receiptPresent: true },
+          { request_id: "request-missing-evidence", invoicePresent: false, receiptPresent: false },
+        ]}
+        canCreate
+        readOnly={false}
+      />,
+    );
+
+    const rows = screen.getAllByRole("row");
+    expect(within(rows[1]).getByTitle("Invoice attached")).toHaveTextContent("Invoice attached");
+    expect(within(rows[1]).getByTitle("Receipt attached")).toHaveTextContent("Receipt attached");
+    expect(within(rows[2]).getByTitle("Invoice not attached")).toHaveTextContent("Invoice not attached");
+    expect(within(rows[2]).getByTitle("Receipt not attached")).toHaveTextContent("Receipt not attached");
+    expect(screen.queryByText(/Invoice present|Invoice absent|receipt present|receipt absent/i)).not.toBeInTheDocument();
+  });
+
   it("filters mine, status and department views without adding hidden records", () => {
     const rows = [
       request(),

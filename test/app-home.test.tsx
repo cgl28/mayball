@@ -26,7 +26,7 @@ describe("authenticated home", () => {
 
     expect(screen.getByText("Welcome Terry")).toBeInTheDocument();
     expect(screen.getByText("Downing May Ball 2027")).toBeInTheDocument();
-    expect(screen.getByText("Downing May Ball")).toBeInTheDocument();
+    expect(screen.getAllByText("Downing May Ball").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "Open Event" })).toHaveAttribute(
       "href",
       "/events/30000000-0000-0000-0000-000000000027",

@@ -21,10 +21,10 @@ function rowCount(data: unknown) {
 
 export async function traceAsync<T>(
   meta: TraceMeta,
-  operation: () => Promise<T>,
-): Promise<T> {
+  operation: () => T,
+): Promise<Awaited<T>> {
   if (!isPerfTraceEnabled()) {
-    return operation();
+    return await operation();
   }
 
   const startedAt = performance.now();
@@ -46,7 +46,7 @@ export async function traceAsync<T>(
       }),
     );
 
-    return result;
+    return result as Awaited<T>;
   } catch (error) {
     const durationMs = performance.now() - startedAt;
     console.info(

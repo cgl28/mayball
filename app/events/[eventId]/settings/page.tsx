@@ -10,7 +10,7 @@ export default async function EventSettingsPage({
   searchParams,
 }: {
   params: Promise<{ eventId: string }>;
-  searchParams: Promise<{ error?: string; saved?: string; created?: string }>;
+  searchParams: Promise<{ error?: string; saved?: string; created?: string; organisationSaved?: string }>;
 }) {
   await connection();
   const { eventId } = await params;
@@ -35,6 +35,9 @@ export default async function EventSettingsPage({
   }
 
   const capabilities = getEventCapabilities(eventAccess);
+  const { data: memberships } = await session.supabase.from("organisation_members").select("organisation_id").eq("user_id", session.user.id).eq("status", "active");
+  const organisationIds = memberships?.map((membership) => membership.organisation_id) ?? [];
+  const { data: organisations } = organisationIds.length ? await session.supabase.from("organisations").select("id,name").in("id", organisationIds).order("name") : { data: [] };
 
   return (
     <EventSettingsPanel
@@ -43,6 +46,8 @@ export default async function EventSettingsPage({
       error={query.error}
       saved={query.saved === "1"}
       created={query.created === "1"}
+      organisationSaved={query.organisationSaved === "1"}
+      organisations={organisations ?? []}
     />
   );
 }

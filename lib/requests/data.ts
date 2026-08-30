@@ -60,11 +60,13 @@ export type RequestListPaymentPosition = Pick<
   RequestPaymentPosition,
   "request_id" | "payment_status"
 >;
+export type RequestDocumentEvidence = { request_id: string; invoicePresent: boolean; receiptPresent: boolean };
 
 export type SpendingRequestsData = {
   requests: RequestListRow[];
   departments: RequestDepartment[];
   paymentPositions: RequestListPaymentPosition[];
+  documentEvidence: RequestDocumentEvidence[];
   defaultDepartmentId?: string;
   page: number;
   pageSize: number;
@@ -158,6 +160,18 @@ export async function getSpendingRequestsData(
     : { data: [] as RequestListPaymentPosition[], error: null };
 
   if (paymentPositions.error) return { data: null, error: "Payment positions could not be loaded." };
+  const documents = requestIds.length
+    ? await supabase.from("v_visible_documents").select("request_id,category").eq("event_id", eventId).in("request_id", requestIds).eq("status", "finalised")
+    : { data: [], error: null };
+  if (documents.error) return { data: null, error: "Document indicators could not be loaded." };
+  const evidence = new Map<string, RequestDocumentEvidence>();
+  for (const document of documents.data ?? []) {
+    if (!document.request_id) continue;
+    const current = evidence.get(document.request_id) ?? { request_id: document.request_id, invoicePresent: false, receiptPresent: false };
+    if (document.category === "invoice") current.invoicePresent = true;
+    if (document.category === "receipt") current.receiptPresent = true;
+    evidence.set(document.request_id, current);
+  }
 
   const activeDepartmentIds = new Set((departmentMemberships.data ?? []).map((row) => row.department_id));
   const defaultDepartmentId = activeDepartmentIds.size === 1 ? [...activeDepartmentIds][0] : undefined;
@@ -167,6 +181,7 @@ export async function getSpendingRequestsData(
       requests: requests.data ?? [],
       departments: departments.data ?? [],
       paymentPositions: paymentPositions.data ?? [],
+      documentEvidence: [...evidence.values()],
       defaultDepartmentId,
       page,
       pageSize,

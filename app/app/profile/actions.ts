@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getAuthenticatedSession } from "@/lib/auth/session";
 import { validateProfileForm, type ProfileFormState } from "@/lib/profile/validation";
 
@@ -37,4 +38,13 @@ export async function updateProfileAction(
     message: "Profile saved.",
     fields: validation.fields,
   };
+}
+
+export async function setPreferredOrganisationAction(formData: FormData) {
+  const session = await getAuthenticatedSession("/app/profile");
+  const organisationId = String(formData.get("organisationId") ?? "").trim() || null;
+  const { error } = await session.supabase.rpc("set_preferred_organisation", organisationId ? { p_organisation_id: organisationId } : {});
+  if (error) redirect(`/app/profile?organisationError=${encodeURIComponent(error.message)}`);
+  revalidatePath("/app/profile");
+  redirect("/app/profile?organisationSaved=1");
 }

@@ -5,6 +5,8 @@ import {
 } from "@/app/events/[eventId]/requests/actions";
 import { startVariationAction } from "@/app/events/[eventId]/approvals/actions";
 import { RequestDocumentsSection } from "@/components/documents-panel";
+import { EvidenceStatusBadge } from "@/components/evidence-status-badge";
+import { RequestComponentSurface } from "@/components/request-component-surface";
 import { SpendingRequestForm } from "@/components/spending-request-form";
 import { StatusBadge } from "@/components/status-badge";
 import { SubmitButton } from "@/components/submit-button";
@@ -12,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import type {
   RequestDepartment,
   RequestListPaymentPosition,
+  RequestDocumentEvidence,
   RequestListRow,
   RequestSummary,
   SpendingRequestDetail,
@@ -71,7 +74,7 @@ function Message({
     return (
       <div className="flex gap-2 rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-950">
         <CheckCircle className="mt-0.5 h-4 w-4" aria-hidden="true" />
-        <p>{submitted ? "Request submitted for treasurer review." : created ? "Draft request created." : "Draft request saved."}</p>
+        <p>{submitted ? "Request submitted for treasurer review." : created ? "Draft request created. You can now add supporting documents below." : "Draft request saved."}</p>
       </div>
     );
   }
@@ -110,6 +113,7 @@ export function RequestsListPanel({
   requests,
   departments,
   paymentPositions = [],
+  documentEvidence = [],
   page = 1,
   pageSize = 25,
   count,
@@ -124,6 +128,7 @@ export function RequestsListPanel({
   requests: RequestListRow[];
   departments: RequestDepartment[];
   paymentPositions?: RequestListPaymentPosition[];
+  documentEvidence?: RequestDocumentEvidence[];
   page?: number;
   pageSize?: number;
   count?: number;
@@ -145,6 +150,7 @@ export function RequestsListPanel({
   const hasPrevious = page > 1;
   const hasNext = page < totalPages;
   const paymentByRequestId = new Map(paymentPositions.map((position) => [position.request_id, position]));
+  const evidenceByRequestId = new Map(documentEvidence.map((evidence) => [evidence.request_id, evidence]));
 
   return (
     <div className="grid gap-6">
@@ -227,6 +233,7 @@ export function RequestsListPanel({
                     <th className="py-2 pr-4 text-right font-medium">Gross</th>
                     <th className="py-2 pr-4 font-medium">Status</th>
                     <th className="py-2 pr-4 font-medium">Payment</th>
+                    <th className="py-2 pr-4 font-medium">Evidence</th>
                     <th className="py-2 font-medium">Actions</th>
                   </tr>
                 </thead>
@@ -245,6 +252,17 @@ export function RequestsListPanel({
                         ) : (
                           <span className="text-muted-foreground">Not applicable</span>
                         )}
+                      </td>
+                      <td className="py-3 pr-4">
+                        {(() => {
+                          const evidence = request.request_id ? evidenceByRequestId.get(request.request_id) : undefined;
+                          return (
+                            <div className="flex flex-wrap gap-1.5" title="Request-level evidence; a missing receipt is normal before payment.">
+                              <EvidenceStatusBadge type="invoice" present={Boolean(evidence?.invoicePresent)} />
+                              <EvidenceStatusBadge type="receipt" present={Boolean(evidence?.receiptPresent)} />
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="py-3">
                         <div className="flex flex-wrap gap-2">
@@ -308,6 +326,7 @@ export function RequestDetailPanel({
   review = false,
   canStartVariation = false,
   canManageDocuments = false,
+  canUploadDocuments = false,
   documentUploaded,
   documentVoided,
   documentsError,
@@ -323,6 +342,7 @@ export function RequestDetailPanel({
   review?: boolean;
   canStartVariation?: boolean;
   canManageDocuments?: boolean;
+  canUploadDocuments?: boolean;
   documentUploaded?: boolean;
   documentVoided?: boolean;
   documentsError?: string;
@@ -392,13 +412,13 @@ export function RequestDetailPanel({
         <h2 className="font-medium">Components</h2>
         <div className="mt-4 grid gap-3">
           {components.map((component) => (
-            <div key={component.id} className="rounded-md border p-3 text-sm">
+            <RequestComponentSurface key={component.id} className="text-sm">
               <div className="flex flex-wrap justify-between gap-3">
                 <p className="font-medium">{component.code}: {component.description}</p>
                 <p>{formatMinor(component.gross_minor)} gross</p>
               </div>
               <p className="mt-1 text-muted-foreground">{component.supplier_name ?? "Supplier not set"}; expected {component.expected_payment_date ?? "date not set"}</p>
-            </div>
+            </RequestComponentSurface>
           ))}
         </div>
         <p className="mt-3 text-sm text-muted-foreground">Components total {formatMinor(componentGross)} of {formatMinor(request.gross_minor)} gross.</p>
@@ -407,9 +427,8 @@ export function RequestDetailPanel({
       <RequestDocumentsSection
         eventId={eventId}
         requestId={request.request_id ?? ""}
-        revisionId={request.revision_id}
         documents={detail.documents ?? []}
-        canUpload={Boolean(request.revision_id && (canEdit || canManageDocuments))}
+        canUpload={canUploadDocuments}
         canVoid={Boolean(!readOnly && (canEdit || canManageDocuments))}
         readOnly={readOnly}
         error={documentsError}

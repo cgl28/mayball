@@ -3,6 +3,9 @@ import {
   Activity,
   AlertTriangle,
   ArrowRight,
+  CircleAlert,
+  CircleCheck,
+  Info,
   Scale,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -56,15 +59,24 @@ function Card({
   basis,
   description,
   href,
+  tone = "neutral",
 }: {
   title: string;
   value: string;
   basis: string;
   description: string;
   href?: string;
+  tone?: "neutral" | "success" | "warning" | "danger";
 }) {
+  const toneClassName = {
+    neutral: "border",
+    success: "border-emerald-200 bg-emerald-50/70",
+    warning: "border-amber-200 bg-amber-50/70",
+    danger: "border-red-200 bg-red-50/70",
+  }[tone];
+
   return (
-    <section className="min-w-0 rounded-md border p-4">
+    <section className={cn("min-w-0 rounded-md p-4", toneClassName)}>
       <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
@@ -83,13 +95,16 @@ function Card({
 }
 
 function WarningItem({ warning, eventId }: { warning: DashboardWarning; eventId: string }) {
+  const needsAttention = warning.severity === "warning";
+  const Icon = needsAttention ? CircleAlert : Info;
   return (
-    <li className="rounded-md border p-3 text-sm">
+    <li className={cn("rounded-md border p-3 text-sm", needsAttention ? "border-amber-200 bg-amber-50/70 text-amber-950" : "border-sky-200 bg-sky-50/70 text-sky-950")}>
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={warning.severity === "warning" ? "destructive" : "secondary"}>{label(warning.severity)}</Badge>
+        <Icon className="h-4 w-4" aria-hidden="true" />
+        <Badge variant={needsAttention ? "secondary" : "outline"} className={needsAttention ? "border-amber-600 bg-amber-200 text-amber-950" : "border-sky-600 bg-sky-100 text-sky-950"}>{needsAttention ? "Needs attention" : "Information"}</Badge>
         <p className="font-medium">{warning.title}</p>
       </div>
-      <p className="mt-1 text-muted-foreground">{warning.message}</p>
+      <p className="mt-1 opacity-80">{warning.message}</p>
       <Link className="mt-2 inline-block font-medium underline-offset-4 hover:underline" href={moduleHref(eventId, warning.target_module)}>
         Review {label(warning.target_module)}
       </Link>
@@ -130,6 +145,21 @@ export function DashboardPanel({
       amountMinor: Number(department.current_budget_minor ?? 0),
       colour: departmentColours[index % departmentColours.length],
     }));
+  const departmentPressure = [...data.departments].sort((left, right) => {
+    const priority = (department: DashboardData["departments"][number]) => {
+      if (department.approved_over_budget) return 0;
+      if (department.potential_over_budget) return 1;
+      if (!department.has_active_allocation) return 2;
+      return 3;
+    };
+    const priorityDifference = priority(left) - priority(right);
+    if (priorityDifference !== 0) return priorityDifference;
+    return Number(left.potential_remaining_minor ?? Number.MAX_SAFE_INTEGER) - Number(right.potential_remaining_minor ?? Number.MAX_SAFE_INTEGER);
+  });
+  const warnings = [...data.warnings].sort((left, right) => Number(right.severity === "warning") - Number(left.severity === "warning"));
+  const pendingApprovals = [...data.pendingApprovals].sort((left, right) => Number(right.budget_warning) - Number(left.budget_warning));
+  const formalPosition = Number(position.formal_forecast_net_position_minor ?? 0);
+  const potentialPosition = Number(position.potential_forecast_net_position_minor ?? 0);
 
   return (
     <div className="grid min-w-0 gap-6">
@@ -169,10 +199,11 @@ export function DashboardPanel({
         <div className={cn("mt-3", responsiveMetricGridClassName)}>
           <Card title="Forecast income" value={formatMinor(position.total_forecast_net_minor)} basis="net" description="Ticket forecast plus non-cancelled other revenue forecasts." href={`/events/${eventId}/revenue`} />
           <Card title="Actual income recorded" value={position.latest_snapshot_id ? formatMinor(position.total_actual_gross_minor) : "No snapshot"} basis="gross" description="Latest cumulative ticket snapshot plus actual other revenue." href={`/events/${eventId}/revenue`} />
-          <Card title="Approved commitments" value={formatMinor(position.approved_net_spending_minor)} basis="net" description="Current approved revisions only. Approval does not imply payment." href={`/events/${eventId}/requests?status=approved`} />
-          <Card title="Paid to date" value={formatMinor(position.paid_gross_spending_minor)} basis="gross cash" description="Non-reversed payment allocations only." href={`/events/${eventId}/payments`} />
-          <Card title="Forecast surplus / deficit" value={formatMinor(position.formal_forecast_net_position_minor)} basis="net" description="Forecast net revenue minus approved net spending and unallocated contingency." />
-          <Card title="Potential surplus / deficit" value={formatMinor(position.potential_forecast_net_position_minor)} basis="net" description="Formal forecast minus submitted and pending variation exposure. Drafts are excluded." />
+          <Card title="Approved commitments" value={formatMinor(position.approved_net_spending_minor)} basis="net" description="Current approved revisions only. Approval does not imply payment." href={`/events/${eventId}/requests?status=approved`} tone="success" />
+          <Card title="Paid to date" value={formatMinor(position.paid_gross_spending_minor)} basis="gross cash" description="Non-reversed payment allocations only." href={`/events/${eventId}/payments`} tone="success" />
+          <Card title="Approved unpaid" value={formatMinor(position.unpaid_approved_gross_minor)} basis="gross cash" description={`${position.unpaid_request_count ?? 0} approved ${Number(position.unpaid_request_count ?? 0) === 1 ? "request awaits" : "requests await"} payment.`} href={`/events/${eventId}/payments`} tone={Number(position.unpaid_approved_gross_minor ?? 0) > 0 ? "warning" : "neutral"} />
+          <Card title="Forecast surplus / deficit" value={formatMinor(position.formal_forecast_net_position_minor)} basis="net" description="Forecast net revenue minus approved net spending and unallocated contingency." tone={formalPosition < 0 ? "danger" : "neutral"} />
+          <Card title="Potential surplus / deficit" value={formatMinor(position.potential_forecast_net_position_minor)} basis="net" description="Formal forecast minus submitted and pending variation exposure. Drafts are excluded." tone={potentialPosition < 0 ? "danger" : potentialPosition < formalPosition ? "warning" : "neutral"} />
         </div>
       </section>
 
@@ -215,7 +246,7 @@ export function DashboardPanel({
         </div>
       </section>
 
-      <section className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+      <section className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
         {data.departments.length === 0 ? (
           <p className="mt-4 rounded-md border border-dashed p-4 text-sm text-muted-foreground">No active departments are configured for this event.</p>
         ) : (
@@ -229,15 +260,19 @@ export function DashboardPanel({
         )}
 
         <div className="rounded-md border p-5">
-          <h2 className="font-medium">Department pressure</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-medium">Department pressure</h2>
+            <Badge variant="outline">Risk first</Badge>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">Existing budget flags are shown first, followed by the lowest potential remaining budget.</p>
           <div className="mt-4 grid gap-3">
-            {data.departments.slice(0, 5).map((department) => (
-              <Link key={department.department_id} href={`/events/${eventId}/finances?department=${department.department_id}`} className="rounded-md border p-3 text-sm underline-offset-4 hover:underline">
+            {departmentPressure.slice(0, 5).map((department) => (
+              <Link key={department.department_id} href={`/events/${eventId}/finances?department=${department.department_id}`} className={cn("rounded-md border p-3 text-sm underline-offset-4 hover:underline", department.approved_over_budget ? "border-red-200 bg-red-50/70 text-red-950" : department.potential_over_budget ? "border-amber-200 bg-amber-50/70 text-amber-950" : !department.has_active_allocation ? "border-slate-200 bg-slate-50 text-slate-900" : "border-emerald-200 bg-emerald-50/70 text-emerald-950")}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="font-medium">{department.department_name} <span className="text-muted-foreground">{department.department_code}</span></p>
-                  {department.approved_over_budget ? <Badge variant="destructive">Approved over budget</Badge> : department.potential_over_budget ? <Badge variant="secondary">Potentially over budget</Badge> : <Badge variant="outline">Within budget</Badge>}
+                  {department.approved_over_budget ? <Badge variant="destructive">Approved over budget</Badge> : department.potential_over_budget ? <Badge variant="secondary" className="border-amber-600 bg-amber-200 text-amber-950">Potentially over budget</Badge> : !department.has_active_allocation ? <Badge variant="outline">No active allocation</Badge> : <Badge variant="outline" className="border-emerald-600 bg-emerald-100 text-emerald-950"><CircleCheck className="h-3 w-3" aria-hidden="true" /> Within budget</Badge>}
                 </div>
-                <p className="mt-1 text-muted-foreground">
+                <p className="mt-1 opacity-80">
                   {formatMinor(department.approved_net_minor)} approved; {formatMinor(department.pending_net_minor)} submitted; {department.has_active_allocation ? `${formatMinor(department.potential_remaining_minor)} potential remaining` : "No active allocation"}
                 </p>
               </Link>
@@ -251,29 +286,35 @@ export function DashboardPanel({
 
       <section className="grid min-w-0 gap-4 lg:grid-cols-2">
         <div className="min-w-0 rounded-md border p-5">
-          <h2 className="flex items-center gap-2 font-medium"><AlertTriangle className="h-4 w-4" aria-hidden="true" />Attention</h2>
-          {data.warnings.length === 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 font-medium"><AlertTriangle className="h-4 w-4" aria-hidden="true" />Attention</h2>
+            {warnings.some((warning) => warning.severity === "warning") ? <Badge variant="secondary" className="border-amber-600 bg-amber-200 text-amber-950">Priority items first</Badge> : null}
+          </div>
+          {warnings.length === 0 ? (
             <p className="mt-4 rounded-md border border-dashed p-4 text-sm text-muted-foreground">No objective dashboard warnings are currently present.</p>
           ) : (
-            <ul className="mt-4 grid gap-3">{data.warnings.map((warning) => <WarningItem key={`${warning.code}-${warning.target_module}`} warning={warning} eventId={eventId} />)}</ul>
+            <ul className="mt-4 grid gap-3">{warnings.map((warning) => <WarningItem key={`${warning.code}-${warning.target_module}`} warning={warning} eventId={eventId} />)}</ul>
           )}
         </div>
 
         <div className="min-w-0 rounded-md border p-5">
-          <h2 className="flex items-center gap-2 font-medium"><Scale className="h-4 w-4" aria-hidden="true" />Pending approvals</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 font-medium"><Scale className="h-4 w-4" aria-hidden="true" />Pending approvals</h2>
+            {canManageFinance && pendingApprovals.length > 0 ? <Badge variant="outline" className="border-sky-600 bg-sky-100 text-sky-950">{pendingApprovals.length} awaiting decision</Badge> : null}
+          </div>
           {!canManageFinance ? (
             <p className="mt-4 rounded-md border border-dashed p-4 text-sm text-muted-foreground">Approval queue details are available to treasurers only.</p>
-          ) : data.pendingApprovals.length === 0 ? (
+          ) : pendingApprovals.length === 0 ? (
             <p className="mt-4 rounded-md border border-dashed p-4 text-sm text-muted-foreground">No requests are awaiting treasurer review.</p>
           ) : (
             <div className="mt-4 grid gap-3">
-              {data.pendingApprovals.map((row) => (
-                <Link key={`${row.request_id}-${row.revision_id}`} href={`/events/${eventId}/approvals/${row.request_id}`} className="rounded-md border p-3 text-sm underline-offset-4 hover:underline">
+              {pendingApprovals.map((row) => (
+                <Link key={`${row.request_id}-${row.revision_id}`} href={`/events/${eventId}/approvals/${row.request_id}`} className={cn("rounded-md border p-3 text-sm underline-offset-4 hover:underline", row.budget_warning ? "border-red-200 bg-red-50/70 text-red-950" : "border-sky-200 bg-sky-50/70 text-sky-950")}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-medium">{row.request_code}: {row.title}</p>
-                    <Badge variant={row.budget_warning ? "destructive" : "outline"}>{row.budget_warning ? "Budget warning" : label(row.request_type)}</Badge>
+                    <Badge variant={row.budget_warning ? "destructive" : "outline"} className={row.budget_warning ? undefined : "border-sky-600 bg-sky-100 text-sky-950"}>{row.budget_warning ? "Budget warning" : label(row.request_type)}</Badge>
                   </div>
-                  <p className="mt-1 text-muted-foreground">{row.owner_preferred_name ?? row.owner_display_name ?? "Committee member"}; {row.primary_department_code}; {formatMinor(row.net_minor)} net / {formatMinor(row.gross_minor)} gross; submitted {dateTime(row.submitted_at)}</p>
+                  <p className="mt-1 opacity-80">{row.owner_preferred_name ?? row.owner_display_name ?? "Committee member"}; {row.primary_department_code}; {formatMinor(row.net_minor)} net / {formatMinor(row.gross_minor)} gross; submitted {dateTime(row.submitted_at)}</p>
                 </Link>
               ))}
             </div>

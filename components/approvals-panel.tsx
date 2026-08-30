@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { AlertCircle, CheckCircle, History, MessageSquareWarning, Scale, TriangleAlert, XCircle } from "lucide-react";
 import { decideSpendingRequestAction } from "@/app/events/[eventId]/approvals/actions";
+import { RequestDocumentsSection } from "@/components/documents-panel";
+import { RequestComponentSurface } from "@/components/request-component-surface";
 import { StatusBadge } from "@/components/status-badge";
 import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
@@ -186,6 +188,9 @@ export function ApprovalReviewPanel({
   readOnly,
   error,
   decided,
+  documentsError,
+  documentUploaded,
+  documentVoided,
 }: {
   eventId: string;
   data: ApprovalReviewData;
@@ -193,6 +198,9 @@ export function ApprovalReviewPanel({
   readOnly: boolean;
   error?: string;
   decided?: string;
+  documentsError?: string;
+  documentUploaded?: boolean;
+  documentVoided?: boolean;
 }) {
   const { detail, impacts, eventContext, revisions, reviews } = data;
   const { request, allocations, components } = detail;
@@ -301,16 +309,29 @@ export function ApprovalReviewPanel({
         <h2 className="font-medium">Components</h2>
         <div className="mt-4 grid gap-3">
           {components.map((component) => (
-            <div key={component.id} className="rounded-md border p-3 text-sm">
+            <RequestComponentSurface key={component.id} className="text-sm">
               <div className="flex flex-wrap justify-between gap-3">
                 <p className="font-medium">{component.code}: {component.description}</p>
                 <p>{formatMinor(component.gross_minor)} gross</p>
               </div>
               <p className="mt-1 text-muted-foreground">{component.supplier_name ?? "Supplier not set"}; expected {component.expected_payment_date ?? "date not set"}</p>
-            </div>
+            </RequestComponentSurface>
           ))}
         </div>
       </section>
+
+      <RequestDocumentsSection
+        eventId={eventId}
+        requestId={request.request_id ?? ""}
+        documents={data.detail.documents ?? []}
+        canUpload={canDecide && !readOnly}
+        canVoid={canDecide && !readOnly}
+        readOnly={readOnly}
+        error={documentsError}
+        uploaded={documentUploaded}
+        voided={documentVoided}
+        returnTo="approval"
+      />
 
       {showDecisionControls ? (
         <section className="rounded-md border p-5">

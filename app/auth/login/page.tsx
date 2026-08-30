@@ -1,8 +1,8 @@
 import { BackButton } from "@/components/back-button";
+import { ChiffreWordmark } from "@/components/chiffre-wordmark";
 import { LoginForm } from "@/components/login-form";
 import { sanitizeReturnPath } from "@/lib/routes";
 import { createClient } from "@/lib/supabase/server";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
@@ -30,7 +30,7 @@ export default async function Page({
           <BackButton />
         </div>
         <div className="mb-6 flex justify-center">
-          <Image src="/brand/mbf-logo.png" alt="May Ball Finance" width={72} height={48} priority className="h-12 w-auto" />
+          <ChiffreWordmark className="w-48" priority />
         </div>
         <LoginForm returnTo={returnTo} />
       </div>

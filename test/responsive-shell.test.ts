@@ -24,6 +24,7 @@ describe("authenticated responsive shell", () => {
     const dashboard = readFileSync("components/dashboard-panel.tsx", "utf8");
     expect(dashboard).toContain("AllocationDonut");
     expect(dashboard).toContain("StackedFinancialBar");
+    expect(dashboard).toContain("xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]");
   });
 
   it("uses container-responsive metric grids on Dashboard and Finances", () => {
@@ -36,5 +37,9 @@ describe("authenticated responsive shell", () => {
     expect(finances).toContain("responsiveMetricGridClassName");
     expect(dashboard).not.toContain("md:grid-cols-2 xl:grid-cols-4");
     expect(finances).not.toContain("md:grid-cols-2 xl:grid-cols-4");
+
+    const visuals = readFileSync("components/financial-visuals.tsx", "utf8");
+    expect(visuals).toContain("repeat(auto-fit,minmax(min(100%,12rem),1fr))");
+    expect(visuals).toContain("xl:grid-cols-[18rem_minmax(0,1fr)]");
   });
 });

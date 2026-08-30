@@ -11,9 +11,9 @@ describe("public marketing navigation", () => {
   it("shows public navigation and auth actions for logged-out visitors", () => {
     render(<PublicHeader isAuthenticated={false} />);
 
-    const logo = screen.getByRole("img", { name: "May Ball Finance" });
+    const logo = screen.getByRole("img", { name: "Chiffre" });
     expect(logo).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "May Ball Finance home" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Chiffre home" })).toHaveAttribute("href", "/");
     const desktopNav = screen.getByRole("navigation", { name: "Main navigation" });
     expect(within(desktopNav).getByRole("link", { name: "Features" })).toHaveAttribute("href", "/features");
     expect(within(desktopNav).getByRole("link", { name: "How It Works" })).toHaveAttribute("href", "/how-it-works");
@@ -45,8 +45,7 @@ describe("public marketing navigation", () => {
   it("renders footer links including privacy and security placeholder", () => {
     render(<PublicFooter />);
 
-    expect(screen.getByRole("img", { name: "May Ball Finance" })).toBeInTheDocument();
-    expect(screen.getByText("May Ball Finance")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Chiffre" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Privacy and Security" })).toHaveAttribute("href", "/guides#security");
     expect(screen.getByText(/All rights reserved/)).toBeInTheDocument();
   });

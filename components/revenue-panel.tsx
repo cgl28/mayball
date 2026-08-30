@@ -6,6 +6,7 @@ import {
   saveTicketTypeAction,
 } from "@/app/events/[eventId]/revenue/actions";
 import { SubmitButton } from "@/components/submit-button";
+import { FinancialField, type FinancialFieldKind } from "@/components/financial-field";
 import { TicketTypeForecastFields } from "@/components/ticket-type-forecast-fields";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -586,9 +587,9 @@ function SnapshotForm({ eventId, ticketTypes }: { eventId: string; ticketTypes: 
           <Field name="capturedAt" label="Captured at" type="datetime-local" required />
           <Field name="ticketsSold" label="Tickets sold to date" type="number" />
           <Select name="source" label="Source" values={snapshotSources} />
-          <Field name="netSales" label="Net sales to date" placeholder="112500.00" />
-          <Field name="vatSales" label="VAT to date" placeholder="22500.00" />
-          <Field name="grossSales" label="Gross sales to date" placeholder="135000.00" required />
+          <Field name="netSales" label="Net sales to date" placeholder="112500.00" financialKind="net" />
+          <Field name="vatSales" label="VAT to date" placeholder="22500.00" financialKind="vat" />
+          <Field name="grossSales" label="Gross sales to date" placeholder="135000.00" required financialKind="gross" />
           <Field name="refunds" label="Refunds to date" placeholder="250.00" defaultValue="0.00" />
           <Field name="bookingFees" label="Booking fees to date" placeholder="2700.00" defaultValue="0.00" />
           <Field name="notes" label="Notes" />
@@ -603,7 +604,7 @@ function SnapshotForm({ eventId, ticketTypes }: { eventId: string; ticketTypes: 
                   <input type="hidden" name="ticketTypeId" value={ticket.ticket_type_id ?? ""} />
                   <p className="text-sm font-medium">{ticket.name}</p>
                   <Field name={`quantity_${ticket.ticket_type_id}`} label="Quantity to date" type="number" />
-                  <Field name={`gross_${ticket.ticket_type_id}`} label="Gross to date" />
+                  <Field name={`gross_${ticket.ticket_type_id}`} label="Gross to date" financialKind="gross" />
                 </div>
               ))}
             </div>
@@ -693,12 +694,12 @@ function OtherRevenueForm({ eventId, owners, items }: { eventId: string; owners:
             {owners.map((owner) => <option key={owner.id} value={owner.id}>{owner.preferred_name ?? owner.display_name}</option>)}
           </select>
         </label>
-        <Field name="forecastNet" label="Forecast net" defaultValue="0.00" required />
-        <Field name="forecastVat" label="Forecast VAT" defaultValue="0.00" required />
-        <Field name="forecastGross" label="Forecast gross" defaultValue="0.00" required />
-        <Field name="actualNet" label="Actual net" defaultValue="0.00" />
-        <Field name="actualVat" label="Actual VAT" defaultValue="0.00" />
-        <Field name="actualGross" label="Actual gross" defaultValue="0.00" />
+        <Field name="forecastNet" label="Forecast net" defaultValue="0.00" required financialKind="net" />
+        <Field name="forecastVat" label="Forecast VAT" defaultValue="0.00" required financialKind="vat" />
+        <Field name="forecastGross" label="Forecast gross" defaultValue="0.00" required financialKind="gross" />
+        <Field name="actualNet" label="Actual net" defaultValue="0.00" financialKind="net" />
+        <Field name="actualVat" label="Actual VAT" defaultValue="0.00" financialKind="vat" />
+        <Field name="actualGross" label="Actual gross" defaultValue="0.00" financialKind="gross" />
         <Field name="vatRate" label="VAT rate" />
         <Select name="vatTreatment" label="VAT treatment" values={vatTreatments} />
         <Select name="status" label="Status" values={revenueStatuses} />
@@ -740,6 +741,7 @@ function Field({
   placeholder,
   required,
   defaultValue,
+  financialKind,
 }: {
   name: string;
   label: string;
@@ -747,7 +749,12 @@ function Field({
   placeholder?: string;
   required?: boolean;
   defaultValue?: string;
+  financialKind?: FinancialFieldKind;
 }) {
+  if (financialKind) {
+    return <FinancialField kind={financialKind} name={name} label={label} type={type} placeholder={placeholder} required={required} defaultValue={defaultValue} />;
+  }
+
   return (
     <label className="grid gap-1 text-sm">
       <span className="font-medium">{label}</span>

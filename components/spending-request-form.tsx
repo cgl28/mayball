@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Plus, RotateCcw, Split, Wand2, X } from "lucide-react";
 import { saveSpendingRequestDraftAction } from "@/app/events/[eventId]/requests/actions";
+import { FinancialField, type FinancialFieldKind } from "@/components/financial-field";
+import { RequestComponentSurface } from "@/components/request-component-surface";
 import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -113,6 +115,7 @@ function Field({
   onChange,
   type = "text",
   required,
+  financialKind,
 }: {
   name: string;
   label: string;
@@ -120,7 +123,12 @@ function Field({
   onChange: (value: string) => void;
   type?: string;
   required?: boolean;
+  financialKind?: FinancialFieldKind;
 }) {
+  if (financialKind) {
+    return <FinancialField kind={financialKind} name={name} label={label} value={value} onChange={(event) => onChange(event.target.value)} type={type} required={required} />;
+  }
+
   return (
     <label className="grid gap-1 text-sm">
       <span className="font-medium">{label}</span>
@@ -445,9 +453,9 @@ export function SpendingRequestForm({
               Compute from {computeMode === "gross" ? "Gross" : "Net"}
             </Button>
           </div>
-          <Field name="net" label="Net amount" required value={net} onChange={setNet} />
-          <Field name="vat" label="VAT amount" required value={vat} onChange={setVat} />
-          <Field name="gross" label="Gross amount" required value={gross} onChange={setGross} />
+          <Field name="net" label="Net amount" required value={net} onChange={setNet} financialKind="net" />
+          <Field name="vat" label="VAT amount" required value={vat} onChange={setVat} financialKind="vat" />
+          <Field name="gross" label="Gross amount" required value={gross} onChange={setGross} financialKind="gross" />
           <label className="flex items-center gap-2 text-sm md:self-end">
             <input name="vatRecoverable" type="checkbox" checked={vatRecoverable} onChange={(event) => setVatRecoverable(event.target.checked)} className="h-4 w-4 rounded border" />
             <span>VAT recoverable</span>
@@ -478,7 +486,7 @@ export function SpendingRequestForm({
               {components.map((component, index) => {
                 const legacySupplier = component.legacySupplier && component.supplier;
                 return (
-                  <div key={component.key} className="rounded-md border p-3">
+                  <RequestComponentSurface key={component.key}>
                     <input type="hidden" name="componentSequence" value={component.key} />
                     <input type="hidden" name={`componentSupplier_${component.key}`} value={component.supplier || supplierName} />
                     <div className="flex items-center justify-between gap-3">
@@ -493,7 +501,7 @@ export function SpendingRequestForm({
                     <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                       <Field name={`componentDescription_${component.key}`} label="Component name" required={multiComponent} value={component.description} onChange={(value) => updateComponent(component.key, { description: value })} />
                       <Field name={`componentDate_${component.key}`} label="Due date" type="date" value={component.expectedDate} onChange={(value) => updateComponent(component.key, { expectedDate: value })} />
-                      <Field name={`componentGross_${component.key}`} label="Gross" required value={component.gross} onChange={(value) => updateComponent(component.key, { gross: value })} />
+                      <Field name={`componentGross_${component.key}`} label="Gross" required value={component.gross} onChange={(value) => updateComponent(component.key, { gross: value })} financialKind="gross" />
                       <label className="grid gap-1 text-sm">
                         <span className="font-medium">VAT treatment</span>
                         <select
@@ -513,8 +521,8 @@ export function SpendingRequestForm({
                         </select>
                       </label>
                       <Field name={`componentVatRate_${component.key}`} label="VAT rate" value={component.vatRate} onChange={(value) => updateComponent(component.key, { vatRate: value })} />
-                      <Field name={`componentVat_${component.key}`} label="VAT" required value={component.vat} onChange={(value) => updateComponent(component.key, { vat: value })} />
-                      <Field name={`componentNet_${component.key}`} label="Net" required value={component.net} onChange={(value) => updateComponent(component.key, { net: value })} />
+                      <Field name={`componentVat_${component.key}`} label="VAT" required value={component.vat} onChange={(value) => updateComponent(component.key, { vat: value })} financialKind="vat" />
+                      <Field name={`componentNet_${component.key}`} label="Net" required value={component.net} onChange={(value) => updateComponent(component.key, { net: value })} financialKind="net" />
                       <div className="flex items-end">
                         <Button
                           type="button"
@@ -540,7 +548,7 @@ export function SpendingRequestForm({
                         Allocate Remaining
                       </Button>
                     ) : null}
-                  </div>
+                  </RequestComponentSurface>
                 );
               })}
             </div>
@@ -633,6 +641,7 @@ export function SpendingRequestForm({
         </SubmitButton>
         <Button asChild variant="outline"><Link href={request?.request_id ? `/events/${eventId}/requests/${request.request_id}` : `/events/${eventId}/requests`}>Cancel Draft</Link></Button>
       </div>
+      {!request ? <p className="text-sm text-muted-foreground">Save the draft first, then add supporting documents from the request page.</p> : null}
     </form>
   );
 }

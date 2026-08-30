@@ -58,7 +58,7 @@ describe("invitation input parser", () => {
   it("builds only safe internal invitation paths", () => {
     expect(invitationPathForToken(token)).toBe(`/invitations/${token}`);
     expect(() => invitationPathForToken("https://example.com")).toThrow(
-      "Enter a valid May Ball Finance invitation link.",
+      "Enter a valid Chiffre invitation link.",
     );
   });
 });
@@ -106,12 +106,12 @@ describe("JoinEventPanel", () => {
     render(
       <JoinEventPanel
         pastedValue="bad"
-        error="Enter a valid May Ball Finance invitation link."
+        error="Enter a valid Chiffre invitation link."
       />,
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Enter a valid May Ball Finance invitation link.",
+      "Enter a valid Chiffre invitation link.",
     );
   });
 });

@@ -1,6 +1,6 @@
 import { BackButton } from "@/components/back-button";
+import { ChiffreWordmark } from "@/components/chiffre-wordmark";
 import { SignUpForm } from "@/components/sign-up-form";
-import Image from "next/image";
 
 export default function Page() {
   return (
@@ -10,7 +10,7 @@ export default function Page() {
           <BackButton />
         </div>
         <div className="mb-6 flex justify-center">
-          <Image src="/brand/mbf-logo.png" alt="May Ball Finance" width={72} height={48} priority className="h-12 w-auto" />
+          <ChiffreWordmark className="w-48" priority />
         </div>
         <SignUpForm />
       </div>

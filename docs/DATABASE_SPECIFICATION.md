@@ -649,8 +649,8 @@ Indexes: `(event_id,created_at desc,id desc)`, `(event_id,entity_type,entity_id,
 | `id` | `uuid` | PK | |
 | `event_id` | `uuid` | not null | |
 | `uploaded_by` | `uuid` | not null | |
-| `request_id` | `uuid` | null | MVP link |
-| `revision_id` | `uuid` | null | exact draft/submission link |
+| `request_id` | `uuid` | null | stable request evidence parent |
+| `revision_id` | `uuid` | null | legacy exact draft/submission link |
 | `payment_id` | `uuid` | null | optional |
 | `category` | `document_category` | not null | |
 | `bucket_id` | `text` | `'event-documents'` | private bucket |
@@ -661,7 +661,7 @@ Indexes: `(event_id,created_at desc,id desc)`, `(event_id,entity_type,entity_id,
 | `sha256` | `text` | null | integrity/dedup hint |
 | `created_at` | `timestamptz` | `now()` | |
 
-Constraints: at least one domain link; same-event validation; unique `(bucket_id,object_path)`; object paths use `event_id/document_id/sanitised-filename` but permission never relies solely on string parsing. Documents linked only to drafts inherit draft privacy.
+Constraints: at least one domain link; same-event validation; unique `(bucket_id,object_path)`; object paths use `event_id/document_id/sanitised-filename` but permission never relies solely on string parsing. New request evidence is linked to the stable request identity, so it survives revision changes; legacy revision/payment links remain supported. Documents linked to a draft request inherit draft privacy.
 
 Indexes: `(event_id,request_id)`, `(event_id,revision_id)`, `(event_id,payment_id)`.
 
@@ -893,7 +893,7 @@ RLS is enabled and forced on every public application table. Table owners used b
 ## 17.11 Documents and Storage
 
 - Metadata SELECT follows linked request/revision/payment visibility.
-- Creator may insert a document only against a revision they can edit, or treasurer against accessible financial records.
+- A request owner may insert/void supporting evidence for their own writable request, including submitted and approved requests; treasurers may do so for accessible request records. Legacy revision and payment rules remain supported.
 - No metadata update/delete after submission except controlled archival workflow.
 - Storage object policies require authenticated event access and validate an existing `documents` metadata row. The bucket is private. Signed URLs are short lived.
 

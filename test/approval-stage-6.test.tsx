@@ -220,6 +220,8 @@ describe("Stage 6 approval panels", () => {
     expect(screen.getByText("Return this request to the requester with clear instructions for revision.")).toBeInTheDocument();
     expect(screen.getByText("Decline this submitted revision. Include the reason for the audit trail.")).toBeInTheDocument();
     expect(screen.getByText(/Approval does not mean paid/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Upload document" })).toBeInTheDocument();
+    expect(screen.getAllByDisplayValue("request-id").some((element) => element.getAttribute("name") === "requestId")).toBe(true);
   });
 
   it("keeps request changes and rejection reason inputs with semantic action labels", () => {

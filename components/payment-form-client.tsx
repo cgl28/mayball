@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState, type ChangeEventHandler } from "react";
 import { recordPaymentAction } from "@/app/events/[eventId]/payments/actions";
+import { FinancialField } from "@/components/financial-field";
+import { RequestComponentSurface } from "@/components/request-component-surface";
 import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
 import type { ComponentPaymentPosition, PaymentFormData } from "@/lib/payments/data";
@@ -173,7 +175,7 @@ function ComponentAllocationRow({
   onValueChange: (value: string) => void;
 }) {
   return (
-    <div className="grid min-w-0 gap-3 rounded-md border p-3 md:grid-cols-[auto_minmax(0,1fr)_minmax(8rem,10rem)] md:items-end">
+    <RequestComponentSurface className="grid min-w-0 gap-3 md:grid-cols-[auto_minmax(0,1fr)_minmax(8rem,10rem)] md:items-end">
       <input type="hidden" name="componentId" value={component.request_component_id ?? ""} />
       <input name={`selected_${component.request_component_id}`} type="checkbox" checked={checked} onChange={(event) => onCheckedChange(event.currentTarget.checked)} className="h-4 w-4 rounded border md:mb-3" aria-label={`Allocate ${component.component_code}`} />
       <div className="min-w-0 text-sm">
@@ -181,8 +183,8 @@ function ComponentAllocationRow({
         <p>{component.description}</p>
         <p className="text-muted-foreground">Approved {formatMinor(component.approved_gross_minor)}; paid {formatMinor(component.paid_gross_minor)}; outstanding {formatMinor(component.outstanding_gross_minor)}</p>
       </div>
-      <Field name={`gross_${component.request_component_id}`} label="Allocate now" value={value} onChange={(event) => onValueChange(event.currentTarget.value)} disabled={!checked} />
-    </div>
+      <FinancialField kind="gross" name={`gross_${component.request_component_id}`} label="Allocate now" value={value} onChange={(event) => onValueChange(event.currentTarget.value)} disabled={!checked} />
+    </RequestComponentSurface>
   );
 }
 

@@ -1,11 +1,11 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Enums } from "@/src/types/database.generated";
 import { parseMoneyToMinor } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
+import { traceAsync } from "@/lib/perf/trace";
 
 type PaymentMethod = Enums<"payment_method">;
 
@@ -80,7 +80,7 @@ export async function recordPaymentAction(formData: FormData) {
     if (allocations.length === 0) throw new Error("Choose at least one approved component to pay.");
     if (allocationTotal !== gross) throw new Error("Allocation totals must equal the payment gross amount.");
 
-    const { data, error } = await supabase.rpc("record_component_payment", {
+    const { data, error } = await traceAsync({ route: `/events/${eventId}/payments`, name: "payment.record" }, () => supabase.rpc("record_component_payment", {
       p_event_id: eventId,
       p_payment_date: clean(formData.get("paymentDate")),
       p_payee: clean(formData.get("payee")),
@@ -90,12 +90,11 @@ export async function recordPaymentAction(formData: FormData) {
       p_note: clean(formData.get("note")),
       p_allocations: allocations,
       p_idempotency_key: clean(formData.get("idempotencyKey")) || randomUUID(),
-    });
+    }));
     if (error) throw error;
 
-    revalidatePath(`/events/${eventId}/payments`);
-    revalidatePath(`/events/${eventId}/requests`);
-    if (requestId) revalidatePath(`/events/${eventId}/requests/${requestId}`);
+    // The redirect below reloads the payment detail from uncached Supabase data.
+    // Avoid revalidatePath in a Server Action: it clears the whole client router cache.
     redirect(`/events/${eventId}/payments/${data}?recorded=1`);
   } catch (error) {
     if (isFrameworkRedirect(error)) throw error;
@@ -112,13 +111,11 @@ export async function reversePaymentAction(formData: FormData) {
   try {
     const reason = clean(formData.get("reason"));
     if (!reason) throw new Error("A reversal reason is required.");
-    const { error } = await supabase.rpc("reverse_payment", {
+    const { error } = await traceAsync({ route: `/events/${eventId}/payments`, name: "payment.reverse" }, () => supabase.rpc("reverse_payment", {
       p_payment_id: paymentId,
       p_reason: reason,
-    });
+    }));
     if (error) throw error;
-    revalidatePath(`/events/${eventId}/payments`);
-    revalidatePath(`/events/${eventId}/requests`);
     redirect(`${returnPath}?reversed=1`);
   } catch (error) {
     if (isFrameworkRedirect(error)) throw error;

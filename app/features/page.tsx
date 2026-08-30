@@ -42,7 +42,7 @@ export default async function FeaturesPage() {
       <MarketingSection
         eyebrow="Features"
         title="A focused finance system for May Ball committees"
-        description="May Ball Finance joins the core financial workflow without turning committee work into a generic spreadsheet exercise."
+        description="Chiffre joins the core financial workflow without turning committee work into a generic spreadsheet exercise."
       >
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {featureGroups.map((feature) => (

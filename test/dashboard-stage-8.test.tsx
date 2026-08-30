@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { DashboardPanel } from "@/components/dashboard-panel";
 import type { DashboardData, EventFinancialPosition } from "@/lib/dashboard/data";
@@ -209,7 +209,7 @@ describe("Stage 8 dashboard panel", () => {
     expect(screen.getByText("Department pressure")).toBeInTheDocument();
     expect(screen.getByText("Approved but unpaid")).toBeInTheDocument();
     expect(screen.getAllByText("Aesthetics").length).toBeGreaterThan(1);
-    expect(screen.getByText(/No active allocation/)).toBeInTheDocument();
+    expect(screen.getAllByText(/No active allocation/).length).toBeGreaterThan(0);
   });
 
   it("shows revenue snapshot details and keeps booking fees separate", () => {
@@ -225,6 +225,60 @@ describe("Stage 8 dashboard panel", () => {
 
     expect(screen.getByText("DMB_AE_2: Floral arch")).toBeInTheDocument();
     expect(screen.getByText(/£4,000.00 net/)).toBeInTheDocument();
+    expect(screen.getByText("1 awaiting decision")).toBeInTheDocument();
+  });
+
+  it("prioritises warning states and keeps their action links", () => {
+    render(
+      <DashboardPanel
+        eventAccess={makeEventAccess()}
+        data={{
+          ...data,
+          warnings: [
+            data.warnings[0],
+            {
+              ...data.warnings[0],
+              code: "department_over_budget",
+              severity: "warning",
+              title: "A department is over budget",
+              message: "Approved spending exceeds the current department budget.",
+              target_module: "budget",
+            },
+          ],
+        }}
+        canManageFinance
+      />,
+    );
+
+    const priorityWarning = screen.getByText("A department is over budget");
+    const information = screen.getByText("Pending approvals awaiting review");
+    expect(priorityWarning.compareDocumentPosition(information) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Review budget" })).toHaveAttribute("href", "/events/30000000-0000-0000-0000-000000000027/budget");
+    expect(screen.getByText("Needs attention")).toBeInTheDocument();
+  });
+
+  it("puts existing department over-budget flags ahead of lower-risk rows", () => {
+    render(
+      <DashboardPanel
+        eventAccess={makeEventAccess()}
+        data={{
+          ...data,
+          departments: [
+            data.departments[0],
+            { ...data.departments[1], department_name: "Red alert", department_code: "RED", has_active_allocation: true, approved_over_budget: true, potential_over_budget: true, potential_remaining_minor: -10000 },
+          ],
+        }}
+        canManageFinance
+      />,
+    );
+
+    const pressure = screen.getByText("Department pressure").closest("div")?.parentElement;
+    expect(pressure).not.toBeNull();
+    const redAlert = within(pressure!).getByText("Red alert");
+    const aesthetics = within(pressure!).getByText("Aesthetics");
+    expect(redAlert.compareDocumentPosition(aesthetics) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText("Risk first")).toBeInTheDocument();
+    expect(screen.getAllByText("Approved over budget").length).toBeGreaterThan(0);
   });
 
   it("hides actionable approval details from non-treasurers and labels draft privacy", () => {
