@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { ActivityPanel } from "@/components/activity-panel";
-import { getActivityFeed } from "@/lib/activity/data";
+import { getActivityFeed, normaliseAuditCategory } from "@/lib/activity/data";
 import { getAuthenticatedSession } from "@/lib/auth/session";
 import { getEventAccess } from "@/lib/events/access";
 import { getEventCapabilities } from "@/lib/events/permissions";
@@ -14,7 +14,6 @@ export default async function ActivityPage({
   searchParams: Promise<{
     page?: string;
     category?: string;
-    action?: string;
     fromDate?: string;
     toDate?: string;
   }>;
@@ -33,8 +32,7 @@ export default async function ActivityPage({
   const capabilities = getEventCapabilities(eventAccess);
   const activity = await getActivityFeed(session.supabase, eventId, {
     page: Number(query.page ?? 1),
-    category: query.category,
-    action: query.action,
+    category: normaliseAuditCategory(query.category),
     fromDate: query.fromDate,
     toDate: query.toDate,
   });
@@ -45,10 +43,14 @@ export default async function ActivityPage({
 
   return (
     <ActivityPanel
+      eventId={eventId}
       rows={activity.data.rows}
       count={activity.data.count}
       page={activity.data.page}
       pageSize={activity.data.pageSize}
+      category={activity.data.category}
+      fromDate={activity.data.fromDate}
+      toDate={activity.data.toDate}
       readOnly={capabilities.isReadOnly}
     />
   );
