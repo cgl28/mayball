@@ -64,6 +64,7 @@ export default async function RequestPage({
       error={query.error}
       canStartVariation={canStartVariation}
       canManageDocuments={capabilities.canManageFinance}
+      canUploadDocuments={!capabilities.isReadOnly && (detail.data.request.owner_user_id === session.user.id || capabilities.canManageFinance)}
       documentUploaded={query.documentUploaded === "1"}
       documentVoided={query.documentVoided === "1"}
       documentsError={query.documentsError}

@@ -57,6 +57,7 @@ export default async function RequestsPage({
       requests={data.data.requests}
       departments={data.data.departments}
       paymentPositions={data.data.paymentPositions}
+      documentEvidence={data.data.documentEvidence}
       page={data.data.page}
       pageSize={data.data.pageSize}
       count={data.data.count}

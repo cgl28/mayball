@@ -1,5 +1,6 @@
 import { AlertCircle } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
+import { InitialsAvatar } from "@/components/initials-avatar";
 import type { AuthenticatedSession } from "@/lib/auth/session";
 import type { EventAccess } from "@/lib/events/access";
 import { displayNameForUser } from "@/lib/auth/display";
@@ -21,12 +22,15 @@ export function AppShell({
       <div className="min-w-0">
         <header className="border-b bg-white">
           <div className="flex w-full max-w-full flex-col gap-2 px-4 py-4 sm:px-6 lg:px-8">
-            <p className="text-sm text-muted-foreground">Signed in as</p>
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-              <h1 className="text-lg font-semibold tracking-normal">
-                {displayNameForUser(session.user, session.profile)}
-              </h1>
-              <p className="text-sm text-muted-foreground">{session.user.email ?? "No email on account"}</p>
+            <div className="flex items-center gap-3">
+              <InitialsAvatar name={displayNameForUser(session.user, session.profile)} />
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground">Signed in as</p>
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+                  <h1 className="truncate text-lg font-semibold tracking-normal">{displayNameForUser(session.user, session.profile)}</h1>
+                  <p className="truncate text-sm text-muted-foreground">{session.user.email ?? "No email on account"}</p>
+                </div>
+              </div>
             </div>
             {eventsError ? (
               <div role="alert" className="mt-3 flex gap-2 rounded-md border border-destructive/40 p-3 text-sm text-destructive">

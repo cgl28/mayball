@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AlertCircle, GitBranch } from "lucide-react";
-import { updateEventSettingsAction } from "@/app/events/actions";
+import { updateEventOrganisationAction, updateEventSettingsAction } from "@/app/events/actions";
+import { ProductTierBadge } from "@/components/product-tier-badge";
 import { SubmitButton } from "@/components/submit-button";
 import type { EventAccess } from "@/lib/events/access";
 
@@ -17,12 +18,16 @@ export function EventSettingsPanel({
   error,
   saved,
   created,
+  organisationSaved,
+  organisations = [],
 }: {
   eventAccess: EventAccess;
   canManage: boolean;
   error?: string;
   saved?: boolean;
   created?: boolean;
+  organisationSaved?: boolean;
+  organisations?: Array<{ id: string; name: string }>;
 }) {
   const { event, organisation } = eventAccess;
 
@@ -42,11 +47,22 @@ export function EventSettingsPanel({
           <p>{error}</p>
         </div>
       ) : null}
-      {saved || created ? (
+      {saved || created || organisationSaved ? (
         <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-950">
-          {created ? "Event created." : "Event settings saved."}
+          {created ? "Event created." : organisationSaved ? "Event organisation saved." : "Event settings saved."}
         </div>
       ) : null}
+
+      <section className="rounded-md border bg-white p-5">
+        <h2 className="font-medium">Chiffre commercial context</h2>
+        <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
+          <div><dt className="text-muted-foreground">Product tier</dt><dd className="mt-1"><ProductTierBadge tier={event.product_tier} /></dd></div>
+          <div><dt className="text-muted-foreground">Organisation</dt><dd className="mt-1 font-medium">{organisation?.name ?? "No organisation set"}</dd></div>
+          <div><dt className="text-muted-foreground">Chiffre owner</dt><dd className="mt-1 font-medium">{eventAccess.chiffreOwner?.preferred_name ?? eventAccess.chiffreOwner?.display_name ?? "Not assigned"}</dd></div>
+        </dl>
+        <p className="mt-4 text-sm text-muted-foreground">Demo events continue to have full access while Pro entitlement rules are prepared. Upgrade to Chiffre Pro is coming soon.</p>
+        {canManage ? <form action={updateEventOrganisationAction} className="mt-4 flex flex-wrap items-end gap-3"><input type="hidden" name="eventId" value={event.id} /><label className="grid gap-1 text-sm"><span className="font-medium">Event organisation</span><select name="organisationId" defaultValue={event.organisation_id} className="rounded-md border bg-background px-3 py-2">{organisations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><SubmitButton pendingLabel="Saving organisation...">Save organisation</SubmitButton></form> : null}
+      </section>
 
       {eventAccess.isReadOnly ? (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">

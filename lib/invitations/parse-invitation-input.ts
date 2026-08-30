@@ -14,7 +14,7 @@ function tokenResult(token: string): InvitationInputParseResult {
   if (!INVITATION_TOKEN_PATTERN.test(normalised)) {
     return {
       ok: false,
-      error: "Enter a valid May Ball Finance invitation link.",
+      error: "Enter a valid Chiffre invitation link.",
     };
   }
 
@@ -40,7 +40,7 @@ export function parseInvitationInput(
   if (!value) {
     return {
       ok: false,
-      error: "Enter a valid May Ball Finance invitation link.",
+      error: "Enter a valid Chiffre invitation link.",
     };
   }
 
@@ -52,7 +52,7 @@ export function parseInvitationInput(
     const token = tokenFromPathname(value);
     return token ? tokenResult(token) : {
       ok: false,
-      error: "Enter a valid May Ball Finance invitation link.",
+      error: "Enter a valid Chiffre invitation link.",
     };
   }
 
@@ -61,12 +61,12 @@ export function parseInvitationInput(
     const token = tokenFromPathname(url.pathname);
     return token ? tokenResult(token) : {
       ok: false,
-      error: "Enter a valid May Ball Finance invitation link.",
+      error: "Enter a valid Chiffre invitation link.",
     };
   } catch {
     return {
       ok: false,
-      error: "Enter a valid May Ball Finance invitation link.",
+      error: "Enter a valid Chiffre invitation link.",
     };
   }
 }

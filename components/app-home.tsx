@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { EventAccess } from "@/lib/events/access";
 import { isHistoricalStatus, summarizeRoles } from "@/lib/events/access";
+import { ProductTierBadge } from "@/components/product-tier-badge";
 
 function formatDate(date: string | null) {
   if (!date) return "Date not set";
@@ -27,7 +28,7 @@ function EventCard({
 }: {
   eventAccess: EventAccess;
 }) {
-  const { event, organisation, roles, accessMode, isReadOnly } = eventAccess;
+  const { event, organisation, roles, accessMode, isReadOnly, chiffreOwner } = eventAccess;
 
   return (
     <article className="rounded-md border bg-white p-5 shadow-sm">
@@ -45,6 +46,8 @@ function EventCard({
         )}
       </div>
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+        <div><dt className="text-muted-foreground">Organisation</dt><dd>{organisation?.name ?? "No organisation set"}</dd></div>
+        <div><dt className="text-muted-foreground">Chiffre owner</dt><dd>{chiffreOwner?.preferred_name ?? chiffreOwner?.display_name ?? "Not assigned"}</dd></div>
         <div>
           <dt className="text-muted-foreground">Date</dt>
           <dd>{formatDate(event.event_date)}</dd>
@@ -63,6 +66,7 @@ function EventCard({
         </div>
       </dl>
       <div className="mt-4 flex flex-wrap gap-2">
+        <ProductTierBadge tier={event.product_tier} />
         <Badge variant="outline" className="gap-1">
           {isHistoricalStatus(event.status) ? (
             <Archive className="h-3 w-3" aria-hidden="true" />

@@ -4,6 +4,7 @@ import { BudgetEditor } from "@/components/budget-editor";
 import { BudgetPanel } from "@/components/budget-panel";
 import { formatMinor, parseMoneyToMinor } from "@/lib/money";
 import type { BudgetOverview } from "@/lib/budget/data";
+import { compareAllocation } from "@/lib/budget/allocation-comparison";
 
 const departments = [
   { id: "dep-a", name: "Aesthetics", code: "AE", colour: "#6AAED6", is_active: true, display_order: 1 },
@@ -72,6 +73,33 @@ const budget: BudgetOverview = {
     },
   ],
   departments,
+  departmentFinancialPositions: [
+    {
+      event_id: "event-id",
+      department_id: "dep-a",
+      department_name: "Aesthetics",
+      department_code: "AE",
+      display_order: 1,
+      budget_version_id: "budget-id",
+      active_budget_version_number: 1,
+      has_active_allocation: true,
+      original_allocation_minor: 200000,
+      transfers_received_minor: 25000,
+      transfers_released_minor: 0,
+      current_budget_minor: 225000,
+      approved_net_minor: 150000,
+      approved_gross_minor: 180000,
+      pending_net_minor: 50000,
+      pending_gross_minor: 60000,
+      visible_draft_net_minor: 0,
+      visible_draft_gross_minor: 0,
+      visible_draft_request_count: 0,
+      remaining_approved_minor: 75000,
+      potential_remaining_minor: 25000,
+      approved_over_budget: false,
+      potential_over_budget: false,
+    },
+  ],
 };
 
 describe("money utilities", () => {
@@ -114,6 +142,40 @@ describe("budget panel", () => {
     expect(screen.getByText("Transfer contingency")).toBeInTheDocument();
     expect(screen.getByText("View transfer history")).toBeInTheDocument();
     expect(screen.queryByText("Extra build")).not.toBeInTheDocument();
+  });
+
+  it("shows authoritative department budget use with an explicit Finances link", () => {
+    render(<BudgetPanel eventId="event-id" budget={budget} canManage readOnly={false} />);
+
+    expect(screen.getByText("Department allocation and budget use")).toBeInTheDocument();
+    expect(screen.getByText("Approved commitments")).toBeInTheDocument();
+    expect(screen.getByText("Submitted / potential")).toBeInTheDocument();
+    expect(screen.getByText("Remaining budget")).toBeInTheDocument();
+    expect(screen.getByText(/Approved commitments include paid and unpaid/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View in Finances" })).toHaveAttribute("href", "/events/event-id/finances?department=dep-a");
+  });
+
+  it("renders nullable department position amounts safely", () => {
+    render(
+      <BudgetPanel
+        eventId="event-id"
+        budget={{
+          ...budget,
+          departmentFinancialPositions: budget.departmentFinancialPositions.map((position) => ({
+            ...position,
+            current_budget_minor: null,
+            approved_net_minor: null,
+            pending_net_minor: null,
+            potential_remaining_minor: null,
+          })),
+        }}
+        canManage
+        readOnly={false}
+      />,
+    );
+
+    expect(screen.getByText("Current allocation £0.00 net")).toBeInTheDocument();
+    expect(screen.getAllByText("£0.00").length).toBeGreaterThanOrEqual(3);
   });
 
   it("shows transfer history only when requested", () => {
@@ -161,5 +223,38 @@ describe("budget editor", () => {
 
     expect(screen.getByText(/cannot be edited/)).toBeInTheDocument();
     expect(screen.queryByText("Save draft")).not.toBeInTheDocument();
+  });
+
+  it("shows a prior allocation beside the proposed net allocation", () => {
+    render(
+      <BudgetEditor
+        eventId="event-id"
+        departments={departments}
+        allocations={[{ id: "allocation-a", event_id: "event-id", budget_version_id: "budget-id", department_id: "dep-a", original_net_minor: 125000, original_gross_minor: null }]}
+        previousBudget={{
+          versionNumber: 1,
+          name: "Original budget",
+          allocations: [{ id: "prior-a", event_id: "event-id", budget_version_id: "prior-budget", department_id: "dep-a", original_net_minor: 100000, original_gross_minor: null }],
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/Compare each proposed net allocation with v1/)).toBeInTheDocument();
+    expect(screen.getByText("£1,000.00")).toBeInTheDocument();
+    expect(screen.getByText("+£250.00 (+25.0%)")).toBeInTheDocument();
+    expect(screen.getByText("New department")).toBeInTheDocument();
+  });
+});
+
+describe("allocation comparisons", () => {
+  it("handles unchanged, increased, decreased and zero prior allocations", () => {
+    expect(compareAllocation(100000, 100000)).toMatchObject({ changeMinor: 0, percentageChange: "0.0%" });
+    expect(compareAllocation(100000, 125000)).toMatchObject({ changeMinor: 25000, percentageChange: "25.0%" });
+    expect(compareAllocation(100000, 75000)).toMatchObject({ changeMinor: -25000, percentageChange: "25.0%" });
+    expect(compareAllocation(0, 100000)).toMatchObject({ changeMinor: 100000, percentageChange: null });
+  });
+
+  it("does not infer a comparison for a department without an earlier allocation", () => {
+    expect(compareAllocation(null, 100000)).toMatchObject({ previousMinor: null, changeMinor: null, percentageChange: null });
   });
 });

@@ -103,7 +103,7 @@ export function StackedFinancialBar({
           })}
         </div>
       </div>
-      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+      <dl className="mt-4 grid grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))] gap-3 text-sm">
         {segments.map((segment) => {
           const styles = segmentStyles[segment.tone];
           return (
@@ -171,7 +171,7 @@ export function AllocationDonut({
     <section className="rounded-md border bg-white p-5">
       <h2 className="font-medium">{title}</h2>
       <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-      <div className="mt-5 grid gap-5 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-center">
+      <div className="mt-5 grid gap-5 xl:grid-cols-[18rem_minmax(0,1fr)] xl:items-center">
         <div className="relative mx-auto aspect-square w-full max-w-64">
           <svg viewBox="0 0 100 100" role="img" aria-label={title} className="h-full w-full">
             <circle cx="50" cy="50" r="38" fill="none" stroke="#e2e8f0" strokeWidth="14" />
@@ -207,7 +207,7 @@ export function AllocationDonut({
                   style={{ backgroundColor: segment.colour }}
                   aria-hidden="true"
                 />
-                <span className="truncate">{segment.label}</span>
+                <span className="truncate" title={segment.label}>{segment.label}</span>
               </dt>
               <dd className="shrink-0 font-medium">{formatMinor(segment.amountMinor)}</dd>
             </div>

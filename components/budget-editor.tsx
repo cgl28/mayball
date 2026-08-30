@@ -1,10 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { saveBudgetVersionAction } from "@/app/events/[eventId]/budget/actions";
 import { SubmitButton } from "@/components/submit-button";
 import { Button } from "@/components/ui/button";
-import type { BudgetAllocation, BudgetDepartment } from "@/lib/budget/data";
-import { minorToInput, sumMinor, formatMinor } from "@/lib/money";
+import type { BudgetAllocation, BudgetDepartment, PreviousBudgetContext } from "@/lib/budget/data";
+import { compareAllocation } from "@/lib/budget/allocation-comparison";
+import { minorToInput, sumMinor, formatMinor, parseMoneyToMinor } from "@/lib/money";
 
 type EditableVersion = {
   id: string;
@@ -22,6 +26,7 @@ export function BudgetEditor({
   departments,
   version,
   allocations,
+  previousBudget,
   error,
   saved,
   created,
@@ -30,6 +35,7 @@ export function BudgetEditor({
   departments: BudgetDepartment[];
   version?: EditableVersion;
   allocations?: BudgetAllocation[];
+  previousBudget?: PreviousBudgetContext | null;
   error?: string;
   saved?: boolean;
   created?: boolean;
@@ -37,12 +43,18 @@ export function BudgetEditor({
   const allocationByDepartment = new Map(
     (allocations ?? []).map((allocation) => [allocation.department_id, allocation]),
   );
+  const previousAllocationByDepartment = new Map(
+    previousBudget?.allocations.map((allocation) => [allocation.department_id, allocation]) ?? [],
+  );
   const initialTotal = sumMinor(
     departments.map(
       (department) => allocationByDepartment.get(department.id)?.original_net_minor ?? 0,
     ),
   );
   const contingency = BigInt(version?.original_contingency_minor ?? 0);
+  const [allocationInputs, setAllocationInputs] = useState<Record<string, string>>(() => Object.fromEntries(
+    departments.map((department) => [department.id, minorToInput(allocationByDepartment.get(department.id)?.original_net_minor ?? 0)]),
+  ));
 
   return (
     <div className="grid gap-6">
@@ -102,28 +114,60 @@ export function BudgetEditor({
           <section className="rounded-md border p-5">
             <h2 className="font-medium">Department allocations</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Enter original department allocations. Use 0.00 for departments
-              that intentionally have no allocation in this draft.
+              {previousBudget
+                ? `Compare each proposed net allocation with v${previousBudget.versionNumber}: ${previousBudget.name}.`
+                : "This is the first budget version. Use 0.00 for departments that intentionally have no allocation."}
             </p>
             <div className="mt-4 grid gap-3">
               {departments.map((department) => {
-                const allocation = allocationByDepartment.get(department.id);
+                const previousAllocation = previousAllocationByDepartment.get(department.id);
+                const proposedValue = allocationInputs[department.id] ?? "0.00";
+                let proposedMinor: number | null = null;
+                try {
+                  proposedMinor = parseMoneyToMinor(proposedValue);
+                } catch {
+                  proposedMinor = null;
+                }
+                const previousMinor = previousAllocation?.original_net_minor ?? null;
+                const comparison = proposedMinor === null ? null : compareAllocation(previousMinor, proposedMinor);
                 return (
-                  <label key={department.id} className="grid gap-1 text-sm md:grid-cols-[1fr_12rem] md:items-center">
-                    <span>
-                      <span className="font-medium">{department.name}</span>
-                      <span className="ml-2 text-muted-foreground">{department.code}</span>
-                    </span>
-                    <span>
+                  <div key={department.id} className="grid gap-3 rounded-md border bg-slate-50/70 p-3 text-sm lg:grid-cols-[minmax(10rem,1fr)_minmax(9rem,0.8fr)_12rem_minmax(10rem,0.9fr)] lg:items-center">
+                    <div>
+                      <p className="font-medium">{department.name} <span className="text-muted-foreground">{department.code}</span></p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Previous</p>
+                      <p className="mt-1 font-medium">
+                        {previousMinor === null ? (previousBudget ? "New department" : "No earlier budget") : formatMinor(previousMinor)}
+                      </p>
+                    </div>
+                    <label className="grid gap-1">
+                      <span className="text-xs font-medium uppercase tracking-wide text-sky-900">Proposed net</span>
                       <input type="hidden" name="departmentId" value={department.id} />
                       <input
                         name={`allocation_${department.id}`}
                         required
-                        defaultValue={minorToInput(allocation?.original_net_minor ?? 0)}
-                        className="w-full rounded-md border bg-background px-3 py-2 text-right focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        value={proposedValue}
+                        onChange={(event) => setAllocationInputs((current) => ({ ...current, [department.id]: event.target.value }))}
+                        className="w-full rounded-md border border-sky-200 bg-sky-50/70 px-3 py-2 text-right focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-700"
                       />
-                    </span>
-                  </label>
+                    </label>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Change</p>
+                      {comparison === null ? (
+                        <p className="mt-1 text-muted-foreground">Enter a valid amount</p>
+                      ) : comparison.changeMinor === null ? (
+                        <p className="mt-1 text-muted-foreground">No prior allocation</p>
+                      ) : comparison.changeMinor === 0 ? (
+                        <p className="mt-1 text-muted-foreground">No change</p>
+                      ) : (
+                        <p className="mt-1 font-medium text-slate-800">
+                          {comparison.changeMinor > 0 ? "+" : "−"}{formatMinor(Math.abs(comparison.changeMinor))}
+                          {comparison.percentageChange ? ` (${comparison.changeMinor > 0 ? "+" : "−"}${comparison.percentageChange})` : ""}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 );
               })}
               {departments.length === 0 ? (

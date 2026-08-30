@@ -11,7 +11,17 @@ import type { Enums } from "@/src/types/database.generated";
 const categories: Enums<"document_category">[] = ["quote", "contract", "invoice", "receipt", "supporting", "other"];
 
 function label(value: string | null | undefined) {
-  return value ? value.replaceAll("_", " ") : "Not set";
+  const text = value?.replaceAll("_", " ");
+  return text ? text[0].toUpperCase() + text.slice(1) : "Not set";
+}
+
+function fileType(mimeType: string | null | undefined) {
+  return {
+    "application/pdf": "PDF",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "Word document",
+    "image/jpeg": "JPEG image",
+    "image/png": "PNG image",
+  }[mimeType ?? ""] ?? "File";
 }
 
 function dateTime(value: string | null | undefined) {
@@ -49,7 +59,7 @@ function Message({
   if (uploaded || voided) {
     return (
       <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-950">
-        {uploaded ? "Document uploaded and finalised." : "Document voided. The history row remains available."}
+        {uploaded ? "Document uploaded successfully." : "Document voided. The history row remains available."}
       </div>
     );
   }
@@ -68,15 +78,15 @@ export function ReadOnlyDocumentsNotice() {
 export function DocumentUploadForm({
   eventId,
   requestId,
-  revisionId,
   paymentId,
+  returnTo,
   canUpload,
   readOnly,
 }: {
   eventId: string;
   requestId?: string | null;
-  revisionId?: string | null;
   paymentId?: string | null;
+  returnTo?: "approval";
   canUpload: boolean;
   readOnly: boolean;
 }) {
@@ -86,8 +96,8 @@ export function DocumentUploadForm({
     <form action={uploadDocumentAction} className="grid gap-4 rounded-md border p-4">
       <input type="hidden" name="eventId" value={eventId} />
       {requestId ? <input type="hidden" name="requestId" value={requestId} /> : null}
-      {revisionId ? <input type="hidden" name="revisionId" value={revisionId} /> : null}
       {paymentId ? <input type="hidden" name="paymentId" value={paymentId} /> : null}
+      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
       <div className="flex items-center gap-2">
         <Upload className="h-4 w-4" aria-hidden="true" />
         <h3 className="font-medium">Upload document</h3>
@@ -118,7 +128,7 @@ export function DocumentUploadForm({
         </label>
       </div>
       <div>
-        <SubmitButton pendingLabel="Uploading...">Upload and finalise</SubmitButton>
+        <SubmitButton pendingLabel="Uploading...">Upload document</SubmitButton>
       </div>
     </form>
   );
@@ -130,12 +140,14 @@ export function DocumentsTable({
   documents,
   canVoid,
   readOnly,
+  returnTo,
 }: {
   eventId: string;
   requestId?: string | null;
   documents: VisibleDocument[];
   canVoid: boolean;
   readOnly: boolean;
+  returnTo?: "approval";
 }) {
   if (documents.length === 0) {
     return (
@@ -164,20 +176,20 @@ export function DocumentsTable({
             <tr key={document.document_id} className="border-b last:border-b-0">
               <td className="py-3 pr-4">
                 <p className="font-medium">{document.original_filename}</p>
-                <p className="text-muted-foreground">{document.mime_type}</p>
+                <p className="text-muted-foreground">{fileType(document.mime_type)}</p>
                 {document.description ? <p className="mt-1 text-muted-foreground">{document.description}</p> : null}
               </td>
               <td className="py-3 pr-4">{label(document.category)}</td>
               <td className="py-3 pr-4">
                 {document.request_code ? (
                   <Link className="underline-offset-4 hover:underline" href={`/events/${eventId}/requests/${document.request_id}`}>
-                    {document.request_code} revision {document.revision_number}
+                    {document.request_code}{document.revision_number ? ` revision ${document.revision_number}` : " request evidence"}
                   </Link>
                 ) : document.payment_code ? `Payment ${document.payment_code}` : "Event record"}
               </td>
               <td className="py-3 pr-4">{actorName(document)}<br /><span className="text-muted-foreground">{dateTime(document.finalized_at ?? document.created_at)}</span></td>
               <td className="py-3 pr-4">
-                <Badge variant={document.status === "voided" ? "secondary" : "default"}>{label(document.status)}</Badge>
+                {document.status === "voided" ? <Badge variant="secondary">Voided</Badge> : null}
                 {document.visibility_scope === "private_draft" ? <p className="mt-1 text-muted-foreground">Private draft</p> : null}
                 {document.void_reason ? <p className="mt-1 text-muted-foreground">Voided: {document.void_reason}</p> : null}
               </td>
@@ -187,7 +199,7 @@ export function DocumentsTable({
                   <Button asChild variant="outline" size="sm">
                     <Link href={`/events/${eventId}/documents/${document.document_id}/download`}>
                       <Download className="h-4 w-4" aria-hidden="true" />
-                      Download
+                      Open
                     </Link>
                   </Button>
                   {canVoid && !readOnly && document.status === "finalised" ? (
@@ -195,6 +207,7 @@ export function DocumentsTable({
                       <input type="hidden" name="eventId" value={eventId} />
                       {requestId ? <input type="hidden" name="requestId" value={requestId} /> : null}
                       <input type="hidden" name="documentId" value={document.document_id ?? ""} />
+                      {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
                       <label className="sr-only" htmlFor={`reason-${document.document_id}`}>Void reason</label>
                       <input id={`reason-${document.document_id}`} name="reason" placeholder="Reason" required className="w-40 rounded-md border bg-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
                       <SubmitButton variant="outline" pendingLabel="Voiding...">Void</SubmitButton>
@@ -206,6 +219,57 @@ export function DocumentsTable({
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function RequestDocumentRows({
+  eventId,
+  requestId,
+  documents,
+  canVoid,
+  readOnly,
+  returnTo,
+}: {
+  eventId: string;
+  requestId: string;
+  documents: VisibleDocument[];
+  canVoid: boolean;
+  readOnly: boolean;
+  returnTo?: "approval";
+}) {
+  if (documents.length === 0) return <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">No supporting documents have been attached to this request.</p>;
+
+  return (
+    <div className="grid gap-2">
+      {documents.map((document) => (
+        <article key={document.document_id} className="flex flex-col gap-3 rounded-md border p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="break-words font-medium" title={document.original_filename ?? undefined}>{document.original_filename}</p>
+            <p className="mt-1 text-muted-foreground">{label(document.category)} · {fileType(document.mime_type)} · {sizeLabel(document.size_bytes)}</p>
+            {document.description ? <p className="mt-1 text-muted-foreground">{document.description}</p> : null}
+            <p className="mt-1 text-muted-foreground">{actorName(document)} · {dateTime(document.finalized_at ?? document.created_at)}</p>
+            {document.status === "voided" ? <p className="mt-1 text-muted-foreground">Voided: {document.void_reason ?? "Reason not recorded"}</p> : null}
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <Button asChild variant="outline" size="sm"><Link aria-label={`Open ${document.original_filename}`} href={`/events/${eventId}/documents/${document.document_id}/download`}><Download className="h-4 w-4" aria-hidden="true" />Open</Link></Button>
+            {canVoid && !readOnly && document.status === "finalised" ? (
+              <details className="text-sm">
+                <summary className="cursor-pointer text-destructive underline-offset-4 hover:underline">Void document</summary>
+                <form action={voidDocumentAction} className="mt-2 flex flex-wrap gap-2">
+                  <input type="hidden" name="eventId" value={eventId} />
+                  <input type="hidden" name="requestId" value={requestId} />
+                  <input type="hidden" name="documentId" value={document.document_id ?? ""} />
+                  {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
+                  <label className="sr-only" htmlFor={`reason-${document.document_id}`}>Void reason</label>
+                  <input id={`reason-${document.document_id}`} name="reason" placeholder="Reason for voiding" required className="w-40 rounded-md border bg-background px-2 py-1 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" />
+                  <SubmitButton variant="destructive" pendingLabel="Voiding...">Void</SubmitButton>
+                </form>
+              </details>
+            ) : null}
+          </div>
+        </article>
+      ))}
     </div>
   );
 }
@@ -303,7 +367,6 @@ export function DocumentsPanel({
 export function RequestDocumentsSection({
   eventId,
   requestId,
-  revisionId,
   documents,
   canUpload,
   canVoid,
@@ -311,10 +374,10 @@ export function RequestDocumentsSection({
   error,
   uploaded,
   voided,
+  returnTo,
 }: {
   eventId: string;
   requestId: string;
-  revisionId: string | null;
   documents: VisibleDocument[];
   canUpload: boolean;
   canVoid: boolean;
@@ -322,30 +385,65 @@ export function RequestDocumentsSection({
   error?: string;
   uploaded?: boolean;
   voided?: boolean;
+  returnTo?: "approval";
 }) {
   return (
     <section className="rounded-md border p-5">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-medium">Documents</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Documents inherit this request revision&apos;s visibility.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Supporting evidence belongs to this request and remains available across revisions.</p>
         </div>
         <Button asChild variant="outline" size="sm"><Link href={`/events/${eventId}/documents`}>Document library</Link></Button>
       </div>
       <Message error={error} uploaded={uploaded} voided={voided} />
       {readOnly ? <div className="mt-4"><ReadOnlyDocumentsNotice /></div> : null}
       <div className="mt-4">
-        <DocumentsTable eventId={eventId} requestId={requestId} documents={documents} canVoid={canVoid} readOnly={readOnly} />
+        <RequestDocumentRows eventId={eventId} requestId={requestId} documents={documents} canVoid={canVoid} readOnly={readOnly} returnTo={returnTo} />
       </div>
       <div className="mt-4">
         <DocumentUploadForm
           eventId={eventId}
           requestId={requestId}
-          revisionId={revisionId}
-          canUpload={canUpload && Boolean(revisionId)}
+          canUpload={canUpload}
           readOnly={readOnly}
+          returnTo={returnTo}
         />
       </div>
+    </section>
+  );
+}
+
+export function RequestEvidenceList({
+  eventId,
+  documents,
+  heading = "Supporting documents",
+}: {
+  eventId: string;
+  documents: VisibleDocument[];
+  heading?: string;
+}) {
+  return (
+    <section className="rounded-md border p-5">
+      <h2 className="font-medium">{heading}</h2>
+      {documents.length === 0 ? (
+        <p className="mt-3 text-sm text-muted-foreground">No supporting documents have been attached to this request.</p>
+      ) : (
+        <ul className="mt-3 grid gap-2 text-sm">
+          {documents.map((document) => (
+            <li key={document.document_id} className="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="break-words font-medium" title={document.original_filename ?? undefined}>{document.original_filename}</p>
+                <p className="mt-1 text-muted-foreground">{label(document.category)} · {fileType(document.mime_type)} · {sizeLabel(document.size_bytes)}</p>
+                {document.description ? <p className="mt-1 text-muted-foreground">{document.description}</p> : null}
+                <p className="mt-1 text-muted-foreground">{actorName(document)} · {dateTime(document.finalized_at ?? document.created_at)}</p>
+                {document.status === "voided" ? <p className="mt-1 text-muted-foreground">Voided: {document.void_reason ?? "Reason not recorded"}</p> : null}
+              </div>
+              <Button asChild variant="outline" size="sm"><Link aria-label={`Open ${document.original_filename}`} href={`/events/${eventId}/documents/${document.document_id}/download`}><Download className="h-4 w-4" aria-hidden="true" />Open</Link></Button>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

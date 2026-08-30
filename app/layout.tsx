@@ -7,11 +7,22 @@ const defaultUrl = process.env.VERCEL_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
-  title: "May Ball Finance",
+  title: "Chiffre",
   description: "Collaborative budgeting and expenditure control for May Balls",
   icons: {
-    icon: "/brand/mbf-logo.png",
-    apple: "/brand/mbf-logo.png",
+    icon: "/brand/chiffre-icon.png",
+    apple: "/brand/chiffre-icon.png",
+  },
+  openGraph: {
+    title: "Chiffre",
+    description: "Collaborative budgeting and expenditure control for May Balls",
+    images: [{ url: "/brand/chiffre-icon.png", width: 548, height: 548, alt: "Chiffre" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Chiffre",
+    description: "Collaborative budgeting and expenditure control for May Balls",
+    images: ["/brand/chiffre-icon.png"],
   },
 };
 

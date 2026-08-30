@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { BudgetEditor } from "@/components/budget-editor";
 import { getAuthenticatedSession } from "@/lib/auth/session";
-import { getBudgetOverview, getBudgetVersionForEdit } from "@/lib/budget/data";
+import { getBudgetOverview, getBudgetVersionForEdit, getPreviousBudgetContext } from "@/lib/budget/data";
 import { getEventAccess } from "@/lib/events/access";
 import { getEventCapabilities } from "@/lib/events/permissions";
 
@@ -35,6 +35,10 @@ export default async function EditBudgetPage({
     return <div role="alert" className="rounded-md border border-destructive/40 p-4 text-sm text-destructive">{editable.error}</div>;
   }
   if (!editable.data || editable.data.version.event_id !== eventId) notFound();
+  const previous = await getPreviousBudgetContext(session.supabase, eventId, editable.data.version.version_number);
+  if (previous.error) {
+    return <div role="alert" className="rounded-md border border-destructive/40 p-4 text-sm text-destructive">{previous.error}</div>;
+  }
 
   return (
     <BudgetEditor
@@ -42,6 +46,7 @@ export default async function EditBudgetPage({
       departments={budget.data.departments.filter((department) => department.is_active)}
       version={editable.data.version}
       allocations={editable.data.allocations}
+      previousBudget={previous.data}
       error={query.error}
       saved={query.saved === "1"}
       created={query.created === "1"}

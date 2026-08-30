@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ActivityPanel } from "@/components/activity-panel";
-import { DocumentsPanel, RequestDocumentsSection } from "@/components/documents-panel";
+import { DocumentsPanel, RequestDocumentsSection, RequestEvidenceList } from "@/components/documents-panel";
 import { ExportsPanel } from "@/components/exports-panel";
 import type { ActivityFeedRow } from "@/lib/activity/data";
 import type { VisibleDocument } from "@/lib/documents/data";
@@ -70,18 +70,19 @@ describe("Stage 10 documents, activity and exports", () => {
 
     expect(screen.getByText("quote.pdf")).toBeInTheDocument();
     expect(screen.getByText("Supplier quote")).toBeInTheDocument();
+    expect(screen.getByText("PDF")).toBeInTheDocument();
+    expect(screen.queryByText("application/pdf")).not.toBeInTheDocument();
     expect(screen.getByText("Private draft")).toBeInTheDocument();
     expect(screen.getByText(/short-lived signed access/i)).toBeInTheDocument();
     expect(screen.queryByText(/object_path/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/documents\//i)).not.toBeInTheDocument();
   });
 
-  it("shows request upload controls only when the request revision can accept documents", () => {
+  it("shows request upload controls for stable request evidence", () => {
     render(
       <RequestDocumentsSection
         eventId="event-id"
         requestId="request-id"
-        revisionId="revision-id"
         documents={[document()]}
         canUpload
         canVoid
@@ -89,9 +90,13 @@ describe("Stage 10 documents, activity and exports", () => {
       />,
     );
 
-    expect(screen.getByText("Upload and finalise")).toBeInTheDocument();
-    expect(screen.getByText("Void")).toBeInTheDocument();
-    expect(screen.getByText(/Documents inherit this request revision/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Upload document" })).toBeInTheDocument();
+    expect(screen.getByText("Void document")).toBeInTheDocument();
+    expect(screen.getByText("Quote · PDF · 13 KB")).toBeInTheDocument();
+    expect(screen.queryByText("Parent")).not.toBeInTheDocument();
+    expect(screen.getByText(/remains available across revisions/)).toBeInTheDocument();
+    expect(screen.getAllByDisplayValue("request-id").some((element) => element.getAttribute("name") === "requestId")).toBe(true);
+    expect(screen.queryByDisplayValue("revision-id")).not.toBeInTheDocument();
   });
 
   it("keeps historical and voided documents visible but read-only", () => {
@@ -99,7 +104,6 @@ describe("Stage 10 documents, activity and exports", () => {
       <RequestDocumentsSection
         eventId="event-id"
         requestId="request-id"
-        revisionId="revision-id"
         documents={[document({ status: "voided", void_reason: "Duplicate upload" })]}
         canUpload={false}
         canVoid={false}
@@ -108,10 +112,19 @@ describe("Stage 10 documents, activity and exports", () => {
     );
 
     expect(screen.getByText(/Existing documents can be downloaded/)).toBeInTheDocument();
-    expect(screen.getByText("voided")).toBeInTheDocument();
     expect(screen.getByText("Voided: Duplicate upload")).toBeInTheDocument();
-    expect(screen.queryByText("Upload and finalise")).not.toBeInTheDocument();
-    expect(screen.queryByText("Void")).not.toBeInTheDocument();
+    expect(screen.queryByText("Upload document")).not.toBeInTheDocument();
+    expect(screen.queryByText("Void document")).not.toBeInTheDocument();
+  });
+
+  it("presents stable request evidence with an on-demand open action", () => {
+    render(<RequestEvidenceList eventId="event-id" documents={[document({ revision_id: null, revision_number: null })]} />);
+
+    expect(screen.getByText("Supporting documents")).toBeInTheDocument();
+    expect(screen.getByText(/quote.pdf/)).toBeInTheDocument();
+    expect(screen.getByText("Quote · PDF · 13 KB")).toBeInTheDocument();
+    expect(screen.queryByText("application/pdf")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open quote.pdf" })).toHaveAttribute("href", "/events/event-id/documents/document-id/download");
   });
 
   it("renders activity feed entries without raw metadata leakage", () => {

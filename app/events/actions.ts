@@ -141,7 +141,7 @@ export async function createRecurringEventAction(formData: FormData) {
     if (!organisationId) {
       throw new Error("Choose an organisation.");
     }
-    const { data, error } = await supabase.rpc("create_recurring_event", {
+    const { data, error } = await supabase.rpc("create_event_for_organisation", {
       p_organisation_id: organisationId,
       p_event_name: clean(formData.get("eventName")),
       p_event_code: codeValue(clean(formData.get("eventCode")), "Event code"),
@@ -184,6 +184,26 @@ export async function updateEventSettingsAction(formData: FormData) {
     if (isFrameworkRedirect(error)) {
       throw error;
     }
+    redirect(`/events/${eventId}/settings?error=${encodeURIComponent(safeMessage(error))}`);
+  }
+}
+
+export async function updateEventOrganisationAction(formData: FormData) {
+  const supabase = await rpcClient();
+  const eventId = clean(formData.get("eventId"));
+  const organisationId = clean(formData.get("organisationId"));
+  try {
+    if (!organisationId) throw new Error("Choose an organisation.");
+    const { error } = await supabase.rpc("update_event_organisation", {
+      p_event_id: eventId,
+      p_organisation_id: organisationId,
+    });
+    if (error) throw error;
+    revalidatePath("/app");
+    revalidatePath(`/events/${eventId}`);
+    redirect(`/events/${eventId}/settings?organisationSaved=1`);
+  } catch (error) {
+    if (isFrameworkRedirect(error)) throw error;
     redirect(`/events/${eventId}/settings?error=${encodeURIComponent(safeMessage(error))}`);
   }
 }

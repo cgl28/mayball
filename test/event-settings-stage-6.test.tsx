@@ -5,6 +5,7 @@ import { makeEventAccess } from "@/test/fixtures";
 
 vi.mock("@/app/events/actions", () => ({
   updateEventSettingsAction: vi.fn(),
+  updateEventOrganisationAction: vi.fn(),
 }));
 
 describe("Stage 6 event settings separation", () => {

@@ -31,7 +31,7 @@ const loadAuthenticatedSession = cache(async () => {
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("id,display_name,preferred_name,created_at,updated_at")
+      .select("id,display_name,preferred_name,preferred_organisation_id,created_at,updated_at")
       .eq("id", user.id)
       .maybeSingle();
 

@@ -53,7 +53,7 @@ describe("LoginForm", () => {
     render(await LoginPage({ searchParams: Promise.resolve({}) }));
 
     expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
-    expect(screen.getByRole("img", { name: "May Ball Finance" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Chiffre" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
   });
 

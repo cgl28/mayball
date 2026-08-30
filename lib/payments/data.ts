@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables } from "@/src/types/database.generated";
+import type { VisibleDocument } from "@/lib/documents/data";
 
 const PAYMENT_RECORD_STATUSES = ["recorded", "reversed"] as const;
 const WORKLOAD_VIEWS = ["outstanding", "overdue", "due_soon", "unpaid", "partially_paid", "paid", "all"] as const;
@@ -99,6 +100,7 @@ export type PaymentFormData = {
   componentPositions: ComponentPaymentPosition[];
   selectedComponentId?: string;
   eventDate?: string | null;
+  requestDocuments?: VisibleDocument[];
 };
 
 export async function getPaymentsData(
@@ -412,6 +414,11 @@ export async function getPaymentFormData(
         ...visibleComponents.filter((component) => component.request_component_id !== selectedComponentId),
       ]
     : visibleComponents;
+  const requestIds = [...new Set(visibleComponents.map((component) => component.request_id).filter((id): id is string => Boolean(id)))];
+  const documents = requestIds.length
+    ? await supabase.from("v_visible_documents").select("*").eq("event_id", eventId).in("request_id", requestIds).order("created_at", { ascending: false })
+    : { data: [] as VisibleDocument[], error: null };
+  if (documents.error) return { data: null, error: "Supporting documents could not be loaded." };
 
   return {
     data: {
@@ -419,6 +426,7 @@ export async function getPaymentFormData(
       componentPositions: orderedComponents,
       selectedComponentId,
       eventDate: eventDate ?? null,
+      requestDocuments: documents.data ?? [],
     } satisfies PaymentFormData,
     error: null,
   };
@@ -429,7 +437,7 @@ export async function getRequestPaymentData(
   eventId: string,
   requestId: string,
 ) {
-  const [position, components, allocations] = await Promise.all([
+  const [position, components, allocations, documents] = await Promise.all([
     supabase
       .from("v_request_payment_positions")
       .select("*")
@@ -448,11 +456,18 @@ export async function getRequestPaymentData(
       .eq("event_id", eventId)
       .eq("request_id", requestId)
       .order("payment_date", { ascending: false }),
+    supabase
+      .from("v_visible_documents")
+      .select("*")
+      .eq("event_id", eventId)
+      .eq("request_id", requestId)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (position.error) return { data: null, error: "Request payment position could not be loaded." };
   if (components.error) return { data: null, error: "Request components could not be loaded." };
   if (allocations.error) return { data: null, error: "Request payment history could not be loaded." };
+  if (documents.error) return { data: null, error: "Supporting documents could not be loaded." };
   if (!position.data) return { data: null, error: null };
 
   return {
@@ -460,6 +475,7 @@ export async function getRequestPaymentData(
       position: position.data,
       components: components.data ?? [],
       allocations: allocations.data ?? [],
+      documents: documents.data ?? [],
     },
     error: null,
   };

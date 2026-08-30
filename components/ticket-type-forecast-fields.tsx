@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { FinancialField } from "@/components/financial-field";
 import { formatMinor, parseMoneyToMinor } from "@/lib/money";
 import {
   calculateTicketPriceBreakdown,
@@ -56,13 +57,14 @@ export function TicketTypeForecastFields() {
   return (
     <>
       <Field name="name" label="Ticket type name" required />
-      <Field
+      <FinancialField
+        kind="gross"
         name="grossPrice"
         label="Ticket price (gross)"
         placeholder="150.00"
         required
         value={grossPrice}
-        onChange={setGrossPrice}
+        onChange={(event) => setGrossPrice(event.target.value)}
       />
       <Field
         name="maximumQuantity"

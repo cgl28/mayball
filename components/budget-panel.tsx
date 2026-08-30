@@ -8,6 +8,61 @@ import { AllocationDonut } from "@/components/financial-visuals";
 import type { BudgetOverview } from "@/lib/budget/data";
 import { formatMinor } from "@/lib/money";
 
+function DepartmentBudgetUse({
+  eventId,
+  position,
+}: {
+  eventId: string;
+  position: BudgetOverview["departmentFinancialPositions"][number];
+}) {
+  const allocation = Number(position.current_budget_minor ?? 0);
+  const approved = Number(position.approved_net_minor ?? 0);
+  const submitted = Number(position.pending_net_minor ?? 0);
+  const remaining = Math.max(0, Number(position.potential_remaining_minor ?? 0));
+  const overBudget = Math.max(0, -Number(position.potential_remaining_minor ?? 0));
+  const barTotal = Math.max(allocation, approved + submitted, 1);
+  const segments = [
+    { label: "Approved commitments", amount: approved, className: "bg-emerald-500" },
+    { label: "Submitted / potential", amount: submitted, className: "bg-amber-400" },
+    { label: "Remaining budget", amount: remaining, className: "bg-slate-300" },
+  ].filter((segment) => segment.amount > 0);
+
+  return (
+    <div className="rounded-md border bg-slate-50/70 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h3 className="font-medium">{position.department_name} <span className="text-muted-foreground">{position.department_code}</span></h3>
+          <p className="mt-1 text-sm text-muted-foreground">Current allocation {formatMinor(allocation)} net</p>
+        </div>
+        <Button asChild size="sm" variant="outline">
+          <Link href={`/events/${eventId}/finances?department=${position.department_id}`}>View in Finances</Link>
+        </Button>
+      </div>
+
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-200" aria-label={`${position.department_name} budget use`}>
+        <div className="flex h-full min-w-full">
+          {segments.map((segment) => (
+            <div
+              key={segment.label}
+              className={segment.className}
+              style={{ width: `${(segment.amount / barTotal) * 100}%` }}
+              title={`${segment.label}: ${formatMinor(segment.amount)}`}
+            />
+          ))}
+          {overBudget > 0 ? <div className="bg-red-500" style={{ width: `${(overBudget / barTotal) * 100}%` }} title={`Potential over-budget: ${formatMinor(overBudget)}`} /> : null}
+        </div>
+      </div>
+
+      <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2 xl:grid-cols-4">
+        <div><dt className="text-muted-foreground">Approved commitments</dt><dd className="font-medium text-emerald-800">{formatMinor(approved)}</dd></div>
+        <div><dt className="text-muted-foreground">Submitted / potential</dt><dd className="font-medium text-amber-800">{formatMinor(submitted)}</dd></div>
+        <div><dt className="text-muted-foreground">Remaining budget</dt><dd className="font-medium">{formatMinor(remaining)}</dd></div>
+        {overBudget > 0 ? <div><dt className="text-red-700">Potential over-budget</dt><dd className="font-medium text-red-800">{formatMinor(overBudget)}</dd></div> : null}
+      </dl>
+    </div>
+  );
+}
+
 function Message({
   error,
   activated,
@@ -188,6 +243,21 @@ export function BudgetPanel({
                   ))}
                 </tbody>
               </table>
+            </div>
+          </section>
+
+          <section className="rounded-md border p-5">
+            <h2 className="font-medium">Department allocation and budget use</h2>
+            <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+              Net basis. Approved commitments include paid and unpaid amounts; use Finances for the payment split.
+            </p>
+            <div className="mt-4 grid gap-3">
+              {budget.departmentFinancialPositions.filter((position) => position.has_active_allocation).map((position) => (
+                <DepartmentBudgetUse key={position.department_id} eventId={eventId} position={position} />
+              ))}
+              {budget.departmentFinancialPositions.every((position) => !position.has_active_allocation) ? (
+                <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">No department has an active allocation yet.</p>
+              ) : null}
             </div>
           </section>
         </>

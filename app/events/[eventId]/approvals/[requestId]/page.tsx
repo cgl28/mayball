@@ -15,7 +15,7 @@ export default async function ApprovalReviewPage({
   searchParams,
 }: {
   params: Promise<{ eventId: string; requestId: string }>;
-  searchParams: Promise<{ error?: string; decided?: string }>;
+  searchParams: Promise<{ error?: string; decided?: string; documentsError?: string; documentUploaded?: string; documentVoided?: string }>;
 }) {
   await connection();
   const { eventId, requestId } = await params;
@@ -56,6 +56,9 @@ export default async function ApprovalReviewPage({
       readOnly={capabilities.isReadOnly}
       error={query.error}
       decided={query.decided}
+      documentsError={query.documentsError}
+      documentUploaded={query.documentUploaded === "1"}
+      documentVoided={query.documentVoided === "1"}
     />
   );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { BarChart3, BookOpen, CheckCircle2, FileText, LockKeyhole, Menu, ShieldCheck, Users } from "lucide-react";
+import { ChiffreWordmark } from "@/components/chiffre-wordmark";
 import { Button } from "@/components/ui/button";
 
 const navigation = [
@@ -43,16 +43,8 @@ export function PublicHeader({ isAuthenticated = false }: { isAuthenticated?: bo
   return (
     <header className="sticky top-0 z-40 border-b bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" aria-label="May Ball Finance home" className={`flex items-center gap-3 rounded-md ${marketingStyles.focus}`}>
-          <Image
-            src="/brand/mbf-logo.png"
-            alt="May Ball Finance"
-            width={54}
-            height={36}
-            priority
-            className="h-8 w-auto sm:h-9"
-          />
-          <span className="text-base font-semibold tracking-normal text-slate-950">May Ball Finance</span>
+        <Link href="/" aria-label="Chiffre home" className={`rounded-md ${marketingStyles.focus}`}>
+          <ChiffreWordmark className="w-36 sm:w-40" priority />
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm font-medium text-slate-700 md:flex" aria-label="Main navigation">
@@ -122,16 +114,7 @@ export function PublicFooter() {
     <footer className="border-t bg-slate-950 text-white">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-[1.5fr_1fr_1fr] lg:px-8">
         <div>
-          <div className="flex items-center gap-3">
-            <Image
-              src="/brand/mbf-logo.png"
-              alt="May Ball Finance"
-              width={54}
-              height={36}
-              className="h-9 w-auto"
-            />
-            <p className="font-semibold">May Ball Finance</p>
-          </div>
+          <ChiffreWordmark className="w-40" inverted />
           <p className="mt-4 max-w-md text-sm leading-6 text-slate-300">
             Collaborative budgeting and expenditure control for recurring student events.
           </p>
@@ -152,7 +135,7 @@ export function PublicFooter() {
         </nav>
       </div>
       <div className="border-t border-white/10 px-4 py-4 text-center text-xs text-slate-400">
-        © {year} May Ball Finance. All rights reserved.
+        © {year} Chiffre. All rights reserved.
       </div>
     </footer>
   );

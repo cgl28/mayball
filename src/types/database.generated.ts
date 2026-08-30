@@ -1140,6 +1140,7 @@ export type Database = {
           archive_reason: string | null
           archived_at: string | null
           archived_by: string | null
+          chiffre_owner_user_id: string | null
           code: string
           completed_at: string | null
           completed_by: string | null
@@ -1155,6 +1156,8 @@ export type Database = {
           name: string
           organisation_id: string
           planning_start_date: string | null
+          pro_activated_at: string | null
+          product_tier: Database["public"]["Enums"]["event_product_tier"]
           reopen_reason: string | null
           reopened_at: string | null
           reopened_by: string | null
@@ -1165,6 +1168,7 @@ export type Database = {
           archive_reason?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          chiffre_owner_user_id?: string | null
           code: string
           completed_at?: string | null
           completed_by?: string | null
@@ -1180,6 +1184,8 @@ export type Database = {
           name: string
           organisation_id: string
           planning_start_date?: string | null
+          pro_activated_at?: string | null
+          product_tier?: Database["public"]["Enums"]["event_product_tier"]
           reopen_reason?: string | null
           reopened_at?: string | null
           reopened_by?: string | null
@@ -1190,6 +1196,7 @@ export type Database = {
           archive_reason?: string | null
           archived_at?: string | null
           archived_by?: string | null
+          chiffre_owner_user_id?: string | null
           code?: string
           completed_at?: string | null
           completed_by?: string | null
@@ -1205,6 +1212,8 @@ export type Database = {
           name?: string
           organisation_id?: string
           planning_start_date?: string | null
+          pro_activated_at?: string | null
+          product_tier?: Database["public"]["Enums"]["event_product_tier"]
           reopen_reason?: string | null
           reopened_at?: string | null
           reopened_by?: string | null
@@ -1215,6 +1224,13 @@ export type Database = {
           {
             foreignKeyName: "events_archived_by_fkey"
             columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_chiffre_owner_user_id_fkey"
+            columns: ["chiffre_owner_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1961,6 +1977,7 @@ export type Database = {
           display_name: string
           id: string
           preferred_name: string | null
+          preferred_organisation_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1968,6 +1985,7 @@ export type Database = {
           display_name: string
           id: string
           preferred_name?: string | null
+          preferred_organisation_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1975,9 +1993,18 @@ export type Database = {
           display_name?: string
           id?: string
           preferred_name?: string | null
+          preferred_organisation_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_preferred_organisation_id_fkey"
+            columns: ["preferred_organisation_id"]
+            isOneToOne: false
+            referencedRelation: "organisations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       request_components: {
         Row: {
@@ -4988,6 +5015,7 @@ export type Database = {
           archive_reason: string | null
           archived_at: string | null
           archived_by: string | null
+          chiffre_owner_user_id: string | null
           code: string
           completed_at: string | null
           completed_by: string | null
@@ -5003,6 +5031,8 @@ export type Database = {
           name: string
           organisation_id: string
           planning_start_date: string | null
+          pro_activated_at: string | null
+          product_tier: Database["public"]["Enums"]["event_product_tier"]
           reopen_reason: string | null
           reopened_at: string | null
           reopened_by: string | null
@@ -5098,6 +5128,22 @@ export type Database = {
         }
         Returns: string
       }
+      create_event_for_organisation: {
+        Args: {
+          p_event_code: string
+          p_event_date?: string
+          p_event_name: string
+          p_event_year: number
+          p_initial_status?: Database["public"]["Enums"]["event_status"]
+          p_organisation_id: string
+          p_planning_start_date?: string
+        }
+        Returns: string
+      }
+      create_organisation: {
+        Args: { p_legal_name?: string; p_name: string; p_slug: string }
+        Returns: string
+      }
       create_organisation_and_event: {
         Args: {
           p_assign_treasurer?: boolean
@@ -5178,10 +5224,19 @@ export type Database = {
         }
         Returns: undefined
       }
-      document_activity_visibility: {
-        Args: { p_payment_id: string; p_revision_id: string }
-        Returns: string
-      }
+      document_activity_visibility:
+        | {
+            Args: {
+              p_payment_id: string
+              p_request_id: string
+              p_revision_id: string
+            }
+            Returns: string
+          }
+        | {
+            Args: { p_payment_id: string; p_revision_id: string }
+            Returns: string
+          }
       event_completion_readiness: {
         Args: { p_event_id: string }
         Returns: {
@@ -5280,6 +5335,10 @@ export type Database = {
           invitation_id: string
           invitation_token: string
         }[]
+      }
+      join_organisation: {
+        Args: { p_organisation_id: string }
+        Returns: undefined
       }
       next_custom_department_display_order: {
         Args: { p_event_id: string }
@@ -5411,6 +5470,18 @@ export type Database = {
         }
         Returns: string
       }
+      search_organisations: {
+        Args: { p_query: string }
+        Returns: {
+          id: string
+          is_associated: boolean
+          name: string
+        }[]
+      }
+      set_preferred_organisation: {
+        Args: { p_organisation_id?: string }
+        Returns: undefined
+      }
       standard_department_display_order: {
         Args: { p_code: string }
         Returns: number
@@ -5471,6 +5542,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_event_organisation: {
+        Args: { p_event_id: string; p_organisation_id: string }
+        Returns: undefined
+      }
       update_event_settings: {
         Args: {
           p_code: string
@@ -5522,6 +5597,7 @@ export type Database = {
         | "supporting"
         | "other"
       document_upload_status: "pending" | "finalised" | "voided"
+      event_product_tier: "demo" | "pro"
       event_role: "president" | "treasurer" | "committee_member" | "read_only"
       event_status:
         | "setup"
@@ -5737,6 +5813,7 @@ export const Constants = {
         "other",
       ],
       document_upload_status: ["pending", "finalised", "voided"],
+      event_product_tier: ["demo", "pro"],
       event_role: ["president", "treasurer", "committee_member", "read_only"],
       event_status: [
         "setup",

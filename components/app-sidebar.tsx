@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ChiffreWordmark } from "@/components/chiffre-wordmark";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
 import { Badge } from "@/components/ui/badge";
+import { ProductTierBadge } from "@/components/product-tier-badge";
 import { cn } from "@/lib/utils";
 import type { EventAccess } from "@/lib/events/access";
 import { getEventCapabilities } from "@/lib/events/permissions";
@@ -139,9 +140,8 @@ function SidebarContents({
 
   return (
     <div className="flex h-full min-w-0 flex-col gap-5">
-      <Link href="/app" className="flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--marketing-brand))]">
-        <Image src="/brand/mbf-logo.png" alt="May Ball Finance" width={45} height={30} priority className="h-8 w-auto" />
-        <span className="min-w-0 truncate text-base font-semibold tracking-normal text-slate-950">May Ball Finance</span>
+      <Link href="/app" aria-label="Chiffre home" className="flex min-w-0 items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--marketing-brand))]">
+        <ChiffreWordmark className="w-36 max-w-full" priority />
       </Link>
 
       <nav aria-label="Application navigation" className="grid gap-1">
@@ -160,6 +160,7 @@ function SidebarContents({
             </p>
             <p className="mt-1 text-xs text-muted-foreground">{roleSummary(currentEvent.roles)}</p>
             <div className="mt-2 flex flex-wrap gap-1">
+              <ProductTierBadge tier={currentEvent.event.product_tier} />
               <Badge variant={currentEvent.isReadOnly ? "secondary" : "default"}>
                 {currentEvent.isReadOnly ? "Read-only" : "Active"}
               </Badge>

@@ -36,6 +36,7 @@ export default async function RequestPaymentsPage({
       position={data.data.position}
       components={data.data.components}
       allocations={data.data.allocations}
+      documents={data.data.documents}
       canManage={capabilities.canManageFinance}
       readOnly={capabilities.isReadOnly}
     />

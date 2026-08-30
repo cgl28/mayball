@@ -23,6 +23,9 @@ export type EventRow = Pick<
   | "completed_at"
   | "archived_at"
   | "reopened_at"
+  | "product_tier"
+  | "pro_activated_at"
+  | "chiffre_owner_user_id"
 >;
 export type OrganisationRow = Pick<
   Tables<"organisations">,
@@ -40,6 +43,7 @@ export type EventAccess = {
   roles: EventRole[];
   accessMode: "active" | "historical";
   isReadOnly: boolean;
+  chiffreOwner: Pick<Tables<"profiles">, "id" | "display_name" | "preferred_name"> | null;
 };
 
 export function isHistoricalStatus(status: EventStatus) {
@@ -94,7 +98,7 @@ export const getVisibleEventAccess = cache(async function getVisibleEventAccess(
   return traceAsync({ route, name: "cache.execute", target: "getVisibleEventAccess" }, async () => {
     const { data: events, error: eventsError } = await supabase
       .from("events")
-      .select("id,name,event_year,event_date,planning_start_date,status,organisation_id,code,completed_at,archived_at,reopened_at")
+      .select("id,name,event_year,event_date,planning_start_date,status,organisation_id,code,completed_at,archived_at,reopened_at,product_tier,pro_activated_at,chiffre_owner_user_id")
       .order("event_year", { ascending: false })
       .order("name", { ascending: true });
 
@@ -108,10 +112,12 @@ export const getVisibleEventAccess = cache(async function getVisibleEventAccess(
 
     const eventIds = events.map((event) => event.id);
     const organisationIds = unique(events.map((event) => event.organisation_id));
+    const ownerIds = unique(events.map((event) => event.chiffre_owner_user_id).filter((id): id is string => Boolean(id)));
 
     const [
       { data: organisations, error: organisationsError },
       { data: memberships, error: membershipsError },
+      { data: owners, error: ownersError },
     ] = await Promise.all([
       supabase
         .from("organisations")
@@ -122,6 +128,9 @@ export const getVisibleEventAccess = cache(async function getVisibleEventAccess(
         .select("id,event_id,status,user_id")
         .eq("user_id", userId)
         .in("event_id", eventIds),
+      ownerIds.length
+        ? supabase.from("profiles").select("id,display_name,preferred_name").in("id", ownerIds)
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
     if (organisationsError) {
@@ -130,6 +139,7 @@ export const getVisibleEventAccess = cache(async function getVisibleEventAccess(
     if (membershipsError) {
       return { data: null, error: membershipsError };
     }
+    if (ownersError) return { data: null, error: ownersError };
 
     const activeMemberships = (memberships ?? []).filter(
       (membership) => membership.status === "active",
@@ -152,6 +162,7 @@ export const getVisibleEventAccess = cache(async function getVisibleEventAccess(
     const membershipsByEventId = new Map(
       activeMemberships.map((membership) => [membership.event_id, membership]),
     );
+    const ownersById = new Map((owners ?? []).map((owner) => [owner.id, owner]));
     const rolesByEventId = new Map<string, EventRole[]>();
 
     for (const roleRow of roleRows ?? []) {
@@ -171,6 +182,7 @@ export const getVisibleEventAccess = cache(async function getVisibleEventAccess(
         roles,
         accessMode: getEventAccessMode(event, membership),
         isReadOnly: isEventReadOnly(event, roles, membership),
+        chiffreOwner: event.chiffre_owner_user_id ? ownersById.get(event.chiffre_owner_user_id) ?? null : null,
       };
     });
 

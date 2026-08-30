@@ -44,7 +44,7 @@ export default async function Home() {
               Plan, approve and track your May Ball finances in one place.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-              May Ball Finance gives presidents, treasurers and committee members one shared system for budgets, spending requests, approvals, payments and historical records.
+              Chiffre gives presidents, treasurers and committee members one shared system for budgets, spending requests, approvals, payments and historical records.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               {isAuthenticated ? (

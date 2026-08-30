@@ -1,7 +1,6 @@
 import { connection } from "next/server";
-import { SetupForms, getPresidentOrganisations } from "@/components/setup-forms";
+import { SetupForms } from "@/components/setup-forms";
 import { getAuthenticatedSession } from "@/lib/auth/session";
-import { getVisibleEventAccess } from "@/lib/events/access";
 
 export default async function NewEventPage({
   searchParams,
@@ -11,11 +10,13 @@ export default async function NewEventPage({
   await connection();
   const params = await searchParams;
   const session = await getAuthenticatedSession("/events/new");
-  const { data: events } = await getVisibleEventAccess(session.supabase, session.user.id);
+  const { data: memberships } = await session.supabase.from("organisation_members").select("organisation_id").eq("user_id", session.user.id).eq("status", "active");
+  const ids = memberships?.map((membership) => membership.organisation_id) ?? [];
+  const { data: organisations } = ids.length ? await session.supabase.from("organisations").select("id,name").in("id", ids).order("name") : { data: [] };
 
   return (
     <SetupForms
-      presidentOrganisations={getPresidentOrganisations(events ?? [])}
+      presidentOrganisations={organisations ?? []}
       error={params.error}
     />
   );

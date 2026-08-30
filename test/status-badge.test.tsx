@@ -5,7 +5,7 @@ import { StatusBadge, statusLabel } from "@/components/status-badge";
 describe("StatusBadge", () => {
   const approvalCases = [
     ["draft", "Draft", "bg-slate-200", "text-slate-950"],
-    ["submitted", "Submitted", "bg-slate-900", "text-white"],
+    ["submitted", "Submitted", "bg-sky-600", "text-white"],
     ["changes_requested", "Changes Requested", "bg-amber-400", "text-amber-950"],
     ["rejected", "Rejected", "bg-red-700", "text-white"],
     ["approved", "Approved", "bg-emerald-600", "text-white"],
@@ -16,7 +16,7 @@ describe("StatusBadge", () => {
   const paymentCases = [
     ["unpaid", "Unpaid", "bg-orange-500", "text-slate-950"],
     ["partially_paid", "Partially Paid", "bg-amber-400", "text-amber-950"],
-    ["paid", "Paid", "bg-green-900", "text-white"],
+    ["paid", "Paid", "bg-emerald-600", "text-white"],
     ["overpaid", "Overpaid", "bg-red-800", "text-white"],
     ["not_applicable", "Not Applicable", "bg-slate-200", "text-slate-950"],
   ] as const;
@@ -65,6 +65,6 @@ describe("StatusBadge", () => {
     );
 
     expect(screen.getByText("Approved").closest("div")).toHaveClass("bg-emerald-600");
-    expect(screen.getByText("Paid").closest("div")).toHaveClass("bg-green-900");
+    expect(screen.getByText("Paid").closest("div")).toHaveClass("bg-emerald-600");
   });
 });

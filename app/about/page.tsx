@@ -9,7 +9,7 @@ export default async function AboutPage() {
       <MarketingSection
         eyebrow="About"
         title="Built for the realities of May Ball finance"
-        description="May Ball Finance is a working application for committee-run events where budgets, spending control, payment tracking and yearly handover all matter."
+        description="Chiffre is a working application for committee-run events where budgets, spending control, payment tracking and yearly handover all matter."
       >
         <div className="grid gap-4 md:grid-cols-3">
           <RoleCard role="Clear control" description="Treasurer powers stay separate from broader event administration." />

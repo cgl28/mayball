@@ -31,6 +31,9 @@ export function makeEventAccess(
     completed_at: null,
     archived_at: null,
     reopened_at: null,
+    product_tier: "demo" as const,
+    pro_activated_at: null,
+    chiffre_owner_user_id: "10000000-0000-0000-0000-000000000001",
     ...overrides.event,
   };
   const organisation =
@@ -62,5 +65,6 @@ export function makeEventAccess(
     roles,
     accessMode: overrides.accessMode ?? "active",
     isReadOnly: overrides.isReadOnly ?? false,
+    chiffreOwner: { id: event.chiffre_owner_user_id!, display_name: "Cameron Lackey", preferred_name: null },
   };
 }
