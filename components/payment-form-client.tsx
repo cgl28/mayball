@@ -63,6 +63,9 @@ export function PaymentFormClient({
   const [allocations, setAllocations] = useState(() => allocationInitialState(data.componentPositions));
 
   const selectedComponents = data.componentPositions.filter((component) => selected[component.request_component_id ?? ""]);
+  const reimbursementPayee = selectedComponents.length === 1 && selectedComponents[0].request_kind === "member_reimbursement"
+    ? selectedComponents[0].claimant_preferred_name ?? selectedComponents[0].claimant_display_name ?? "Committee member"
+    : undefined;
   const totalMinor = useMemo(() => (
     data.componentPositions.reduce((total, component) => {
       const componentId = component.request_component_id ?? "";
@@ -86,7 +89,8 @@ export function PaymentFormClient({
         <h2 className="font-medium">Payment information</h2>
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <Field name="paymentDate" label="Payment date" type="date" required defaultValue={new Date().toISOString().slice(0, 10)} />
-          <Field name="payee" label="Payee" required />
+          <Field name="payee" label="Payee" required defaultValue={reimbursementPayee} key={reimbursementPayee ?? "manual-payee"} />
+          {reimbursementPayee ? <p className="-mt-2 text-xs text-muted-foreground md:col-span-2">This payment is for the reimbursement claimant. The payee is prefilled from their event profile.</p> : null}
           <div className="rounded-md border bg-slate-50 p-3 text-sm">
             <p className="text-muted-foreground">Payment amount</p>
             <p className="mt-1 text-lg font-semibold">{formatMinor(totalMinor)}</p>
@@ -148,7 +152,7 @@ function SelectedComponentSummary({
       <dl className="mt-4 grid gap-4 text-sm md:grid-cols-3">
         <div><dt className="text-muted-foreground">Request</dt><dd className="font-medium">{component.request_code}</dd></div>
         <div><dt className="text-muted-foreground">Component</dt><dd className="font-medium">{component.description}</dd></div>
-        <div><dt className="text-muted-foreground">Supplier</dt><dd>{component.supplier_name ?? "Supplier not set"}</dd></div>
+        <div><dt className="text-muted-foreground">{component.request_kind === "member_reimbursement" ? "Payee" : "Supplier"}</dt><dd>{component.request_kind === "member_reimbursement" ? component.claimant_preferred_name ?? component.claimant_display_name ?? "Committee member" : component.supplier_name ?? "Supplier not set"}</dd></div>
         <div>
           <dt className="text-muted-foreground">Due date</dt>
           <dd>{date(dueDate.effective_due_date)}</dd>
@@ -180,7 +184,7 @@ function ComponentAllocationRow({
       <input name={`selected_${component.request_component_id}`} type="checkbox" checked={checked} onChange={(event) => onCheckedChange(event.currentTarget.checked)} className="h-4 w-4 rounded border md:mb-3" aria-label={`Allocate ${component.component_code}`} />
       <div className="min-w-0 text-sm">
         <p className="break-words font-medium">{component.request_code} / {component.component_code}</p>
-        <p>{component.description}</p>
+        <p>{component.description}{component.request_kind === "member_reimbursement" ? " — member reimbursement" : ""}</p>
         <p className="text-muted-foreground">Approved {formatMinor(component.approved_gross_minor)}; paid {formatMinor(component.paid_gross_minor)}; outstanding {formatMinor(component.outstanding_gross_minor)}</p>
       </div>
       <FinancialField kind="gross" name={`gross_${component.request_component_id}`} label="Allocate now" value={value} onChange={(event) => onValueChange(event.currentTarget.value)} disabled={!checked} />

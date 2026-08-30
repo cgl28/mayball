@@ -80,10 +80,24 @@ export async function recordPaymentAction(formData: FormData) {
     if (allocations.length === 0) throw new Error("Choose at least one approved component to pay.");
     if (allocationTotal !== gross) throw new Error("Allocation totals must equal the payment gross amount.");
 
+    const componentIds = allocations.map((allocation) => allocation.component_id);
+    const { data: selectedComponents, error: selectedError } = await supabase
+      .from("v_request_component_payment_positions")
+      .select("request_component_id,request_kind,claimant_display_name,claimant_preferred_name")
+      .eq("event_id", eventId)
+      .in("request_component_id", componentIds);
+    if (selectedError || selectedComponents?.length !== componentIds.length) throw new Error("Selected payment components are no longer available.");
+    const reimbursement = selectedComponents?.length === 1 && selectedComponents[0].request_kind === "member_reimbursement"
+      ? selectedComponents[0]
+      : null;
+    const payee = reimbursement
+      ? reimbursement.claimant_preferred_name ?? reimbursement.claimant_display_name ?? "Committee member"
+      : clean(formData.get("payee"));
+
     const { data, error } = await traceAsync({ route: `/events/${eventId}/payments`, name: "payment.record" }, () => supabase.rpc("record_component_payment", {
       p_event_id: eventId,
       p_payment_date: clean(formData.get("paymentDate")),
-      p_payee: clean(formData.get("payee")),
+      p_payee: payee,
       p_gross_minor: gross,
       p_bank_reference: clean(formData.get("bankReference")),
       p_method: method,

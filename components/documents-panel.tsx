@@ -4,16 +4,17 @@ import { uploadDocumentAction, voidDocumentAction } from "@/app/events/[eventId]
 import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  documentCategoriesForRequest,
+  documentCategoryLabel,
+  documentCategoryOptions,
+} from "@/lib/documents/categories";
+import { reimbursementDocumentOrder } from "@/lib/request-evidence";
 import type { VisibleDocument } from "@/lib/documents/data";
 import { allowedDocumentTypes, MAX_DOCUMENT_BYTES } from "@/lib/documents/validation";
 import type { Enums } from "@/src/types/database.generated";
 
-const categories: Enums<"document_category">[] = ["quote", "contract", "invoice", "receipt", "supporting", "other"];
-
-function label(value: string | null | undefined) {
-  const text = value?.replaceAll("_", " ");
-  return text ? text[0].toUpperCase() + text.slice(1) : "Not set";
-}
+const categories: Enums<"document_category">[] = [...documentCategoryOptions];
 
 function fileType(mimeType: string | null | undefined) {
   return {
@@ -79,6 +80,7 @@ export function DocumentUploadForm({
   eventId,
   requestId,
   paymentId,
+  requestKind,
   returnTo,
   canUpload,
   readOnly,
@@ -86,6 +88,7 @@ export function DocumentUploadForm({
   eventId: string;
   requestId?: string | null;
   paymentId?: string | null;
+  requestKind?: string | null;
   returnTo?: "approval";
   canUpload: boolean;
   readOnly: boolean;
@@ -109,7 +112,7 @@ export function DocumentUploadForm({
         <label className="grid gap-1 text-sm">
           <span className="font-medium">Category</span>
           <select name="category" defaultValue="supporting" className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-            {categories.map((category) => <option key={category} value={category}>{label(category)}</option>)}
+            {documentCategoriesForRequest(requestKind).map((category) => <option key={category} value={category}>{documentCategoryLabel(category)}</option>)}
           </select>
         </label>
         <label className="grid gap-1 text-sm">
@@ -179,7 +182,7 @@ export function DocumentsTable({
                 <p className="text-muted-foreground">{fileType(document.mime_type)}</p>
                 {document.description ? <p className="mt-1 text-muted-foreground">{document.description}</p> : null}
               </td>
-              <td className="py-3 pr-4">{label(document.category)}</td>
+              <td className="py-3 pr-4">{documentCategoryLabel(document.category)}</td>
               <td className="py-3 pr-4">
                 {document.request_code ? (
                   <Link className="underline-offset-4 hover:underline" href={`/events/${eventId}/requests/${document.request_id}`}>
@@ -227,6 +230,7 @@ function RequestDocumentRows({
   eventId,
   requestId,
   documents,
+  requestKind,
   canVoid,
   readOnly,
   returnTo,
@@ -234,19 +238,24 @@ function RequestDocumentRows({
   eventId: string;
   requestId: string;
   documents: VisibleDocument[];
+  requestKind?: string | null;
   canVoid: boolean;
   readOnly: boolean;
   returnTo?: "approval";
 }) {
   if (documents.length === 0) return <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">No supporting documents have been attached to this request.</p>;
 
+  const orderedDocuments = requestKind === "member_reimbursement"
+    ? [...documents].sort((left, right) => reimbursementDocumentOrder(left.category) - reimbursementDocumentOrder(right.category))
+    : documents;
+
   return (
     <div className="grid gap-2">
-      {documents.map((document) => (
+      {orderedDocuments.map((document) => (
         <article key={document.document_id} className="flex flex-col gap-3 rounded-md border p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="break-words font-medium" title={document.original_filename ?? undefined}>{document.original_filename}</p>
-            <p className="mt-1 text-muted-foreground">{label(document.category)} · {fileType(document.mime_type)} · {sizeLabel(document.size_bytes)}</p>
+            <p className="mt-1 text-muted-foreground">{documentCategoryLabel(document.category)} · {fileType(document.mime_type)} · {sizeLabel(document.size_bytes)}</p>
             {document.description ? <p className="mt-1 text-muted-foreground">{document.description}</p> : null}
             <p className="mt-1 text-muted-foreground">{actorName(document)} · {dateTime(document.finalized_at ?? document.created_at)}</p>
             {document.status === "voided" ? <p className="mt-1 text-muted-foreground">Voided: {document.void_reason ?? "Reason not recorded"}</p> : null}
@@ -324,7 +333,7 @@ export function DocumentsPanel({
           <span className="font-medium">Category</span>
           <select name="category" defaultValue="all" className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
             <option value="all">All categories</option>
-            {categories.map((category) => <option key={category} value={category}>{label(category)}</option>)}
+            {categories.map((category) => <option key={category} value={category}>{documentCategoryLabel(category)}</option>)}
           </select>
         </label>
         <label className="grid gap-1 text-sm">
@@ -368,6 +377,7 @@ export function RequestDocumentsSection({
   eventId,
   requestId,
   documents,
+  requestKind,
   canUpload,
   canVoid,
   readOnly,
@@ -379,6 +389,7 @@ export function RequestDocumentsSection({
   eventId: string;
   requestId: string;
   documents: VisibleDocument[];
+  requestKind?: string | null;
   canUpload: boolean;
   canVoid: boolean;
   readOnly: boolean;
@@ -399,12 +410,13 @@ export function RequestDocumentsSection({
       <Message error={error} uploaded={uploaded} voided={voided} />
       {readOnly ? <div className="mt-4"><ReadOnlyDocumentsNotice /></div> : null}
       <div className="mt-4">
-        <RequestDocumentRows eventId={eventId} requestId={requestId} documents={documents} canVoid={canVoid} readOnly={readOnly} returnTo={returnTo} />
+        <RequestDocumentRows eventId={eventId} requestId={requestId} documents={documents} requestKind={requestKind} canVoid={canVoid} readOnly={readOnly} returnTo={returnTo} />
       </div>
       <div className="mt-4">
         <DocumentUploadForm
           eventId={eventId}
           requestId={requestId}
+          requestKind={requestKind}
           canUpload={canUpload}
           readOnly={readOnly}
           returnTo={returnTo}
@@ -434,7 +446,7 @@ export function RequestEvidenceList({
             <li key={document.document_id} className="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <p className="break-words font-medium" title={document.original_filename ?? undefined}>{document.original_filename}</p>
-                <p className="mt-1 text-muted-foreground">{label(document.category)} · {fileType(document.mime_type)} · {sizeLabel(document.size_bytes)}</p>
+                <p className="mt-1 text-muted-foreground">{documentCategoryLabel(document.category)} · {fileType(document.mime_type)} · {sizeLabel(document.size_bytes)}</p>
                 {document.description ? <p className="mt-1 text-muted-foreground">{document.description}</p> : null}
                 <p className="mt-1 text-muted-foreground">{actorName(document)} · {dateTime(document.finalized_at ?? document.created_at)}</p>
                 {document.status === "voided" ? <p className="mt-1 text-muted-foreground">Voided: {document.void_reason ?? "Reason not recorded"}</p> : null}

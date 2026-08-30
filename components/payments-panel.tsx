@@ -378,7 +378,7 @@ export function PaymentsPanel({
                         <p className="font-medium">{component.description}</p>
                         <p className="text-xs text-muted-foreground">{component.component_code}</p>
                       </td>
-                      <td className="py-3 pr-4">{component.supplier_name ?? "Supplier not set"}</td>
+                      <td className="py-3 pr-4">{component.request_kind === "member_reimbursement" ? component.claimant_preferred_name ?? component.claimant_display_name ?? "Committee member" : component.supplier_name ?? "Supplier not set"}</td>
                       <td className="py-3 pr-4 text-right">{formatMinor(component.approved_gross_minor)}</td>
                       <td className="py-3 pr-4 text-right">{formatMinor(component.paid_gross_minor)}</td>
                       <td className="py-3 pr-4 text-right">{formatMinor(component.outstanding_gross_minor)}</td>

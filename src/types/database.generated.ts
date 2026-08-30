@@ -2331,9 +2331,11 @@ export type Database = {
           current_approved_revision_id: string | null
           current_draft_revision_id: string | null
           event_id: string
+          expense_date: string | null
           id: string
           owner_user_id: string
           primary_department_id: string
+          request_kind: Database["public"]["Enums"]["spending_request_kind"]
           submitted_at: string | null
           updated_at: string
         }
@@ -2348,9 +2350,11 @@ export type Database = {
           current_approved_revision_id?: string | null
           current_draft_revision_id?: string | null
           event_id: string
+          expense_date?: string | null
           id?: string
           owner_user_id: string
           primary_department_id: string
+          request_kind?: Database["public"]["Enums"]["spending_request_kind"]
           submitted_at?: string | null
           updated_at?: string
         }
@@ -2365,9 +2369,11 @@ export type Database = {
           current_approved_revision_id?: string | null
           current_draft_revision_id?: string | null
           event_id?: string
+          expense_date?: string | null
           id?: string
           owner_user_id?: string
           primary_department_id?: string
+          request_kind?: Database["public"]["Enums"]["spending_request_kind"]
           submitted_at?: string | null
           updated_at?: string
         }
@@ -2884,6 +2890,7 @@ export type Database = {
           can_decide: boolean | null
           code: string | null
           event_id: string | null
+          expense_date: string | null
           gross_minor: number | null
           net_minor: number | null
           owner_display_name: string | null
@@ -2893,6 +2900,9 @@ export type Database = {
           primary_department_id: string | null
           primary_department_name: string | null
           request_id: string | null
+          request_kind:
+            | Database["public"]["Enums"]["spending_request_kind"]
+            | null
           request_type: string | null
           revision_id: string | null
           revision_number: number | null
@@ -4068,6 +4078,9 @@ export type Database = {
           approved_gross_minor: number | null
           approved_net_minor: number | null
           approved_vat_minor: number | null
+          claimant_display_name: string | null
+          claimant_preferred_name: string | null
+          claimant_user_id: string | null
           component_code: string | null
           description: string | null
           event_id: string | null
@@ -4078,6 +4091,9 @@ export type Database = {
           request_code: string | null
           request_component_id: string | null
           request_id: string | null
+          request_kind:
+            | Database["public"]["Enums"]["spending_request_kind"]
+            | null
           revision_id: string | null
           revision_number: number | null
           supplier_name: string | null
@@ -4131,6 +4147,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_event_spending_summaries"
             referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "spending_requests_owner_user_id_fkey"
+            columns: ["claimant_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -4418,6 +4441,7 @@ export type Database = {
           description: string | null
           event_id: string | null
           expected_payment_date: string | null
+          expense_date: string | null
           gross_minor: number | null
           net_minor: number | null
           owner_display_name: string | null
@@ -4428,6 +4452,9 @@ export type Database = {
           primary_department_name: string | null
           request_created_at: string | null
           request_id: string | null
+          request_kind:
+            | Database["public"]["Enums"]["spending_request_kind"]
+            | null
           request_submitted_at: string | null
           request_updated_at: string | null
           revision_created_at: string | null
@@ -5140,6 +5167,26 @@ export type Database = {
         }
         Returns: string
       }
+      create_member_reimbursement_draft: {
+        Args: {
+          p_description: string
+          p_event_id: string
+          p_expense_date: string
+          p_gross_minor: number
+          p_net_minor: number
+          p_primary_department_id: string
+          p_title: string
+          p_vat_minor: number
+          p_vat_rate?: number
+          p_vat_recoverable?: boolean
+          p_vat_treatment?: Database["public"]["Enums"]["vat_treatment"]
+        }
+        Returns: {
+          request_code: string
+          request_id: string
+          revision_id: string
+        }[]
+      }
       create_organisation: {
         Args: { p_legal_name?: string; p_name: string; p_slug: string }
         Returns: string
@@ -5557,6 +5604,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_member_reimbursement_draft: {
+        Args: {
+          p_change_summary?: string
+          p_description: string
+          p_expense_date: string
+          p_gross_minor: number
+          p_net_minor: number
+          p_primary_department_id: string
+          p_request_id: string
+          p_title: string
+          p_vat_minor: number
+          p_vat_rate?: number
+          p_vat_recoverable?: boolean
+          p_vat_treatment?: Database["public"]["Enums"]["vat_treatment"]
+        }
+        Returns: undefined
+      }
       update_spending_request_draft: {
         Args: {
           p_allocations?: Json
@@ -5596,6 +5660,7 @@ export type Database = {
         | "receipt"
         | "supporting"
         | "other"
+        | "expense_claim_form"
       document_upload_status: "pending" | "finalised" | "voided"
       event_product_tier: "demo" | "pro"
       event_role: "president" | "treasurer" | "committee_member" | "read_only"
@@ -5666,6 +5731,7 @@ export type Database = {
         | "manual_other"
         | "ticket_tailor_api"
         | "csv_import"
+      spending_request_kind: "supplier_purchase" | "member_reimbursement"
       vat_treatment:
         | "standard"
         | "reduced"
@@ -5811,6 +5877,7 @@ export const Constants = {
         "receipt",
         "supporting",
         "other",
+        "expense_claim_form",
       ],
       document_upload_status: ["pending", "finalised", "voided"],
       event_product_tier: ["demo", "pro"],
@@ -5891,6 +5958,7 @@ export const Constants = {
         "ticket_tailor_api",
         "csv_import",
       ],
+      spending_request_kind: ["supplier_purchase", "member_reimbursement"],
       vat_treatment: [
         "standard",
         "reduced",

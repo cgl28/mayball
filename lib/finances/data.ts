@@ -12,6 +12,7 @@ export type DepartmentFinanceRequest = {
   title: string;
   supplier: string | null;
   ownerName: string;
+  requestKind?: "supplier_purchase" | "member_reimbursement" | null;
   approvalStatus: string;
   paymentStatus: string;
   netMinor: number;
@@ -146,6 +147,7 @@ export async function getFinancesData(
         title: request.title ?? "Untitled request",
         supplier: request.supplier_name,
         ownerName: ownerName(request),
+        requestKind: request.request_kind,
         approvalStatus: request.approval_status ?? "draft",
         paymentStatus: payment?.payment_status ?? "not_applicable",
         netMinor: numeric(allocation.net_minor),

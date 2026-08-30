@@ -7,6 +7,7 @@ import type {
   ApprovalQueueRow,
 } from "@/lib/approvals/data";
 import type { SpendingRequestDetail } from "@/lib/requests/data";
+import type { VisibleDocument } from "@/lib/documents/data";
 
 const queueRow: ApprovalQueueRow = {
   request_id: "request-id",
@@ -180,6 +181,19 @@ const reviewData: ApprovalReviewData = {
   reviews: [],
 };
 
+const reimbursementDocuments: VisibleDocument[] = [
+  {
+    document_id: "claim-form", event_id: "event-id", request_id: "request-id", request_code: "DMB_AE_2", revision_id: null, revision_number: null, revision_status: null,
+    payment_id: null, payment_code: null, original_filename: "claim.pdf", mime_type: "application/pdf", size_bytes: 100, category: "expense_claim_form", status: "finalised", visibility_scope: "shared_event",
+    description: null, uploaded_by: "member-a", uploaded_by_display_name: "Alex Aesthetics", uploaded_by_preferred_name: null, created_at: "2027-02-01T12:00:00Z", finalized_at: "2027-02-01T12:00:00Z", voided_at: null, voided_by: null, voided_by_display_name: null, void_reason: null,
+  },
+  {
+    document_id: "receipt", event_id: "event-id", request_id: "request-id", request_code: "DMB_AE_2", revision_id: null, revision_number: null, revision_status: null,
+    payment_id: null, payment_code: null, original_filename: "receipt.pdf", mime_type: "application/pdf", size_bytes: 100, category: "receipt", status: "finalised", visibility_scope: "shared_event",
+    description: null, uploaded_by: "member-a", uploaded_by_display_name: "Alex Aesthetics", uploaded_by_preferred_name: null, created_at: "2027-02-01T12:00:00Z", finalized_at: "2027-02-01T12:00:00Z", voided_at: null, voided_by: null, voided_by_display_name: null, void_reason: null,
+  },
+];
+
 describe("Stage 6 approval panels", () => {
   it("shows populated approval queue and initial versus variation labels", () => {
     render(<ApprovalQueuePanel eventId="event-id" data={queueData} />);
@@ -222,6 +236,15 @@ describe("Stage 6 approval panels", () => {
     expect(screen.getByText(/Approval does not mean paid/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Upload document" })).toBeInTheDocument();
     expect(screen.getAllByDisplayValue("request-id").some((element) => element.getAttribute("name") === "requestId")).toBe(true);
+  });
+
+  it("makes reimbursement claim-form and receipt evidence explicit to the treasurer", () => {
+    render(<ApprovalReviewPanel eventId="event-id" data={{ ...reviewData, detail: { ...detail, request: { ...detail.request, request_kind: "member_reimbursement", expense_date: "2027-01-31" }, documents: reimbursementDocuments } }} canDecide readOnly={false} />);
+
+    expect(screen.getByText("Reimbursement evidence")).toBeInTheDocument();
+    expect(screen.getByTitle("Claim Form attached")).toBeInTheDocument();
+    expect(screen.getByTitle("Receipt attached")).toBeInTheDocument();
+    expect(screen.queryByTitle("Invoice not attached")).not.toBeInTheDocument();
   });
 
   it("keeps request changes and rejection reason inputs with semantic action labels", () => {

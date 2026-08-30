@@ -93,6 +93,7 @@ const data: FinancesData = {
       title: "Late night snacks",
       supplier: null,
       ownerName: "Sam Snacks",
+      requestKind: "member_reimbursement",
       approvalStatus: "submitted",
       paymentStatus: "not_applicable",
       netMinor: 335000,
@@ -166,6 +167,8 @@ describe("FinancesPanel", () => {
     expect(screen.getAllByText("Partially Paid").length).toBeGreaterThan(1);
     expect(screen.getAllByText("Submitted").length).toBeGreaterThan(1);
     expect(screen.getAllByText("Not Applicable").length).toBeGreaterThan(1);
+    expect(screen.getByText("REIMBURSEMENT")).toBeInTheDocument();
+    expect(screen.getByText("Claimant: Sam Snacks")).toBeInTheDocument();
   });
 
   it("filters request rows by approval status", () => {

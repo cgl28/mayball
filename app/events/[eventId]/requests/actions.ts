@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { buildDraftPayload, clean } from "@/lib/requests/form";
+import { buildDraftPayload, buildReimbursementPayload, clean } from "@/lib/requests/form";
 import { createClient } from "@/lib/supabase/server";
 
 function safeMessage(error: unknown) {
   if (error instanceof Error && error.message) {
-    if (/request|draft|department|allocation|component|VAT|gross|net|authorised|editable|negative|required|reconcile|describe|choose/i.test(error.message)) {
+    if (/request|draft|department|allocation|component|VAT|gross|net|authorised|editable|negative|required|reconcile|describe|choose|receipt|reimbursement|expense/i.test(error.message)) {
       return error.message;
     }
   }
@@ -103,5 +103,41 @@ export async function submitSpendingRequestAction(formData: FormData) {
   } catch (error) {
     if (isFrameworkRedirect(error)) throw error;
     redirect(`/events/${eventId}/requests/${requestId}/review?error=${encodeURIComponent(safeMessage(error))}`);
+  }
+}
+
+export async function saveReimbursementDraftAction(formData: FormData) {
+  const eventId = clean(formData.get("eventId"));
+  const requestId = clean(formData.get("requestId"));
+  const intent = clean(formData.get("intent"));
+  const returnPath = requestId
+    ? `/events/${eventId}/requests/${requestId}/edit`
+    : `/events/${eventId}/requests/reimbursement/new`;
+  const supabase = await rpcClient(returnPath);
+
+  try {
+    const payload = buildReimbursementPayload(formData);
+    if (requestId) {
+      const { error } = await supabase.rpc("update_member_reimbursement_draft", { p_request_id: requestId, ...payload });
+      if (error) throw error;
+      if (intent === "submit") {
+        const { error: submitError } = await supabase.rpc("submit_spending_request", { p_request_id: requestId });
+        if (submitError) throw submitError;
+        revalidatePath(`/events/${eventId}/requests`);
+        redirect(`/events/${eventId}/requests/${requestId}?submitted=1`);
+      }
+      revalidatePath(`/events/${eventId}/requests`);
+      redirect(`/events/${eventId}/requests/${requestId}?saved=1`);
+    }
+
+    const { data, error } = await supabase.rpc("create_member_reimbursement_draft", { p_event_id: eventId, ...payload });
+    if (error) throw error;
+    const created = data?.[0];
+    if (!created) throw new Error("Reimbursement draft could not be created.");
+    revalidatePath(`/events/${eventId}/requests`);
+    redirect(`/events/${eventId}/requests/${created.request_id}?created=1`);
+  } catch (error) {
+    if (isFrameworkRedirect(error)) throw error;
+    redirect(`${returnPath}?error=${encodeURIComponent(safeMessage(error))}`);
   }
 }
