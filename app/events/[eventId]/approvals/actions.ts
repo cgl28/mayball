@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { traceAsync } from "@/lib/perf/trace";
 import type { Enums } from "@/src/types/database.generated";
 import { createClient } from "@/lib/supabase/server";
 
@@ -52,15 +53,18 @@ export async function decideSpendingRequestAction(formData: FormData) {
     if ((decision === "rejected" || decision === "changes_requested") && !reason) {
       throw new Error(decision === "rejected" ? "A rejection reason is required." : "Change instructions are required.");
     }
-    const { error } = await supabase.rpc("decide_spending_request", {
-      p_request_id: requestId,
-      p_revision_id: revisionId,
-      p_decision: decision,
-      p_reason: reason || undefined,
-    });
+    const { error } = await traceAsync(
+      { route: returnPath, name: "approval.decide", target: decision },
+      () => supabase.rpc("decide_spending_request", {
+        p_request_id: requestId,
+        p_revision_id: revisionId,
+        p_decision: decision,
+        p_reason: reason || undefined,
+      }),
+    );
     if (error) throw error;
-    revalidatePath(`/events/${eventId}/approvals`);
-    revalidatePath(`/events/${eventId}/requests`);
+    // The destination reloads fresh RSC data. Revalidating here clears the whole
+    // client router cache and made approval navigation noticeably slow.
     redirect(`${returnPath}?decided=${decision}`);
   } catch (error) {
     if (isFrameworkRedirect(error)) throw error;

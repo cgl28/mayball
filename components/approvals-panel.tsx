@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle, History, MessageSquareWarning, Scale, Triangl
 import { decideSpendingRequestAction } from "@/app/events/[eventId]/approvals/actions";
 import { RequestDocumentsSection } from "@/components/documents-panel";
 import { RequestComponentSurface } from "@/components/request-component-surface";
+import { RequestEvidenceBadges } from "@/components/request-evidence-badges";
 import { StatusBadge } from "@/components/status-badge";
 import { SubmitButton } from "@/components/submit-button";
 import { Badge } from "@/components/ui/badge";
@@ -161,9 +162,9 @@ export function ApprovalQueuePanel({
                 {filtered.map((row) => (
                   <tr key={`${row.request_id}-${row.revision_id}`} className="border-b last:border-b-0">
                     <td className="py-3 pr-4 font-medium">{row.code}</td>
-                    <td className="py-3 pr-4"><Badge variant={row.request_type === "variation" ? "secondary" : "outline"}>{label(row.request_type)}</Badge></td>
+                    <td className="py-3 pr-4"><div className="flex flex-wrap gap-1"><Badge variant={row.request_type === "variation" ? "secondary" : "outline"}>{label(row.request_type)}</Badge>{row.request_kind === "member_reimbursement" ? <Badge variant="secondary">Reimbursement</Badge> : null}</div></td>
                     <td className="py-3 pr-4">{row.title}</td>
-                    <td className="py-3 pr-4">{person(row)}</td>
+                    <td className="py-3 pr-4">{row.request_kind === "member_reimbursement" ? `Claimant: ${person(row)}` : person(row)}</td>
                     <td className="py-3 pr-4">{row.primary_department_code}</td>
                     <td className="py-3 pr-4 text-right">{formatMinor(row.gross_minor)}</td>
                     <td className="py-3 pr-4">{dateTime(row.submitted_at)}</td>
@@ -218,6 +219,7 @@ export function ApprovalReviewPanel({
         <div>
           <p className="text-sm text-muted-foreground">{request.code}</p>
           <h1 className="text-2xl font-semibold tracking-normal">{request.title}</h1>
+          {request.request_kind === "member_reimbursement" ? <p className="mt-1 text-sm text-muted-foreground">Member reimbursement for {request.owner_preferred_name ?? request.owner_display_name ?? "committee member"}; expense date {request.expense_date ?? "not set"}.</p> : null}
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant={requestType === "variation" ? "secondary" : "outline"}>{label(requestType)}</Badge>
@@ -324,6 +326,7 @@ export function ApprovalReviewPanel({
         eventId={eventId}
         requestId={request.request_id ?? ""}
         documents={data.detail.documents ?? []}
+        requestKind={request.request_kind}
         canUpload={canDecide && !readOnly}
         canVoid={canDecide && !readOnly}
         readOnly={readOnly}
@@ -332,6 +335,18 @@ export function ApprovalReviewPanel({
         voided={documentVoided}
         returnTo="approval"
       />
+
+      {request.request_kind === "member_reimbursement" ? (
+        <section className="rounded-md border border-violet-300 bg-violet-50/60 p-4">
+          <h2 className="font-medium">Reimbursement evidence</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Confirm the expense claim form and receipt before deciding this reimbursement.</p>
+          <RequestEvidenceBadges
+            requestKind={request.request_kind}
+            presentCategories={(data.detail.documents ?? []).filter((document) => document.status === "finalised").map((document) => document.category)}
+            className="mt-3 flex flex-wrap gap-1.5"
+          />
+        </section>
+      ) : null}
 
       {showDecisionControls ? (
         <section className="rounded-md border p-5">

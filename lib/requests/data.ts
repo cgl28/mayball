@@ -12,7 +12,7 @@ const REQUEST_APPROVAL_STATUSES = [
   "cancelled",
 ] as const;
 
-export type RequestSummary = Tables<"v_spending_request_current_revisions">;
+export type RequestSummary = Omit<Tables<"v_spending_request_current_revisions">, "request_kind" | "expense_date"> & Partial<Pick<Tables<"v_spending_request_current_revisions">, "request_kind" | "expense_date">>;
 export type RequestAllocation = Pick<
   Tables<"spending_request_department_allocations">,
   "id" | "event_id" | "revision_id" | "department_id" | "net_minor" | "vat_minor" | "gross_minor"
@@ -52,6 +52,7 @@ export type RequestListRow = Pick<
   | "primary_department_code"
   | "approval_status"
   | "gross_minor"
+  | "request_kind"
   | "request_updated_at"
   | "revision_status"
   | "can_edit_draft"
@@ -60,7 +61,12 @@ export type RequestListPaymentPosition = Pick<
   RequestPaymentPosition,
   "request_id" | "payment_status"
 >;
-export type RequestDocumentEvidence = { request_id: string; invoicePresent: boolean; receiptPresent: boolean };
+export type RequestDocumentEvidence = {
+  request_id: string;
+  invoicePresent: boolean;
+  receiptPresent: boolean;
+  claimFormPresent?: boolean;
+};
 
 export type SpendingRequestsData = {
   requests: RequestListRow[];
@@ -109,7 +115,7 @@ export async function getSpendingRequestsData(
   let requestQuery = supabase
     .from("v_spending_request_current_revisions")
     .select(
-      "request_id,event_id,code,title,owner_display_name,owner_preferred_name,primary_department_id,primary_department_name,primary_department_code,approval_status,gross_minor,request_updated_at,revision_status,can_edit_draft",
+      "request_id,event_id,code,title,owner_display_name,owner_preferred_name,primary_department_id,primary_department_name,primary_department_code,approval_status,gross_minor,request_kind,request_updated_at,revision_status,can_edit_draft",
       { count: "exact" },
     )
     .eq("event_id", eventId);
@@ -167,9 +173,10 @@ export async function getSpendingRequestsData(
   const evidence = new Map<string, RequestDocumentEvidence>();
   for (const document of documents.data ?? []) {
     if (!document.request_id) continue;
-    const current = evidence.get(document.request_id) ?? { request_id: document.request_id, invoicePresent: false, receiptPresent: false };
+    const current = evidence.get(document.request_id) ?? { request_id: document.request_id, invoicePresent: false, receiptPresent: false, claimFormPresent: false };
     if (document.category === "invoice") current.invoicePresent = true;
     if (document.category === "receipt") current.receiptPresent = true;
+    if (document.category === "expense_claim_form") current.claimFormPresent = true;
     evidence.set(document.request_id, current);
   }
 

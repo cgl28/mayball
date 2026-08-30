@@ -99,6 +99,23 @@ describe("Stage 10 documents, activity and exports", () => {
     expect(screen.queryByDisplayValue("revision-id")).not.toBeInTheDocument();
   });
 
+  it("prioritises the reimbursement evidence categories in the upload form", () => {
+    render(
+      <RequestDocumentsSection
+        eventId="event-id"
+        requestId="request-id"
+        requestKind="member_reimbursement"
+        documents={[]}
+        canUpload
+        canVoid={false}
+        readOnly={false}
+      />,
+    );
+
+    const options = screen.getAllByRole("option").map((option) => option.textContent);
+    expect(options.slice(0, 5)).toEqual(["Expense Claim Form", "Receipt", "Supporting", "Invoice", "Other"]);
+  });
+
   it("keeps historical and voided documents visible but read-only", () => {
     render(
       <RequestDocumentsSection

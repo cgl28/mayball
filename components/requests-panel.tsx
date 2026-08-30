@@ -5,8 +5,8 @@ import {
 } from "@/app/events/[eventId]/requests/actions";
 import { startVariationAction } from "@/app/events/[eventId]/approvals/actions";
 import { RequestDocumentsSection } from "@/components/documents-panel";
-import { EvidenceStatusBadge } from "@/components/evidence-status-badge";
 import { RequestComponentSurface } from "@/components/request-component-surface";
+import { RequestEvidenceBadges } from "@/components/request-evidence-badges";
 import { SpendingRequestForm } from "@/components/spending-request-form";
 import { StatusBadge } from "@/components/status-badge";
 import { SubmitButton } from "@/components/submit-button";
@@ -20,6 +20,7 @@ import type {
   SpendingRequestDetail,
 } from "@/lib/requests/data";
 import { formatMinor, sumMinor } from "@/lib/money";
+import { hasRequiredEvidence } from "@/lib/request-evidence";
 
 function formatLabel(value: string | null | undefined) {
   return value ? value.replaceAll("_", " ") : "Not set";
@@ -164,12 +165,10 @@ export function RequestsListPanel({
           </p>
         </div>
         {canCreate ? (
-          <Button asChild>
-            <Link href={`/events/${eventId}/requests/new`}>
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              New request
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild><Link href={`/events/${eventId}/requests/new`}><Plus className="h-4 w-4" aria-hidden="true" />New request</Link></Button>
+            <Button asChild variant="outline"><Link href={`/events/${eventId}/requests/reimbursement/new`}>Submit expense</Link></Button>
+          </div>
         ) : null}
       </div>
       {readOnly ? <ReadOnlyNotice /> : null}
@@ -241,7 +240,7 @@ export function RequestsListPanel({
                   {filtered.map((request) => (
                     <tr key={request.request_id} className="border-b last:border-b-0">
                       <td className="py-3 pr-4 font-medium">{request.code}</td>
-                      <td className="py-3 pr-4">{request.title}</td>
+                      <td className="py-3 pr-4"><div className="grid gap-1"><span>{request.title}</span>{request.request_kind === "member_reimbursement" ? <span className="w-fit rounded border border-violet-300 bg-violet-50 px-1.5 py-0.5 text-xs font-medium text-violet-950">REIMBURSEMENT</span> : null}</div></td>
                       <td className="py-3 pr-4">{ownerName(request)}</td>
                       <td className="py-3 pr-4">{request.primary_department_code}</td>
                       <td className="py-3 pr-4 text-right">{formatMinor(request.gross_minor)}</td>
@@ -257,10 +256,15 @@ export function RequestsListPanel({
                         {(() => {
                           const evidence = request.request_id ? evidenceByRequestId.get(request.request_id) : undefined;
                           return (
-                            <div className="flex flex-wrap gap-1.5" title="Request-level evidence; a missing receipt is normal before payment.">
-                              <EvidenceStatusBadge type="invoice" present={Boolean(evidence?.invoicePresent)} />
-                              <EvidenceStatusBadge type="receipt" present={Boolean(evidence?.receiptPresent)} />
-                            </div>
+                            <RequestEvidenceBadges
+                              requestKind={request.request_kind}
+                              presentCategories={[
+                                ...(evidence?.invoicePresent ? ["invoice"] : []),
+                                ...(evidence?.receiptPresent ? ["receipt"] : []),
+                                ...(evidence?.claimFormPresent ? ["expense_claim_form"] : []),
+                              ]}
+                              className="flex flex-wrap gap-1.5"
+                            />
                           );
                         })()}
                       </td>
@@ -353,6 +357,12 @@ export function RequestDetailPanel({
   const componentGross = sumMinor(components.map((component) => component.gross_minor));
   const canSubmit = canEdit && request.revision_status === "draft" && Boolean(request.current_draft_revision_id) && !readOnly;
   const paymentPosition = detail.paymentPosition;
+  const reimbursementEvidencePresent = hasRequiredEvidence(
+    request.request_kind,
+    (detail.documents ?? [])
+      .filter((document) => document.status === "finalised")
+      .map((document) => document.category),
+  );
 
   return (
     <div className="grid gap-6">
@@ -380,10 +390,10 @@ export function RequestDetailPanel({
       <section className="rounded-md border p-5">
         <h2 className="font-medium">Request details</h2>
         <dl className="mt-4 grid gap-4 text-sm md:grid-cols-3">
-          <div><dt className="text-muted-foreground">Owner</dt><dd>{ownerName(request)}</dd></div>
+          <div><dt className="text-muted-foreground">{request.request_kind === "member_reimbursement" ? "Claimant" : "Owner"}</dt><dd>{ownerName(request)}</dd></div>
           <div><dt className="text-muted-foreground">Primary department</dt><dd>{request.primary_department_name}</dd></div>
-          <div><dt className="text-muted-foreground">Expected payment</dt><dd>{request.expected_payment_date ?? "Not set"}</dd></div>
-          <div><dt className="text-muted-foreground">Supplier</dt><dd>{request.supplier_name ?? "Not set"}</dd></div>
+          <div><dt className="text-muted-foreground">{request.request_kind === "member_reimbursement" ? "Expense date" : "Expected payment"}</dt><dd>{request.request_kind === "member_reimbursement" ? request.expense_date ?? "Not set" : request.expected_payment_date ?? "Not set"}</dd></div>
+          <div><dt className="text-muted-foreground">{request.request_kind === "member_reimbursement" ? "Claim type" : "Supplier"}</dt><dd>{request.request_kind === "member_reimbursement" ? "Member reimbursement" : request.supplier_name ?? "Not set"}</dd></div>
           <div><dt className="text-muted-foreground">Net</dt><dd>{formatMinor(request.net_minor)}</dd></div>
           <div><dt className="text-muted-foreground">VAT</dt><dd>{formatMinor(request.vat_minor)}</dd></div>
           <div><dt className="text-muted-foreground">Gross</dt><dd>{formatMinor(request.gross_minor)}</dd></div>
@@ -417,7 +427,7 @@ export function RequestDetailPanel({
                 <p className="font-medium">{component.code}: {component.description}</p>
                 <p>{formatMinor(component.gross_minor)} gross</p>
               </div>
-              <p className="mt-1 text-muted-foreground">{component.supplier_name ?? "Supplier not set"}; expected {component.expected_payment_date ?? "date not set"}</p>
+              <p className="mt-1 text-muted-foreground">{request.request_kind === "member_reimbursement" ? `Payee: ${ownerName(request)}` : component.supplier_name ?? "Supplier not set"}{request.request_kind === "member_reimbursement" ? "" : `; expected ${component.expected_payment_date ?? "date not set"}`}</p>
             </RequestComponentSurface>
           ))}
         </div>
@@ -428,6 +438,7 @@ export function RequestDetailPanel({
         eventId={eventId}
         requestId={request.request_id ?? ""}
         documents={detail.documents ?? []}
+        requestKind={request.request_kind}
         canUpload={canUploadDocuments}
         canVoid={Boolean(!readOnly && (canEdit || canManageDocuments))}
         readOnly={readOnly}
@@ -435,6 +446,16 @@ export function RequestDetailPanel({
         uploaded={documentUploaded}
         voided={documentVoided}
       />
+
+      {request.request_kind === "member_reimbursement" ? (
+        <div className="flex flex-wrap gap-1.5">
+          <RequestEvidenceBadges
+            requestKind={request.request_kind}
+            presentCategories={(detail.documents ?? []).filter((document) => document.status === "finalised").map((document) => document.category)}
+          />
+        </div>
+      ) : null}
+      {request.request_kind === "member_reimbursement" && canSubmit && !reimbursementEvidencePresent ? <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">Upload and finalise an expense claim form and at least one receipt above before submitting this reimbursement.</div> : null}
 
       <div className="flex flex-wrap gap-2">
         {canEdit && !review ? <Button asChild><Link href={`/events/${eventId}/requests/${request.request_id}/edit`}>{request.approval_status === "changes_requested" ? "Edit returned request" : "Edit draft"}</Link></Button> : null}

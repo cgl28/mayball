@@ -19,10 +19,32 @@ function words(value: string | null | undefined) {
 }
 
 function actionText(row: ActivityFeedRow) {
+  if (row.action === "document.finalised" && row.context?.document?.category === "expense_claim_form") {
+    return "uploaded an Expense Claim Form";
+  }
+  if (row.action === "document.voided" && row.context?.document?.category === "expense_claim_form") {
+    return "voided an Expense Claim Form";
+  }
+  const reimbursement = row.context?.request?.requestKind === "member_reimbursement";
+  if (reimbursement) {
+    const reimbursementActions: Record<string, string> = {
+      "request.changes_requested": "requested changes to a reimbursement claim",
+      "request.approved": "approved a reimbursement claim",
+      "request.rejected": "rejected a reimbursement claim",
+      "request.variation_started": "started a reimbursement variation",
+      "request.variation_submitted": "submitted a reimbursement variation",
+      "request.variation_approved": "approved a reimbursement variation",
+      "request.variation_rejected": "rejected a reimbursement variation",
+      "request.variation_changes_requested": "requested changes to a reimbursement variation",
+    };
+    if (row.action && reimbursementActions[row.action]) return reimbursementActions[row.action];
+  }
   const actions: Record<string, string> = {
     "request.created": "created a spending request",
+    "request.reimbursement_created": "created a reimbursement claim",
     "request.updated": "updated a draft request",
     "request.submitted": "submitted a spending request",
+    "request.reimbursement_submitted": "submitted a reimbursement claim",
     "request.changes_requested": "requested changes to a spending request",
     "request.approved": "approved a spending request",
     "request.rejected": "rejected a spending request",

@@ -36,6 +36,11 @@ export type DraftPayload = {
   p_change_summary?: string;
 };
 
+export type ReimbursementPayload = Pick<
+  DraftPayload,
+  "p_primary_department_id" | "p_title" | "p_description" | "p_net_minor" | "p_vat_minor" | "p_gross_minor" | "p_vat_rate" | "p_vat_treatment" | "p_vat_recoverable"
+> & { p_expense_date: string };
+
 export function clean(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -173,4 +178,26 @@ export function buildDraftPayload(formData: FormData): DraftPayload {
 
   assertComponentsReconcile(payload);
   return payload;
+}
+
+export function buildReimbursementPayload(formData: FormData): ReimbursementPayload {
+  const title = requireText(formData.get("title"), "Expense description is required.");
+  const expenseDate = requireText(formData.get("expenseDate"), "Expense date is required.");
+  const grossMinor = parseMoneyToMinor(clean(formData.get("gross")));
+  const netMinor = parseMoneyToMinor(clean(formData.get("net")));
+  const vatMinor = parseMoneyToMinor(clean(formData.get("vat")));
+  if (grossMinor <= 0) throw new Error("Reimbursement gross must be greater than zero.");
+  if (netMinor + vatMinor !== grossMinor) throw new Error("Expense net and VAT must equal gross.");
+  return {
+    p_primary_department_id: requireText(formData.get("primaryDepartmentId"), "Choose the department responsible for this expense."),
+    p_title: title,
+    p_description: clean(formData.get("description")) || title,
+    p_expense_date: expenseDate,
+    p_net_minor: netMinor,
+    p_vat_minor: vatMinor,
+    p_gross_minor: grossMinor,
+    p_vat_rate: optionalRate(formData.get("vatRate")),
+    p_vat_treatment: requireText(formData.get("vatTreatment"), "Choose a VAT treatment.") as VatTreatment,
+    p_vat_recoverable: clean(formData.get("vatRecoverable")) === "on",
+  };
 }

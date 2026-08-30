@@ -96,7 +96,7 @@ Create PostgreSQL enums in `public`:
 | `payment_record_status` | `recorded`, `reversed` |
 | `invitation_status` | `pending`, `accepted`, `revoked`, `expired` |
 | `notification_type` | `invitation`, `request_submitted`, `changes_requested`, `request_approved`, `request_rejected`, `variation_submitted`, `variation_decided`, `payment_recorded`, `role_changed`, `event_status_changed` |
-| `document_category` | `quote`, `contract`, `invoice`, `receipt`, `supporting`, `other` |
+| `document_category` | `quote`, `contract`, `invoice`, `receipt`, `expense_claim_form`, `supporting`, `other` |
 
 Database enums are appropriate because these state values participate in constraints and policy logic. New values must be added through migrations; values must never be renamed casually.
 
@@ -424,6 +424,8 @@ Indexes: `(event_id,status,expected_date)`, `(event_id,category)`.
 | `event_id` | `uuid` | not null | |
 | `code` | `text` | not null | immutable, e.g. DMB_ME_1 |
 | `owner_user_id` | `uuid` | not null | creator/editor |
+| `request_kind` | `spending_request_kind` | `supplier_purchase` | supplier purchase or member reimbursement |
+| `expense_date` | `date` | null | required for `member_reimbursement` |
 | `primary_department_id` | `uuid` | not null | same event |
 | `approval_status` | `request_approval_status` | `draft` | aggregate workflow state |
 | `current_draft_revision_id` | `uuid` | null | same request/event |
@@ -436,7 +438,7 @@ Indexes: `(event_id,status,expected_date)`, `(event_id,category)`.
 | `created_at` | `timestamptz` | `now()` | |
 | `updated_at` | `timestamptz` | `now()` | |
 
-Constraints: unique `(event_id,code)`; unique `(event_id,id)`; revision pointers use deferrable composite foreign keys added after revision table creation; state/pointer/timestamp consistency; owner and primary department fixed after first submission unless a future dedicated RPC is introduced.
+Constraints: unique `(event_id,code)`; unique `(event_id,id)`; a `member_reimbursement` must have an expense date; revision pointers use deferrable composite foreign keys added after revision table creation; state/pointer/timestamp consistency; owner and primary department fixed after first submission unless a future dedicated RPC is introduced. Reimbursement claimant identity is the existing `owner_user_id`; no bank details are stored.
 
 Indexes: `(event_id,approval_status,updated_at desc)`, `(event_id,owner_user_id,approval_status)`, `(event_id,primary_department_id,approval_status)`, `(current_draft_revision_id)`, `(current_approved_revision_id)`.
 

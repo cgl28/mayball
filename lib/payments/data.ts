@@ -9,7 +9,7 @@ const DUE_SOON_DAYS = 14;
 export type PaymentDetail = Tables<"v_payment_details">;
 export type PaymentAllocationDetail = Tables<"v_payment_allocation_details">;
 export type RequestPaymentPosition = Tables<"v_request_payment_positions">;
-export type ComponentPaymentPosition = Tables<"v_request_component_payment_positions">;
+export type ComponentPaymentPosition = Omit<Tables<"v_request_component_payment_positions">, "request_kind" | "claimant_user_id" | "claimant_display_name" | "claimant_preferred_name"> & Partial<Pick<Tables<"v_request_component_payment_positions">, "request_kind" | "claimant_user_id" | "claimant_display_name" | "claimant_preferred_name">>;
 export type EventPaymentSummary = Tables<"v_event_payment_summaries">;
 export type PaymentWorkloadView = (typeof WORKLOAD_VIEWS)[number];
 export type PaymentUrgency = "overdue" | "due_soon" | "future" | "no_due_date" | "paid";
@@ -56,6 +56,10 @@ export type PaymentWorkloadRow = Pick<
   | "paid_gross_minor"
   | "outstanding_gross_minor"
   | "payment_status"
+  | "request_kind"
+  | "claimant_user_id"
+  | "claimant_display_name"
+  | "claimant_preferred_name"
 > & {
   effective_due_date: string | null;
   due_date_source: "component" | "event" | "none";
@@ -148,7 +152,7 @@ export async function getPaymentsData(
 
   let workloadQuery = supabase
     .from("v_request_component_payment_positions")
-    .select("event_id,request_id,request_code,revision_id,revision_number,request_component_id,component_code,description,expected_payment_date,supplier_name,approved_net_minor,approved_vat_minor,approved_gross_minor,paid_gross_minor,outstanding_gross_minor,payment_status", { count: "exact" })
+    .select("event_id,request_id,request_code,revision_id,revision_number,request_component_id,component_code,description,expected_payment_date,supplier_name,approved_net_minor,approved_vat_minor,approved_gross_minor,paid_gross_minor,outstanding_gross_minor,payment_status,request_kind,claimant_user_id,claimant_display_name,claimant_preferred_name", { count: "exact" })
     .eq("event_id", eventId);
 
   if (search) {

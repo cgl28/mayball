@@ -6,7 +6,7 @@ export type AuditCategory = (typeof auditCategories)[number];
 export type AuditActivityCategory = Exclude<AuditCategory, "all"> | "governance";
 
 type AuditContext = {
-  request?: { code: string | null; title: string | null; departmentName: string | null };
+  request?: { code: string | null; title: string | null; departmentName: string | null; requestKind?: string | null };
   payment?: { code: string | null; payee: string | null; grossMinor: number | null };
   budgetTransfer?: { amountMinor: number; fromDepartment: string | null; toDepartment: string | null };
   document?: { category: string | null; filename: string | null; requestCode: string | null; requestId: string | null };
@@ -90,7 +90,7 @@ export async function getActivityFeed(
       ? supabase.from("activity_log").select("id,metadata").eq("event_id", eventId).in("id", activityIds)
       : Promise.resolve({ data: [], error: null }),
     requestIds.length
-      ? supabase.from("v_spending_request_current_revisions").select("request_id,code,title,primary_department_name").eq("event_id", eventId).in("request_id", requestIds)
+      ? supabase.from("v_spending_request_current_revisions").select("request_id,code,title,primary_department_name,request_kind").eq("event_id", eventId).in("request_id", requestIds)
       : Promise.resolve({ data: [], error: null }),
     paymentIds.length
       ? supabase.from("payments").select("id,code,payee,gross_minor").eq("event_id", eventId).in("id", paymentIds)
@@ -123,7 +123,7 @@ export async function getActivityFeed(
       ...row,
       auditCategory: auditCategoryForAction(row.action),
       context: {
-        request: request ? { code: request.code, title: request.title, departmentName: request.primary_department_name } : undefined,
+        request: request ? { code: request.code, title: request.title, departmentName: request.primary_department_name, requestKind: request.request_kind } : undefined,
         payment: payment ? { code: payment.code, payee: payment.payee, grossMinor: payment.gross_minor } : undefined,
         budgetTransfer: transfer ? {
           amountMinor: transfer.amount_minor,

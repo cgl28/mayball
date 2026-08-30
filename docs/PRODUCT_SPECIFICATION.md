@@ -428,6 +428,12 @@ Any active committee member can create a request. The creator becomes its owner 
 
 A request contains stable identity and workflow fields. Financial and descriptive content submitted for approval is held in revisions.
 
+### 14.1.1 Member reimbursements
+
+A committee member may submit an expense they have already paid personally as a `member_reimbursement` request. The request owner is the durable claimant identity; the subtype uses the normal request reference, department allocation, immutable revisions, Treasurer approval and payment-allocation workflow. A simple reimbursement has one `Reimbursement` component equal to its claim total, does not require supplier or instalment fields, and requires a finalised request-level Expense Claim Form and at least one finalised receipt before it can be submitted. Its stable expense date records when the member incurred the cost. Existing supplier purchases remain `supplier_purchase` requests. Invoice documents may be attached to a reimbursement but are not required evidence.
+
+Approved reimbursements count as normal department commitments and payment allocations count as normal gross cash paid. The Treasurer records the external bank transfer and the payment payee is prefilled from the claimant’s existing event-profile name; bank-account details are not stored.
+
 ### 14.2 Request fields
 
 Stable request fields include:
@@ -441,6 +447,7 @@ Stable request fields include:
 - Current approved revision.
 - Created, submitted, approved and closed timestamps where applicable.
 - Cancellation metadata.
+- Request subtype and, for a member reimbursement, the expense date and claimant (the immutable owner identity).
 
 A revision includes:
 

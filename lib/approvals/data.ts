@@ -3,7 +3,7 @@ import type { Database, Tables } from "@/src/types/database.generated";
 import { getSpendingRequestDetail } from "@/lib/requests/data";
 import type { SpendingRequestDetail } from "@/lib/requests/data";
 
-export type ApprovalQueueRow = Tables<"v_approval_queue">;
+export type ApprovalQueueRow = Omit<Tables<"v_approval_queue">, "request_kind" | "expense_date"> & Partial<Pick<Tables<"v_approval_queue">, "request_kind" | "expense_date">>;
 export type RequestImpactRow = Tables<"v_request_department_impacts">;
 export type EventApprovalContext = Tables<"v_event_approval_context">;
 export type RevisionHistoryRow = Tables<"v_request_revision_history">;

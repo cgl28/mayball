@@ -114,7 +114,7 @@ function filteredRows(rows: DepartmentFinanceRequest[], approvalStatus: string, 
     if (approvalStatus !== "all" && row.approvalStatus !== approvalStatus) return false;
     if (paymentStatus !== "all" && row.paymentStatus !== paymentStatus) return false;
     if (!needle) return true;
-    return [row.reference, row.title, row.supplier ?? ""].some((value) => value.toLowerCase().includes(needle));
+    return [row.reference, row.title, row.supplier ?? "", row.ownerName].some((value) => value.toLowerCase().includes(needle));
   });
 }
 
@@ -322,9 +322,9 @@ export function FinancesPanel({
                         {row.reference} <ArrowRight className="h-3 w-3" aria-hidden="true" />
                       </Link>
                     </td>
-                    <td className="py-3 pr-4">{row.title}</td>
-                    <td className="py-3 pr-4">{row.supplier ?? "Not set"}</td>
-                    <td className="py-3 pr-4">{row.ownerName}</td>
+                    <td className="py-3 pr-4"><div className="grid gap-1"><span>{row.title}</span>{row.requestKind === "member_reimbursement" ? <span className="w-fit rounded border border-violet-300 bg-violet-50 px-1.5 py-0.5 text-xs font-medium text-violet-950">REIMBURSEMENT</span> : null}</div></td>
+                    <td className="py-3 pr-4">{row.requestKind === "member_reimbursement" ? "Member reimbursement" : row.supplier ?? "Not set"}</td>
+                    <td className="py-3 pr-4">{row.requestKind === "member_reimbursement" ? `Claimant: ${row.ownerName}` : row.ownerName}</td>
                     <td className="py-3 pr-4"><StatusBadge kind="approval" status={row.approvalStatus} /></td>
                     <td className="py-3 pr-4"><StatusBadge kind="payment" status={row.paymentStatus} /></td>
                     <td className="py-3 pr-4 text-right">{formatMinor(row.netMinor)}</td>
