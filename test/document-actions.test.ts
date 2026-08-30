@@ -52,4 +52,40 @@ describe("document server actions", () => {
     expect(mocks.redirect).toHaveBeenLastCalledWith("/events/event-id/requests/request-id?documentUploaded=1");
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
+
+  it("accepts an Excel workbook through the ordinary private upload path", async () => {
+    mocks.rpc
+      .mockResolvedValueOnce({ data: [{ bucket_id: "event-documents", object_path: "event-id/document-id", document_id: "document-id" }], error: null })
+      .mockResolvedValueOnce({ error: null });
+    mocks.upload.mockResolvedValueOnce({ error: null });
+
+    const formData = new FormData();
+    formData.set("eventId", "event-id");
+    formData.set("requestId", "request-id");
+    formData.set("category", "supporting");
+    formData.set("file", new File(["workbook"], "budget.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+
+    await expect(uploadDocumentAction(formData)).rejects.toMatchObject({ digest: "NEXT_REDIRECT" });
+
+    expect(mocks.rpc).toHaveBeenNthCalledWith(1, "begin_document_upload", expect.objectContaining({
+      p_mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      p_original_filename: "budget.xlsx",
+    }));
+    expect(mocks.upload).toHaveBeenCalledWith(expect.any(String), expect.any(File), expect.objectContaining({
+      contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }));
+  });
+
+  it("continues to reject unsupported file types before creating an upload intent", async () => {
+    const formData = new FormData();
+    formData.set("eventId", "event-id");
+    formData.set("requestId", "request-id");
+    formData.set("file", new File(["script"], "script.js", { type: "application/javascript" }));
+
+    await expect(uploadDocumentAction(formData)).rejects.toMatchObject({ digest: "NEXT_REDIRECT" });
+
+    expect(mocks.rpc).not.toHaveBeenCalled();
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(mocks.redirect).toHaveBeenLastCalledWith(expect.stringContaining("documentsError=Unsupported+file+type"));
+  });
 });

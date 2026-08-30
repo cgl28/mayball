@@ -58,7 +58,29 @@ describe("revenue ticket type action", () => {
       p_maximum_quantity: 1000,
       p_forecast_quantity: 800,
     }));
-    expect(mocks.redirect).toHaveBeenLastCalledWith("/events/event-id/revenue/tickets?saved=1");
+    expect(mocks.redirect).toHaveBeenLastCalledWith("/events/event-id/revenue?saved=1");
+  });
+
+  it("passes an existing ticket type ID to the update-capable RPC", async () => {
+    mocks.rpc.mockResolvedValueOnce({ error: null });
+    const formData = new FormData();
+    formData.set("eventId", "event-id");
+    formData.set("ticketTypeId", "ticket-standard");
+    formData.set("name", "Standard revised");
+    formData.set("grossPrice", "180.00");
+    formData.set("maximumQuantity", "1200");
+    formData.set("forecastQuantity", "1100");
+    formData.set("vatTreatment", "standard");
+    formData.set("vatRate", "20.00");
+    formData.set("isActive", "on");
+
+    await expect(saveTicketTypeAction(formData)).rejects.toMatchObject({ digest: "NEXT_REDIRECT" });
+
+    expect(mocks.rpc).toHaveBeenCalledWith("save_ticket_type", expect.objectContaining({
+      p_ticket_type_id: "ticket-standard",
+      p_name: "Standard revised",
+      p_gross_price_minor: 18000,
+    }));
   });
 
   it("keeps the prior net/VAT/gross mismatch out of the RPC payload", () => {

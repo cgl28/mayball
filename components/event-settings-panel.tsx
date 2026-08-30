@@ -30,6 +30,7 @@ export function EventSettingsPanel({
   organisations?: Array<{ id: string; name: string }>;
 }) {
   const { event, organisation } = eventAccess;
+  const displayedOrganisation = organisation ?? organisations.find((item) => item.id === event.organisation_id) ?? null;
 
   return (
     <div className="grid gap-6">
@@ -57,7 +58,7 @@ export function EventSettingsPanel({
         <h2 className="font-medium">Chiffre commercial context</h2>
         <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3">
           <div><dt className="text-muted-foreground">Product tier</dt><dd className="mt-1"><ProductTierBadge tier={event.product_tier} /></dd></div>
-          <div><dt className="text-muted-foreground">Organisation</dt><dd className="mt-1 font-medium">{organisation?.name ?? "No organisation set"}</dd></div>
+          <div><dt className="text-muted-foreground">Organisation</dt><dd className="mt-1 font-medium">{displayedOrganisation?.name ?? "No organisation set"}</dd></div>
           <div><dt className="text-muted-foreground">Chiffre owner</dt><dd className="mt-1 font-medium">{eventAccess.chiffreOwner?.preferred_name ?? eventAccess.chiffreOwner?.display_name ?? "Not assigned"}</dd></div>
         </dl>
         <p className="mt-4 text-sm text-muted-foreground">Demo events continue to have full access while Pro entitlement rules are prepared. Upgrade to Chiffre Pro is coming soon.</p>
@@ -74,7 +75,7 @@ export function EventSettingsPanel({
         <dl className="grid gap-3 text-sm md:grid-cols-2">
           <div>
             <dt className="text-muted-foreground">Organisation</dt>
-            <dd>{organisation?.name ?? "Organisation unavailable"}</dd>
+            <dd>{displayedOrganisation?.name ?? "Organisation unavailable"}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">Status</dt>
@@ -86,24 +87,16 @@ export function EventSettingsPanel({
           <form action={updateEventSettingsAction} className="mt-5 grid gap-4">
             <input type="hidden" name="eventId" value={event.id} />
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="grid gap-1 text-sm">
-                <span className="font-medium">Event name</span>
-                <input
-                  name="eventName"
-                  required
-                  defaultValue={event.name}
-                  className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                />
-              </label>
-              <label className="grid gap-1 text-sm">
-                <span className="font-medium">Event code</span>
-                <input
-                  name="eventCode"
-                  required
-                  defaultValue={event.code}
-                  className="rounded-md border bg-background px-3 py-2 uppercase focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                />
-              </label>
+              <input type="hidden" name="eventName" value={event.name} />
+              <input type="hidden" name="eventCode" value={event.code} />
+              <div className="grid gap-1 text-sm">
+                <dt className="font-medium">Event name</dt>
+                <dd className="rounded-md border bg-muted/40 px-3 py-2">{event.name}</dd>
+              </div>
+              <div className="grid gap-1 text-sm">
+                <dt className="font-medium">Event code</dt>
+                <dd className="rounded-md border bg-muted/40 px-3 py-2 font-mono">{event.code}</dd>
+              </div>
               <label className="grid gap-1 text-sm">
                 <span className="font-medium">Event year</span>
                 <input

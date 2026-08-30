@@ -420,6 +420,10 @@ Other revenue categories include sponsorship, college contribution, donations, m
 
 Only the treasurer can change authoritative actual-received values. The system may later add multiple receipts beneath an item without changing the forecast entity.
 
+Creation and ordinary edits establish only the forecast. A separate treasurer action marks an item as received, or corrects an already received amount, while retaining the forecast, owner and expected-date context.
+
+Forecast and confirmed items contribute only to forecast income. Other revenue contributes to actual income only while its status is `part_received` or `received`, with the recorded actual-received amount and date. Cancelled items contribute to neither current forecast nor actual income.
+
 ## 14. Spending request model
 
 ### 14.1 Creation and ownership
@@ -715,7 +719,7 @@ Warnings inform; they do not silently change records.
 
 The public landing page explains the product's purpose, core workflow and privacy model. Users can sign in, accept an invitation or request assistance. No event financial data is public.
 
-After login, users see organisations and events they can access, separated into active and historical events.
+After login, users see active/current events first. Completed and archived events remain accessible in a clearly separate Historical events section below them.
 
 ### 19.2 Event setup wizard
 
@@ -802,7 +806,7 @@ Each department page replaces a spreadsheet tab and contains current budget, tra
 
 ### 19.12 Committee and settings
 
-The president manages invitations, membership, roles, departments and event lifecycle. The treasurer manages financial settings, budgets, contingency and revenue configuration. Controls are separated by permission and labelled clearly.
+The president manages invitations, membership, roles, departments and event lifecycle. The treasurer manages financial settings, budgets, contingency and revenue configuration. Event name and short code become immutable after creation; event date and planning start date remain editable by the authorised settings workflow. Controls are separated by permission and labelled clearly.
 
 ### 19.13 Historical event views
 
@@ -810,7 +814,7 @@ Completed events use the same page structure in read-only mode. A persistent ban
 
 ## 20. Invitations and onboarding
 
-The president creates an invitation containing organisation, event, intended roles, intended departments, invited email, expiry and single-use token. The invited user signs in or creates an account and accepts.
+The president creates an invitation containing organisation, event, explicitly selected intended roles, intended departments, invited email, expiry and single-use token. Committee-member invitations must include at least one initial department. The invited user signs in or creates an account and accepts.
 
 Rules:
 
@@ -972,6 +976,8 @@ Event, actor, action, entity type/ID, summary, structured metadata and timestamp
 #### `documents` (architecture-ready; UI optional)
 
 Event, uploader, linked entity type/ID, storage path, original name, MIME type, size, category and timestamps. A private Storage bucket is required when uploads are enabled.
+
+Launch uploads accept PDF, JPEG, PNG, DOCX and ordinary Excel workbooks (`.xlsx`, plus `.xls` where supplied with its standard MIME type); these remain private documents with no spreadsheet parsing or preview.
 
 ## 24. Database invariants and transactional rules
 

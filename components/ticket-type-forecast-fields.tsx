@@ -27,12 +27,25 @@ function parseOptionalRate(value: string, treatment: TicketVatTreatment) {
   return /^\d+(?:\.\d{1,2})?$/.test(text) ? Number(text) : null;
 }
 
-export function TicketTypeForecastFields() {
-  const [grossPrice, setGrossPrice] = useState("");
-  const [maximumQuantity, setMaximumQuantity] = useState("");
-  const [forecastQuantity, setForecastQuantity] = useState("");
-  const [vatTreatment, setVatTreatment] = useState<TicketVatTreatment>("standard");
-  const [vatRate, setVatRate] = useState("20.00");
+export type TicketTypeForecastInitialValues = {
+  name?: string;
+  description?: string | null;
+  grossPrice?: string;
+  maximumQuantity?: string;
+  forecastQuantity?: string;
+  vatTreatment?: TicketVatTreatment;
+  vatRate?: string;
+  complimentaryQuantity?: string;
+  displayOrder?: string;
+  isActive?: boolean;
+};
+
+export function TicketTypeForecastFields({ initial = {} }: { initial?: TicketTypeForecastInitialValues }) {
+  const [grossPrice, setGrossPrice] = useState(initial.grossPrice ?? "");
+  const [maximumQuantity, setMaximumQuantity] = useState(initial.maximumQuantity ?? "");
+  const [forecastQuantity, setForecastQuantity] = useState(initial.forecastQuantity ?? "");
+  const [vatTreatment, setVatTreatment] = useState<TicketVatTreatment>(initial.vatTreatment ?? "standard");
+  const [vatRate, setVatRate] = useState(initial.vatRate ?? "20.00");
 
   const preview = useMemo(() => {
     try {
@@ -56,7 +69,7 @@ export function TicketTypeForecastFields() {
 
   return (
     <>
-      <Field name="name" label="Ticket type name" required />
+      <Field name="name" label="Ticket type name" required defaultValue={initial.name} />
       <FinancialField
         kind="gross"
         name="grossPrice"
@@ -117,8 +130,7 @@ export function TicketTypeForecastFields() {
       <details className="rounded-md border p-4 md:col-span-3">
         <summary className="cursor-pointer text-sm font-medium">Advanced ticket settings</summary>
         <div className="mt-4 grid gap-4 md:grid-cols-3">
-          <Field name="ticketTypeId" label="Existing ticket ID for update" placeholder="Leave blank for new" />
-          <Field name="description" label="Description" />
+          <Field name="description" label="Description" defaultValue={initial.description ?? ""} />
           <Field
             name="vatRate"
             label="VAT rate"
@@ -126,10 +138,10 @@ export function TicketTypeForecastFields() {
             onChange={setVatRate}
             disabled={!ticketVatRateApplies(vatTreatment)}
           />
-          <Field name="complimentaryQuantity" label="Complimentary allocation" type="number" defaultValue="0" />
-          <Field name="displayOrder" label="Display order" type="number" defaultValue="0" />
+          <Field name="complimentaryQuantity" label="Complimentary allocation" type="number" defaultValue={initial.complimentaryQuantity ?? "0"} />
+          <Field name="displayOrder" label="Display order" type="number" defaultValue={initial.displayOrder ?? "0"} />
           <label className="flex items-center gap-2 text-sm md:self-end">
-            <input name="isActive" type="checkbox" defaultChecked className="h-4 w-4 rounded border" />
+            <input name="isActive" type="checkbox" defaultChecked={initial.isActive ?? true} className="h-4 w-4 rounded border" />
             <span>Active</span>
           </label>
         </div>

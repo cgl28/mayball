@@ -11,7 +11,7 @@ export default async function RevenuePage({
   searchParams,
 }: {
   params: Promise<{ eventId: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; saved?: string; recorded?: string }>;
 }) {
   await connection();
   const { eventId } = await params;
@@ -42,6 +42,8 @@ export default async function RevenuePage({
       canManage={capabilities.canManageFinance}
       readOnly={capabilities.isReadOnly}
       error={query.error}
+      saved={query.saved === "1"}
+      recorded={query.recorded === "1"}
     />
   );
 }

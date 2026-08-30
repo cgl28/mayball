@@ -60,12 +60,11 @@ describe("authenticated home", () => {
     );
   });
 
-  it("separates setup and historical events", () => {
+  it("places completed and archived events below active events", () => {
     render(
       <AppHome
         displayName="Terry"
         events={[
-          makeEventAccess({ event: { status: "setup", name: "Downing Setup" } }),
           makeEventAccess({
             event: {
               id: "30000000-0000-0000-0000-000000000025",
@@ -77,13 +76,16 @@ describe("authenticated home", () => {
             accessMode: "historical",
             isReadOnly: true,
           }),
+          makeEventAccess({ event: { status: "setup", name: "Downing Setup" } }),
         ]}
         eventsError={null}
       />,
     );
 
-    expect(screen.getByText("Setup events")).toBeInTheDocument();
-    expect(screen.getByText("Completed historical events")).toBeInTheDocument();
+    const activeHeading = screen.getByText("Active events");
+    const historicalHeading = screen.getByText("Historical events");
+    expect(activeHeading.compareDocumentPosition(historicalHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText(/Completed and archived events remain available/)).toBeInTheDocument();
     expect(screen.getByText("Historical read-only access")).toBeInTheDocument();
   });
 });

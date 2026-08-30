@@ -59,7 +59,7 @@ function safeMessage(error: unknown) {
     if (/retain at least one active President|keep at least one president/i.test(message)) {
       return "Every event must have at least one active President. Assign another President before removing this role or changing this member's status.";
     }
-    if (/duplicate|already exists|required|invalid|authorised|expiry|expired|pending|email|invitation|read-only|same event|president|department|order/i.test(message)) {
+    if (/duplicate|already exists|required|invalid|authorised|expiry|expired|pending|email|invitation|read-only|same event|president|department|order|select/i.test(message)) {
       return message;
     }
   }
@@ -319,10 +319,14 @@ export async function issueInvitationAction(
       .map(String)
       .filter(Boolean) as Enums<"event_role">[];
     const departments = formData.getAll("departments").map(String).filter(Boolean);
+    if (roles.length === 0) throw new Error("Please select a role.");
+    if (roles.includes("committee_member") && departments.length === 0) {
+      throw new Error("Please select a department.");
+    }
     const { data, error } = await supabase.rpc("issue_invitation", {
       p_event_id: eventId,
       p_email: clean(formData.get("email")),
-      p_roles: roles.length ? roles : ["committee_member"],
+      p_roles: roles,
       p_department_ids: departments,
       p_expires_in_days: Number(clean(formData.get("expiresInDays")) || "14"),
     });
