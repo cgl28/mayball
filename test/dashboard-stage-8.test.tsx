@@ -167,10 +167,10 @@ describe("Stage 8 dashboard panel", () => {
 
     expect(screen.getByText("Forecast income")).toBeInTheDocument();
     expect(screen.getByText("£207,084.30")).toBeInTheDocument();
-    expect(screen.getByText("Actual income recorded")).toBeInTheDocument();
+    expect(screen.getByText("Actual income")).toBeInTheDocument();
     expect(screen.getByText("£125,000.00")).toBeInTheDocument();
     expect(screen.getByText("Approved commitments")).toBeInTheDocument();
-    expect(screen.getByText("Paid to date")).toBeInTheDocument();
+    expect(screen.getByText("Cash paid to date")).toBeInTheDocument();
     expect(screen.getAllByText("net").length).toBeGreaterThan(3);
     expect(screen.getAllByText(/gross/).length).toBeGreaterThan(2);
   });
@@ -194,11 +194,31 @@ describe("Stage 8 dashboard panel", () => {
   it("distinguishes formal and potential positions and explains pending exposure", () => {
     render(<DashboardPanel eventAccess={makeEventAccess()} data={data} canManageFinance />);
 
-    expect(screen.getByText("Formal forecast")).toBeInTheDocument();
-    expect(screen.getAllByText(/Potential/).length).toBeGreaterThan(1);
-    expect(screen.getAllByText("£183,084.30").length).toBeGreaterThan(1);
-    expect(screen.getAllByText("£177,884.30").length).toBeGreaterThan(1);
-    expect(screen.getByText(/Potential adds submitted requests and pending variation increments/)).toBeInTheDocument();
+    expect(screen.getByText("Forecast surplus")).toBeInTheDocument();
+    expect(screen.getAllByText("Potential surplus").length).toBeGreaterThan(1);
+    expect(screen.getByText("£183,084.30")).toBeInTheDocument();
+    expect(screen.getByText("£177,884.30")).toBeInTheDocument();
+    expect(screen.getByText(/Potential position shows what remains if submitted requests and pending variation increases are approved/)).toBeInTheDocument();
+  });
+
+  it("uses explicit deficit labels when either forecast position is negative", () => {
+    render(
+      <DashboardPanel
+        eventAccess={makeEventAccess()}
+        data={{
+          ...data,
+          position: {
+            ...position,
+            formal_forecast_net_position_minor: -100,
+            potential_forecast_net_position_minor: -200,
+          },
+        }}
+        canManageFinance
+      />,
+    );
+
+    expect(screen.getByText("Forecast deficit")).toBeInTheDocument();
+    expect(screen.getAllByText("Potential deficit").length).toBeGreaterThan(1);
   });
 
   it("shows department positions including missing allocation state", () => {
@@ -320,6 +340,7 @@ describe("Stage 8 dashboard panel", () => {
             active_budget_version_number: null,
             latest_snapshot_id: null,
             latest_captured_at: null,
+            total_actual_gross_minor: 0,
             recorded_gross_cash_movement_minor: null,
           },
         }}
@@ -328,6 +349,7 @@ describe("Stage 8 dashboard panel", () => {
     );
 
     expect(screen.getByText("Not configured")).toBeInTheDocument();
-    expect(screen.getAllByText("No snapshot").length).toBeGreaterThan(1);
+    expect(screen.getByText("No ticket snapshot")).toBeInTheDocument();
+    expect(screen.getByText(/No actual income has been recorded yet/)).toBeInTheDocument();
   });
 });

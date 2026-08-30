@@ -149,7 +149,7 @@ describe("budget panel", () => {
 
     expect(screen.getByText("Department allocation and budget use")).toBeInTheDocument();
     expect(screen.getByText("Approved commitments")).toBeInTheDocument();
-    expect(screen.getByText("Submitted / potential")).toBeInTheDocument();
+    expect(screen.getByText("Submitted exposure")).toBeInTheDocument();
     expect(screen.getByText("Remaining budget")).toBeInTheDocument();
     expect(screen.getByText(/Approved commitments include paid and unpaid/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View in Finances" })).toHaveAttribute("href", "/events/event-id/finances?department=dep-a");

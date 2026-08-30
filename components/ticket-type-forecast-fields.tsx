@@ -104,13 +104,13 @@ export function TicketTypeForecastFields() {
       <div className="rounded-md border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-950 md:col-span-2">
         <h3 className="font-medium">Forecast preview</h3>
         <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-          <div><dt className="text-cyan-800">Forecast revenue</dt><dd className="text-lg font-semibold">{formatMinor(preview.forecastMinor)}</dd></div>
-          <div><dt className="text-cyan-800">Maximum possible revenue</dt><dd className="text-lg font-semibold">{formatMinor(preview.maximumMinor)}</dd></div>
+          <div><dt className="text-cyan-800">Forecast income</dt><dd className="text-lg font-semibold">{formatMinor(preview.forecastMinor)}</dd></div>
+          <div><dt className="text-cyan-800">Maximum possible income</dt><dd className="text-lg font-semibold">{formatMinor(preview.maximumMinor)}</dd></div>
           <div><dt className="text-cyan-800">Net per ticket</dt><dd>{formatMinor(preview.netMinor)}</dd></div>
           <div><dt className="text-cyan-800">VAT per ticket</dt><dd>{formatMinor(preview.vatMinor)}</dd></div>
         </dl>
         <p className="mt-3 text-cyan-900">
-          Forecast revenue is ticket price multiplied by forecast sales. The database still checks the final values when you save.
+          Forecast income is the ticket price multiplied by your forecast-sales assumption. The database still checks the final values when you save.
         </p>
         {preview.error ? <p role="alert" className="mt-2 font-medium text-amber-900">{preview.error}</p> : null}
       </div>

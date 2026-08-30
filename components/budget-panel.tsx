@@ -23,7 +23,7 @@ function DepartmentBudgetUse({
   const barTotal = Math.max(allocation, approved + submitted, 1);
   const segments = [
     { label: "Approved commitments", amount: approved, className: "bg-emerald-500" },
-    { label: "Submitted / potential", amount: submitted, className: "bg-amber-400" },
+    { label: "Submitted exposure", amount: submitted, className: "bg-amber-400" },
     { label: "Remaining budget", amount: remaining, className: "bg-slate-300" },
   ].filter((segment) => segment.amount > 0);
 
@@ -55,7 +55,7 @@ function DepartmentBudgetUse({
 
       <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2 xl:grid-cols-4">
         <div><dt className="text-muted-foreground">Approved commitments</dt><dd className="font-medium text-emerald-800">{formatMinor(approved)}</dd></div>
-        <div><dt className="text-muted-foreground">Submitted / potential</dt><dd className="font-medium text-amber-800">{formatMinor(submitted)}</dd></div>
+        <div><dt className="text-muted-foreground">Submitted exposure</dt><dd className="font-medium text-amber-800">{formatMinor(submitted)}</dd></div>
         <div><dt className="text-muted-foreground">Remaining budget</dt><dd className="font-medium">{formatMinor(remaining)}</dd></div>
         {overBudget > 0 ? <div><dt className="text-red-700">Potential over-budget</dt><dd className="font-medium text-red-800">{formatMinor(overBudget)}</dd></div> : null}
       </dl>
