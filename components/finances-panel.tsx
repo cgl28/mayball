@@ -58,7 +58,7 @@ function budgetUseSegments(summary: FinancePositionSummary) {
     },
     {
       key: "submitted-potential",
-      label: "Submitted / potential",
+      label: "Submitted exposure",
       amountMinor: summary.submittedNetMinor,
       tone: "potential" as const,
       description: "net pending",
@@ -205,10 +205,10 @@ export function FinancesPanel({
 
       <section className={responsiveMetricGridClassName}>
         {metric("Event budget", data.wholeEvent.budgetNetMinor === null ? "Not configured" : formatMinor(data.wholeEvent.budgetNetMinor), "net", "Total current department budget across the event.")}
-        {metric("Approved commitments", formatMinor(data.wholeEvent.approvedNetMinor), "net", "Approved spend split into paid and unpaid in the bar above.")}
+        {metric("Approved commitments", formatMinor(data.wholeEvent.approvedNetMinor), "net", "Approved commitments split into paid and unpaid in the bar above.")}
         {metric("Approved outstanding", formatMinor(data.wholeEvent.approvedUnpaidNetMinor), "net", "Approved commitment still unpaid on a net-equivalent basis.")}
-        {metric("Submitted / potential", formatMinor(data.wholeEvent.submittedNetMinor), "net", "Submitted requests plus pending variation exposure.")}
-        {metric("Paid to date", formatMinor(data.wholeEvent.paidGrossMinor), "gross cash", "Non-reversed recorded payments. Kept separate from the net budget bar.")}
+        {metric("Submitted exposure", formatMinor(data.wholeEvent.submittedNetMinor), "net", "Submitted requests plus pending variation exposure. Potential commitments include this exposure and approved commitments.")}
+        {metric("Cash paid to date", formatMinor(data.wholeEvent.paidGrossMinor), "gross cash", "Non-reversed recorded payments. Kept separate from the net budget bar.")}
         {metric("Potential remaining", data.wholeEvent.remainingNetMinor === null ? "Not available" : formatMinor(data.wholeEvent.remainingNetMinor), "net", "Budget remaining after approved and submitted exposure.")}
       </section>
 
@@ -254,10 +254,10 @@ export function FinancesPanel({
 
       <section className={responsiveMetricGridClassName}>
         {metric("Current budget", currentBudget === null ? "Not configured" : formatMinor(currentBudget), "net", "Active departmental budget after transfers.")}
-        {metric("Approved spend", formatMinor(approvedNet), "net", "Approved commitments, not paid cash.")}
+        {metric("Approved commitments", formatMinor(approvedNet), "net", "Approved commitments, not paid cash.")}
         {metric("Approved outstanding", formatMinor(data.totals.approvedUnpaidNetMinor), "net", "Approved department commitment still unpaid on a net-equivalent basis.")}
-        {metric("Submitted spend", formatMinor(submittedNet), "net", "Submitted requests plus positive pending variation exposure.")}
-        {metric("Paid to date", formatMinor(data.totals.paidGrossMinor), "gross cash", "Non-reversed payments apportioned by department allocation share.")}
+        {metric("Submitted exposure", formatMinor(submittedNet), "net", "Submitted requests plus positive pending variation exposure.")}
+        {metric("Cash paid to date", formatMinor(data.totals.paidGrossMinor), "gross cash", "Non-reversed payments apportioned by department allocation share.")}
         {metric("Remaining budget", remaining === null ? "Not available" : formatMinor(remaining), "net", "Current budget minus approved net commitments.")}
         {metric("Potential remaining", potentialRemaining === null ? "Not available" : formatMinor(potentialRemaining), "net", "Current budget minus approved and submitted exposure.")}
         {metric("Recoverable VAT", formatMinor(data.totals.recoverableVatMinor), "VAT", "VAT on approved visible department allocations.")}

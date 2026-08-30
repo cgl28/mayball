@@ -150,13 +150,51 @@ describe("Stage 4 revenue panels", () => {
     );
 
     expect(screen.getByText("Revenue")).toBeInTheDocument();
-    expect(screen.getByText("Revenue position")).toBeInTheDocument();
-    expect(screen.getByText("Forecast ticket revenue")).toBeInTheDocument();
-    expect(screen.getAllByText("Actual revenue").length).toBeGreaterThan(0);
+    expect(screen.getByText("Income position")).toBeInTheDocument();
+    expect(screen.getByText("Forecast ticket income")).toBeInTheDocument();
+    expect(screen.getAllByText("Actual income").length).toBeGreaterThan(0);
     expect(screen.getAllByText("£138,000.00").length).toBeGreaterThan(0);
     expect(screen.queryByText("£273,000.00")).not.toBeInTheDocument();
     expect(screen.getByText(/Booking fees are shown separately/)).toBeInTheDocument();
     expect(screen.getByText(/snapshots are never added together/)).toBeInTheDocument();
+  });
+
+  it("uses an uncapped recorded-income percentage and handles zero forecast income", () => {
+    const { rerender } = render(
+      <RevenueOverviewPanel
+        eventId="event-id"
+        revenue={{
+          ...revenue,
+          summary: {
+            ...revenue.summary!,
+            total_forecast_gross_minor: 100_000,
+            total_actual_gross_minor: 120_000,
+          },
+        }}
+        canManage
+        readOnly={false}
+      />,
+    );
+
+    expect(screen.getByText(/120% of forecast recorded/)).toBeInTheDocument();
+
+    rerender(
+      <RevenueOverviewPanel
+        eventId="event-id"
+        revenue={{
+          ...revenue,
+          summary: {
+            ...revenue.summary!,
+            total_forecast_gross_minor: 0,
+            total_actual_gross_minor: 120_000,
+          },
+        }}
+        canManage
+        readOnly={false}
+      />,
+    );
+
+    expect(screen.getByText(/No forecast income has been entered/)).toBeInTheDocument();
   });
 
   it("shows an empty state when no revenue records exist", () => {
@@ -206,7 +244,7 @@ describe("Stage 4 revenue panels", () => {
     expect(screen.getByText(/database does not yet define a separate ticket code/)).toBeInTheDocument();
   });
 
-  it("previews ticket forecast revenue from gross price and forecast sales", async () => {
+  it("previews ticket forecast income from gross price and forecast sales", async () => {
     const user = userEvent.setup();
     render(
       <TicketTypesPanel

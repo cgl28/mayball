@@ -284,7 +284,7 @@ export function PaymentsPanel({
           <p className="mt-1 text-xs text-muted-foreground">outstanding gross</p>
         </div>
         <div className="rounded-md border p-4">
-          <p className="text-sm text-muted-foreground">Paid to date</p>
+          <p className="text-sm text-muted-foreground">Cash paid to date</p>
           <p className="mt-1 text-xl font-semibold">{formatMinor(data.operationalSummary.paidGrossMinor)}</p>
           <p className="mt-1 text-xs text-muted-foreground">non-reversed gross</p>
         </div>

@@ -10,6 +10,11 @@ import { FinancialField, type FinancialFieldKind } from "@/components/financial-
 import { TicketTypeForecastFields } from "@/components/ticket-type-forecast-fields";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  actualAsForecastPercentage,
+  financialTerminology,
+  formatPercentage,
+} from "@/lib/financial-terminology";
 import type {
   OtherRevenueItem,
   RevenueOverview,
@@ -91,9 +96,9 @@ function valueNumber(value: number | string | bigint | null | undefined) {
   return value === null || value === undefined ? 0 : Number(value);
 }
 
-function percentage(value: number, total: number) {
+function comparisonWidth(value: number, total: number) {
   if (total <= 0 || value <= 0) return 0;
-  return Math.min(100, Math.max(0, (value / total) * 100));
+  return Math.max(0, (value / total) * 100);
 }
 
 function formatSignedMinor(value: number | string | bigint | null | undefined) {
@@ -164,6 +169,8 @@ export function RevenueOverviewPanel({
   const actualGross = valueNumber(summary?.total_actual_gross_minor);
   const comparisonTotal = Math.max(forecastGross, actualGross);
   const grossVariance = actualGross - forecastGross;
+  const actualAsForecast = actualAsForecastPercentage(actualGross, forecastGross);
+  const hasActualIncome = actualGross !== 0;
 
   return (
     <div className="grid gap-6">
@@ -182,13 +189,13 @@ export function RevenueOverviewPanel({
       {readOnly ? <ReadOnlyNotice /> : null}
 
       <section>
-        <h2 className="text-lg font-semibold tracking-normal">Revenue position</h2>
+        <h2 className="text-lg font-semibold tracking-normal">Income position</h2>
         <dl className="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <SummaryCard
-            label="Forecast ticket revenue"
+            label="Forecast ticket income"
             value={summary?.ticket_forecast_gross_minor}
             basis="gross"
-            description="Ticket price multiplied by forecast sales."
+            description="Assumption: ticket price multiplied by forecast sales."
           />
           <SummaryCard
             label="Forecast other income"
@@ -197,49 +204,54 @@ export function RevenueOverviewPanel({
             description="Non-cancelled sponsorship, contributions and other expected income."
           />
           <SummaryCard
-            label="Total forecast revenue"
+            label="Forecast income"
             value={summary?.total_forecast_net_minor}
             basis="net dashboard basis"
-            description="Matches the Dashboard Forecast Income card."
+            description={financialTerminology.forecastIncome}
           />
           <SummaryCard
-            label="Actual revenue recorded"
-            value={hasSnapshot ? summary?.total_actual_gross_minor : null}
+            label="Actual income"
+            value={actualGross}
             basis="gross"
-            description="Latest cumulative ticket snapshot plus actual other revenue."
+            description={hasActualIncome ? financialTerminology.actualIncome : "No actual income has been recorded yet."}
           />
           <SummaryCard
-            label="Gross variance to forecast"
+            label="Gross variance to forecast income"
             value={grossVariance}
             basis="gross comparison"
-            description="Actual gross revenue minus forecast gross revenue."
+            description="Actual gross income minus forecast gross income."
           />
         </dl>
       </section>
 
       <section className="rounded-md border p-5">
-        <h2 className="font-medium">Forecast vs actual</h2>
+        <h2 className="font-medium">Forecast income vs actual income</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Forecast revenue is an editable plan. Actual ticket revenue is not a list of transactions; it is the latest cumulative ticket-sales snapshot plus actual other income.
+          Forecast income is assumption-based. Actual ticket income uses the latest cumulative ticket-sales snapshot plus recorded actual other income.
         </p>
         <div className="mt-4 grid gap-4">
           <ComparisonBar
-            label="Forecast revenue"
+            label="Forecast income"
             value={forecastGross}
             total={comparisonTotal}
             tone="bg-cyan-300"
             valueLabel={`${formatMinor(forecastGross)} gross`}
           />
           <ComparisonBar
-            label="Actual revenue"
+            label="Actual income"
             value={actualGross}
             total={comparisonTotal}
             tone="bg-emerald-300"
             valueLabel={hasSnapshot ? `${formatMinor(actualGross)} gross` : "No ticket snapshot yet"}
           />
         </div>
+        <p className="mt-4 text-sm text-muted-foreground">
+          {actualAsForecast === null
+            ? "No forecast income has been entered, so an actual-to-forecast percentage is not shown."
+            : `${formatPercentage(actualAsForecast)}% of forecast recorded. This is recorded income, not a prediction or a measure of event completion.`}
+        </p>
         <div className="mt-4 rounded-md bg-muted/40 p-4 text-sm text-muted-foreground">
-          Ticket forecast = forecast sales x gross ticket price. Total forecast = ticket forecast plus non-cancelled other forecast income. Actual ticket revenue uses the latest non-void cumulative snapshot; snapshots are never added together.
+          Ticket forecast income = forecast sales × gross ticket price. Forecast income includes non-cancelled other forecast income. Actual ticket income uses the latest non-void cumulative snapshot; snapshots are never added together.
         </div>
       </section>
 
@@ -262,10 +274,10 @@ export function RevenueOverviewPanel({
       <section className="rounded-md border p-5">
         <h2 className="flex items-center gap-2 font-medium">
           <Tags className="h-4 w-4" aria-hidden="true" />
-          Ticket revenue forecast
+          Ticket income forecast
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Ticket forecasts are the price you expect to charge multiplied by the number of tickets you currently expect to sell.
+          Ticket forecasts are assumptions: the price you expect to charge multiplied by the number of tickets you currently expect to sell.
         </p>
         {hasTicketTypes ? (
           <div className="mt-4 max-w-full overflow-x-auto">
@@ -276,8 +288,8 @@ export function RevenueOverviewPanel({
                   <th className="py-2 pr-4 text-right font-medium">Ticket price</th>
                   <th className="py-2 pr-4 text-right font-medium">Maximum available</th>
                   <th className="py-2 pr-4 text-right font-medium">Forecast sales</th>
-                  <th className="py-2 pr-4 text-right font-medium">Forecast revenue</th>
-                  <th className="py-2 text-right font-medium">Maximum revenue</th>
+                  <th className="py-2 pr-4 text-right font-medium">Forecast income</th>
+                  <th className="py-2 text-right font-medium">Maximum income</th>
                 </tr>
               </thead>
               <tbody>
@@ -345,30 +357,33 @@ export function RevenueOverviewPanel({
       <section className="rounded-md border p-5">
         <h2 className="flex items-center gap-2 font-medium">
           <TrendingUp className="h-4 w-4" aria-hidden="true" />
-          Actual revenue
+          Actual income
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Actual ticket revenue comes from cumulative ticket-sale snapshots. The newest non-void snapshot is the current position.
+          Actual ticket income uses the latest cumulative ticket-sales snapshot. The newest non-void snapshot is the current position.
         </p>
-        {hasSnapshot ? (
-          <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {hasSnapshot ? (
             <div>
               <dt className="text-sm text-muted-foreground">Latest captured</dt>
               <dd className="text-lg font-semibold">{dateTime(summary?.latest_captured_at)}</dd>
             </div>
-            <MoneyStat label="Latest ticket actual" value={summary?.ticket_actual_gross_minor} />
-            <MoneyStat label="Other actual revenue" value={summary?.other_actual_gross_minor} />
-            <MoneyStat label="Total actual recorded" value={summary?.total_actual_gross_minor} />
+          ) : null}
+            <MoneyStat label="Latest ticket actual income" value={summary?.ticket_actual_gross_minor} />
+            <MoneyStat label="Other actual income" value={summary?.other_actual_gross_minor} />
+            <MoneyStat label="Total actual income recorded" value={actualGross} />
+          {hasSnapshot ? (
+            <>
             <MoneyStat label="Refunds to date" value={summary?.ticket_refunds_to_date_minor} />
             <MoneyStat label="Booking fees to date" value={summary?.ticket_booking_fees_to_date_minor} />
             <div>
               <dt className="text-sm text-muted-foreground">Tickets sold to date</dt>
               <dd className="text-lg font-semibold">{summary?.tickets_sold_to_date ?? "Unknown"}</dd>
             </div>
-          </dl>
-        ) : (
-          <p className="mt-3 text-sm text-muted-foreground">No actual ticket snapshot has been recorded.</p>
-        )}
+            </>
+          ) : null}
+        </dl>
+        {!hasSnapshot ? <p className="mt-3 text-sm text-muted-foreground">No ticket-sales snapshot has been recorded. Actual other income is still included above when recorded.</p> : null}
         <p className="mt-4 text-sm text-muted-foreground">
           Booking fees are shown separately and are not deducted from May Ball gross ticket revenue.
         </p>
@@ -401,7 +416,7 @@ function ComparisonBar({
     <div className="grid gap-2 sm:grid-cols-[10rem_minmax(0,1fr)_10rem] sm:items-center">
       <span className="text-sm font-medium">{label}</span>
       <div className="h-3 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-        <div className={`h-full rounded-full ${tone}`} style={{ width: `${percentage(value, total)}%` }} />
+        <div className={`h-full rounded-full ${tone}`} style={{ width: `${comparisonWidth(value, total)}%` }} />
       </div>
       <span className="text-sm text-muted-foreground sm:text-right">{valueLabel}</span>
     </div>
