@@ -663,7 +663,7 @@ Indexes: `(event_id,created_at desc,id desc)`, `(event_id,entity_type,entity_id,
 | `sha256` | `text` | null | integrity/dedup hint |
 | `created_at` | `timestamptz` | `now()` | |
 
-Constraints: at least one domain link; same-event validation; unique `(bucket_id,object_path)`; object paths use `event_id/document_id/sanitised-filename` but permission never relies solely on string parsing. New request evidence is linked to the stable request identity, so it survives revision changes; legacy revision/payment links remain supported. Documents linked to a draft request inherit draft privacy.
+Constraints: at least one domain link; same-event validation; unique `(bucket_id,object_path)`; object paths use `event_id/document_id/sanitised-filename` but permission never relies solely on string parsing. The private bucket and `normalise_document_extension` allow PDF, JPEG, PNG, DOCX, XLSX and legacy XLS MIME types. New request evidence is linked to the stable request identity, so it survives revision changes; legacy revision/payment links remain supported. Documents linked to a draft request inherit draft privacy.
 
 Indexes: `(event_id,request_id)`, `(event_id,revision_id)`, `(event_id,payment_id)`.
 
@@ -744,7 +744,7 @@ Creates organisation, creator organisation membership, event, creator event memb
 
 ## 15.2 `issue_invitation(...)`
 
-President-only. Validates intended departments belong to event, upserts/revokes conflicting pending invitations, stores only token hash and returns the raw token once to trusted server code. Prefer generating the token server-side and passing only its hash if the Data API response path could log values.
+President-only. Requires at least one explicitly selected role and requires at least one valid event department whenever `committee_member` is an intended role. It validates intended departments belong to event, upserts/revokes conflicting pending invitations, stores only token hash and returns the raw token once to trusted server code. Prefer generating the token server-side and passing only its hash if the Data API response path could log values.
 
 ## 15.3 `accept_invitation(p_raw_token text)`
 

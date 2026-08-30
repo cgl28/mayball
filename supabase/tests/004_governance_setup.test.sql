@@ -105,7 +105,7 @@ select is((select count(*)::bigint from public.event_members where event_id='300
 select is((select count(*)::bigint from public.department_members dm join public.event_members em on em.id=dm.event_member_id where em.user_id='10000000-0000-0000-0000-000000000006' and dm.department_id='40000000-0000-0000-0000-000000000003'),1::bigint,'acceptance applies intended department once');
 
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
-create temp table revoked as select * from public.issue_invitation('30000000-0000-0000-0000-000000000027','noevents@example.test',array['committee_member']::public.event_role[],array[]::uuid[],14);
+create temp table revoked as select * from public.issue_invitation('30000000-0000-0000-0000-000000000027','noevents@example.test',array['committee_member']::public.event_role[],array['40000000-0000-0000-0000-000000000003']::uuid[],14);
 select lives_ok($$select public.revoke_invitation((select invitation_id from revoked))$$,'president can revoke pending invitation');
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000007',true);
 select throws_ok($$select public.accept_invitation((select invitation_token from revoked))$$,'P0001','Invitation is not pending','revoked invitation cannot be accepted');

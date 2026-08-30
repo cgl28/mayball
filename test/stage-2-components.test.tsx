@@ -132,7 +132,7 @@ describe("department panel", () => {
     expect(screen.queryByText("Add custom department")).not.toBeInTheDocument();
   });
 
-  it("shows custom and standard department controls for presidents", () => {
+  it("keeps department cards compact with edit controls collapsed for presidents", () => {
     render(
       <DepartmentsPanel
         eventId="event-id"
@@ -149,6 +149,12 @@ describe("department panel", () => {
     expect(screen.queryByLabelText("Colour")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Order")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Add" })).not.toBeInTheDocument();
+    const departmentCard = screen.getByText("Security").closest("section");
+    expect(departmentCard).toHaveClass("min-w-0");
+    const editDetails = departmentCard?.querySelector("details");
+    expect(editDetails).not.toBeNull();
+    expect(editDetails).not.toHaveAttribute("open");
+    expect(screen.getByText("Edit department")).toBeInTheDocument();
   });
 
   it("shows stored colours as markers instead of editable hex controls", () => {
@@ -163,6 +169,20 @@ describe("department panel", () => {
 
     expect(screen.getByLabelText("Department colour")).toBeInTheDocument();
     expect(screen.queryByDisplayValue("#256f6c")).not.toBeInTheDocument();
+  });
+
+  it("keeps long valid department codes constrained in cards and forms", () => {
+    render(
+      <DepartmentsPanel
+        eventId="event-id"
+        departments={[{ ...department, code: "LONGCODE" }]}
+        canManage
+        readOnly={false}
+      />,
+    );
+
+    expect(screen.getByText("LONGCODE")).toHaveClass("max-w-full", "break-all");
+    expect(screen.getByDisplayValue("LONGCODE")).toHaveAttribute("maxlength", "8");
   });
 
   it("selects missing standard departments idempotently", () => {

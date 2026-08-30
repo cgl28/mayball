@@ -5372,11 +5372,11 @@ export type Database = {
       is_request_owner: { Args: { p_request_id: string }; Returns: boolean }
       issue_invitation: {
         Args: {
-          p_department_ids?: string[]
+          p_department_ids: string[]
           p_email: string
           p_event_id: string
           p_expires_in_days?: number
-          p_roles?: Database["public"]["Enums"]["event_role"][]
+          p_roles: Database["public"]["Enums"]["event_role"][]
         }
         Returns: {
           invitation_id: string

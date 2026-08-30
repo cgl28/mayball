@@ -20,6 +20,8 @@ function fileType(mimeType: string | null | undefined) {
   return {
     "application/pdf": "PDF",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "Word document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "Excel workbook",
+    "application/vnd.ms-excel": "Excel workbook",
     "image/jpeg": "JPEG image",
     "image/png": "PNG image",
   }[mimeType ?? ""] ?? "File";
@@ -106,7 +108,7 @@ export function DocumentUploadForm({
         <h3 className="font-medium">Upload document</h3>
       </div>
       <p className="text-sm text-muted-foreground">
-        Maximum size {Math.floor(MAX_DOCUMENT_BYTES / (1024 * 1024))} MB. Accepted types: PDF, JPEG, PNG and DOCX.
+        Maximum size {Math.floor(MAX_DOCUMENT_BYTES / (1024 * 1024))} MB. Accepted types: PDF, JPEG, PNG, DOCX and Excel workbooks.
       </p>
       <div className="grid gap-4 md:grid-cols-2">
         <label className="grid gap-1 text-sm">

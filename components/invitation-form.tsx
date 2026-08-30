@@ -82,6 +82,7 @@ export function InvitationForm({
       </label>
       <fieldset className="grid gap-2">
         <legend className="text-sm font-medium">Intended roles</legend>
+        <p className="text-sm text-muted-foreground">Select at least one role. Committee members must also have an initial department.</p>
         <div className="grid gap-2 sm:grid-cols-2">
           {ROLE_OPTIONS.map((role) => (
             <label key={role.value} className="flex items-center gap-2 text-sm">
@@ -89,7 +90,6 @@ export function InvitationForm({
                 name="roles"
                 type="checkbox"
                 value={role.value}
-                defaultChecked={role.value === "committee_member"}
                 className="h-4 w-4"
               />
               {role.label}
@@ -100,6 +100,7 @@ export function InvitationForm({
       {departments.length > 0 ? (
         <fieldset className="grid gap-2">
           <legend className="text-sm font-medium">Initial departments</legend>
+          <p className="text-sm text-muted-foreground">Required when inviting a committee member.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {departments.map((department) => (
               <label key={department.id} className="flex items-center gap-2 text-sm">

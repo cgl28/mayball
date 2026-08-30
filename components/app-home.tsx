@@ -15,14 +15,6 @@ function formatDate(date: string | null) {
   }).format(new Date(`${date}T00:00:00Z`));
 }
 
-function eventGroupLabel(status: string, readOnly: boolean) {
-  if (status === "archived") return "Archived historical events";
-  if (status === "completed") return "Completed historical events";
-  if (readOnly) return "Historical read-only events";
-  if (status === "setup") return "Setup events";
-  return "Active events";
-}
-
 function EventCard({
   eventAccess,
 }: {
@@ -161,22 +153,18 @@ export function AppHome({
 
       {!eventsError && events.length > 0 ? (
         <div className="grid gap-6">
-          {Object.entries(
-            events.reduce<Record<string, EventAccess[]>>((groups, eventAccess) => {
-              const group = eventGroupLabel(eventAccess.event.status, eventAccess.isReadOnly);
-              groups[group] = [...(groups[group] ?? []), eventAccess];
-              return groups;
-            }, {}),
-          ).map(([group, groupEvents]) => (
-            <section key={group} className="grid gap-3">
-              <h3 className="text-sm font-medium text-muted-foreground">{group}</h3>
+          {[
+            { label: "Active events", events: events.filter((eventAccess) => !isHistoricalStatus(eventAccess.event.status)) },
+            { label: "Historical events", events: events.filter((eventAccess) => isHistoricalStatus(eventAccess.event.status)) },
+          ].map((group) => group.events.length ? (
+            <section key={group.label} className="grid gap-3">
+              <h3 className="text-sm font-medium text-muted-foreground">{group.label}</h3>
+              {group.label === "Historical events" ? <p className="text-sm text-muted-foreground">Completed and archived events remain available for historical reference.</p> : null}
               <div className="grid gap-4 xl:grid-cols-2">
-                {groupEvents.map((eventAccess) => (
-                  <EventCard key={eventAccess.event.id} eventAccess={eventAccess} />
-                ))}
+                {group.events.map((eventAccess) => <EventCard key={eventAccess.event.id} eventAccess={eventAccess} />)}
               </div>
             </section>
-          ))}
+          ) : null)}
         </div>
       ) : null}
     </div>

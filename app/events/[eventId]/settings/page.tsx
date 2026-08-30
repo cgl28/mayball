@@ -37,11 +37,12 @@ export default async function EventSettingsPage({
   const capabilities = getEventCapabilities(eventAccess);
   const { data: memberships } = await session.supabase.from("organisation_members").select("organisation_id").eq("user_id", session.user.id).eq("status", "active");
   const organisationIds = memberships?.map((membership) => membership.organisation_id) ?? [];
-  const { data: organisations } = organisationIds.length ? await session.supabase.from("organisations").select("id,name").in("id", organisationIds).order("name") : { data: [] };
+  const { data: organisations } = organisationIds.length ? await session.supabase.from("organisations").select("id,name,legal_name,slug").in("id", organisationIds).order("name") : { data: [] };
+  const eventOrganisation = eventAccess.organisation ?? (organisations ?? []).find((organisation) => organisation.id === eventAccess.event.organisation_id) ?? null;
 
   return (
     <EventSettingsPanel
-      eventAccess={eventAccess}
+      eventAccess={{ ...eventAccess, organisation: eventOrganisation }}
       canManage={capabilities.canManageSetup}
       error={query.error}
       saved={query.saved === "1"}

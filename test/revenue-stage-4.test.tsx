@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import {
@@ -150,13 +150,17 @@ describe("Stage 4 revenue panels", () => {
     );
 
     expect(screen.getByText("Revenue")).toBeInTheDocument();
-    expect(screen.getByText("Income position")).toBeInTheDocument();
+    expect(screen.getByText("Forecast vs actual income")).toBeInTheDocument();
     expect(screen.getByText("Forecast ticket income")).toBeInTheDocument();
-    expect(screen.getAllByText("Actual income").length).toBeGreaterThan(0);
+    expect(screen.getByText("Forecast other income")).toBeInTheDocument();
+    expect(screen.getByText("Total forecast income")).toBeInTheDocument();
+    expect(screen.getByText("Actual ticket income")).toBeInTheDocument();
+    expect(screen.getByText("Actual other income")).toBeInTheDocument();
+    expect(screen.getByText("Total actual income")).toBeInTheDocument();
     expect(screen.getAllByText("£138,000.00").length).toBeGreaterThan(0);
     expect(screen.queryByText("£273,000.00")).not.toBeInTheDocument();
     expect(screen.getByText(/Booking fees are shown separately/)).toBeInTheDocument();
-    expect(screen.getByText(/snapshots are never added together/)).toBeInTheDocument();
+    expect(screen.getAllByText(/snapshots are never added together/)).toHaveLength(2);
   });
 
   it("uses an uncapped recorded-income percentage and handles zero forecast income", () => {
@@ -207,8 +211,10 @@ describe("Stage 4 revenue panels", () => {
       />,
     );
 
-    expect(screen.getByText("No revenue records yet")).toBeInTheDocument();
-    expect(screen.getByText("Add ticket types")).toBeInTheDocument();
+    expect(screen.getByText("No ticket types yet.")).toBeInTheDocument();
+    expect(screen.getByText("No other revenue forecast yet.")).toBeInTheDocument();
+    expect(screen.getByText("No actual ticket sales recorded yet.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add ticket type" })).toBeInTheDocument();
   });
 
   it("hides ticket mutation controls from president without treasurer", () => {
@@ -222,10 +228,11 @@ describe("Stage 4 revenue panels", () => {
     );
 
     expect(screen.getByText("Standard")).toBeInTheDocument();
-    expect(screen.queryByText("Add or update ticket type")).not.toBeInTheDocument();
+    expect(screen.queryByText("Add ticket type")).not.toBeInTheDocument();
   });
 
-  it("renders simplified ticket type validation context and treasurer form", () => {
+  it("keeps ticket edit and add forms collapsed until requested", async () => {
+    const user = userEvent.setup();
     render(
       <TicketTypesPanel
         eventId="event-id"
@@ -235,13 +242,41 @@ describe("Stage 4 revenue panels", () => {
       />,
     );
 
-    expect(screen.getByText("Add or update ticket type")).toBeInTheDocument();
-    expect(screen.getByLabelText("Ticket price (gross)")).toBeInTheDocument();
-    expect(screen.getByLabelText("Maximum available")).toBeInTheDocument();
-    expect(screen.getByLabelText("Forecast sales")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Net price")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("VAT amount")).not.toBeInTheDocument();
-    expect(screen.getByText(/database does not yet define a separate ticket code/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save ticket changes" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Ticket price (gross)")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add ticket type" }));
+    const addForm = screen.getByText("Add ticket type").closest("section")?.querySelector("form");
+    expect(addForm).not.toBeNull();
+    expect(within(addForm!).getByLabelText("Ticket price (gross)")).toBeInTheDocument();
+    expect(within(addForm!).getByLabelText("Maximum available")).toBeInTheDocument();
+    expect(within(addForm!).getByLabelText("Forecast sales")).toBeInTheDocument();
+    expect(within(addForm!).queryByLabelText("Net price")).not.toBeInTheDocument();
+    expect(within(addForm!).queryByLabelText("VAT amount")).not.toBeInTheDocument();
+  });
+
+  it("opens an edit form on demand with the existing ticket ID and current values", async () => {
+    const user = userEvent.setup();
+    render(
+      <TicketTypesPanel
+        eventId="event-id"
+        ticketTypes={ticketTypes}
+        canManage
+        readOnly={false}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    const form = screen.getByDisplayValue("ticket-standard").closest("form");
+    expect(form).not.toBeNull();
+    expect(within(form!).getByDisplayValue("ticket-standard")).toHaveAttribute("name", "ticketTypeId");
+    expect(within(form!).getByDisplayValue("Standard")).toHaveAttribute("name", "name");
+    expect(within(form!).getByDisplayValue("150.00")).toHaveAttribute("name", "grossPrice");
+    expect(within(form!).getByDisplayValue("1150")).toHaveAttribute("name", "forecastQuantity");
+    expect(within(form!).getByRole("button", { name: "Save ticket changes" })).toBeInTheDocument();
+
+    await user.click(within(form!).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("button", { name: "Save ticket changes" })).not.toBeInTheDocument();
   });
 
   it("previews ticket forecast income from gross price and forecast sales", async () => {
@@ -255,15 +290,18 @@ describe("Stage 4 revenue panels", () => {
       />,
     );
 
-    await user.type(screen.getByLabelText("Ticket price (gross)"), "150.00");
-    await user.type(screen.getByLabelText("Maximum available"), "1000");
-    await user.type(screen.getByLabelText("Forecast sales"), "800");
+    await user.click(screen.getByRole("button", { name: "Add ticket type" }));
+    const addForm = screen.getByText("Add ticket type").closest("section")?.querySelector("form");
+    expect(addForm).not.toBeNull();
+    await user.type(within(addForm!).getByLabelText("Ticket price (gross)"), "150.00");
+    await user.type(within(addForm!).getByLabelText("Maximum available"), "1000");
+    await user.type(within(addForm!).getByLabelText("Forecast sales"), "800");
 
-    expect(screen.getByText("Forecast preview")).toBeInTheDocument();
-    expect(screen.getByText("£120,000.00")).toBeInTheDocument();
-    expect(screen.getByText("£150,000.00")).toBeInTheDocument();
-    expect(screen.getAllByText("£125.00").length).toBeGreaterThan(0);
-    expect(screen.getByText("£25.00")).toBeInTheDocument();
+    expect(within(addForm!).getByText("Forecast preview")).toBeInTheDocument();
+    expect(within(addForm!).getByText("£120,000.00")).toBeInTheDocument();
+    expect(within(addForm!).getByText("£150,000.00")).toBeInTheDocument();
+    expect(within(addForm!).getByText("£125.00")).toBeInTheDocument();
+    expect(within(addForm!).getByText("£25.00")).toBeInTheDocument();
   });
 
   it("labels latest snapshots and optional breakdowns", () => {
@@ -282,7 +320,7 @@ describe("Stage 4 revenue panels", () => {
     expect(screen.getByText("Type breakdown")).toBeInTheDocument();
     expect(screen.getByText("Total only")).toBeInTheDocument();
     expect(screen.getByText(/booking fees £2,760.00 shown separately/)).toBeInTheDocument();
-    expect(screen.getByText("Record immutable snapshot")).toBeInTheDocument();
+    expect(screen.getAllByText("Record cumulative snapshot").length).toBeGreaterThan(0);
   });
 
   it("shows historical read-only revenue without forms", () => {
@@ -298,10 +336,10 @@ describe("Stage 4 revenue panels", () => {
 
     expect(screen.getByText(/historical event is read-only/)).toBeInTheDocument();
     expect(screen.getByText("Local sponsor")).toBeInTheDocument();
-    expect(screen.queryByText("Add or update other revenue")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create forecast" })).not.toBeInTheDocument();
   });
 
-  it("renders other revenue management fields for treasurers", () => {
+  it("creates other revenue as forecast-only and exposes a separate receipt action", () => {
     render(
       <OtherRevenuePanel
         eventId="event-id"
@@ -312,8 +350,14 @@ describe("Stage 4 revenue panels", () => {
       />,
     );
 
-    expect(screen.getByText("Add or update other revenue")).toBeInTheDocument();
-    expect(screen.getByLabelText("Forecast gross")).toBeInTheDocument();
+    const createButton = screen.getByRole("button", { name: "Create forecast" });
+    const createForm = createButton.closest("form");
+    expect(createForm).not.toBeNull();
+    expect(within(createForm!).getByLabelText("Forecast gross")).toBeInTheDocument();
+    expect(within(createForm!).queryByLabelText("Actual received gross")).not.toBeInTheDocument();
+    expect(within(createForm!).queryByLabelText("Received date")).not.toBeInTheDocument();
     expect(screen.getByText(/sponsorship owned by Alex Aesthetics/)).toBeInTheDocument();
+    expect(screen.getByText("confirmed forecast")).toBeInTheDocument();
+    expect(screen.getByText("Mark as received")).toBeInTheDocument();
   });
 });

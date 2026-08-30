@@ -6,6 +6,8 @@ export const allowedDocumentTypes = [
   "image/jpeg",
   "image/png",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
 ] as const;
 
 export function isAllowedDocumentType(type: string) {

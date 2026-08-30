@@ -77,8 +77,8 @@ function DepartmentForm({
     <form action={saveDepartmentAction} className="grid gap-3 rounded-md border p-4">
       <input type="hidden" name="eventId" value={eventId} />
       {department ? <input type="hidden" name="departmentId" value={department.id} /> : null}
-      <div className="grid gap-3 md:grid-cols-[1fr_8rem]">
-        <label className="grid gap-1 text-sm">
+      <div className="grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,8rem)]">
+        <label className="grid min-w-0 gap-1 text-sm">
           <span className="font-medium">Name</span>
           <input
             name="name"
@@ -87,13 +87,14 @@ function DepartmentForm({
             className="rounded-md border bg-background px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         </label>
-        <label className="grid gap-1 text-sm">
+        <label className="grid min-w-0 gap-1 text-sm">
           <span className="font-medium">Code</span>
           <input
             name="code"
             required
             defaultValue={department?.code}
-            className="rounded-md border bg-background px-3 py-2 uppercase focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            maxLength={8}
+            className="min-w-0 max-w-full rounded-md border bg-background px-3 py-2 uppercase focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         </label>
       </div>
@@ -182,11 +183,11 @@ export function DepartmentsPanel({
           </p>
         </div>
       ) : (
-        <div className="grid gap-3">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {departments.map((department) => (
-            <section key={department.id} className="rounded-md border p-4">
+            <section key={department.id} className="min-w-0 rounded-md border p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <h2 className="font-medium">{department.name}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {department.description || "No description"}
@@ -194,16 +195,17 @@ export function DepartmentsPanel({
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <ColourMarker colour={department.colour} />
-                  <Badge variant="outline">{department.code}</Badge>
+                  <Badge variant="outline" className="max-w-full break-all text-center">{department.code}</Badge>
                   <Badge variant={department.is_active ? "default" : "secondary"}>
                     {department.is_active ? "Active" : "Inactive"}
                   </Badge>
                 </div>
               </div>
               {canManage ? (
-                <div className="mt-4">
-                  <DepartmentForm eventId={eventId} department={department} />
-                </div>
+                <details className="mt-4 rounded-md border p-3">
+                  <summary className="cursor-pointer text-sm font-medium">Edit department</summary>
+                  <div className="mt-3"><DepartmentForm eventId={eventId} department={department} /></div>
+                </details>
               ) : null}
             </section>
           ))}

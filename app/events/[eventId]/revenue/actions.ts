@@ -14,7 +14,6 @@ import { createClient } from "@/lib/supabase/server";
 type VatTreatment = Enums<"vat_treatment">;
 type SnapshotSource = Enums<"snapshot_source">;
 type RevenueCategory = Enums<"revenue_item_category">;
-type RevenueStatus = Enums<"revenue_item_status">;
 
 function clean(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value.trim() : "";
@@ -118,7 +117,7 @@ async function rpcClient(returnTo: string) {
 export async function saveTicketTypeAction(formData: FormData) {
   const eventId = clean(formData.get("eventId"));
   const ticketTypeId = optional(formData.get("ticketTypeId"));
-  const returnPath = `/events/${eventId}/revenue/tickets`;
+  const returnPath = `/events/${eventId}/revenue`;
   const supabase = await rpcClient(returnPath);
 
   try {
@@ -176,28 +175,46 @@ export async function saveTicketTypeAction(formData: FormData) {
 
 export async function recordTicketSnapshotAction(formData: FormData) {
   const eventId = clean(formData.get("eventId"));
-  const returnPath = `/events/${eventId}/revenue/actual`;
+  const returnPath = `/events/${eventId}/revenue`;
   const supabase = await rpcClient(returnPath);
 
   try {
     const ticketTypeIds = formData.getAll("ticketTypeId").map(String);
-    const breakdown = ticketTypeIds.flatMap((ticketTypeId) => {
+    const breakdownEntries = ticketTypeIds.map((ticketTypeId) => {
       const quantity = optionalInt(formData.get(`quantity_${ticketTypeId}`), "Breakdown quantity");
       const gross = optionalMoney(formData.get(`gross_${ticketTypeId}`));
+      return { ticketTypeId, quantity, gross };
+    });
+    const breakdownStarted = breakdownEntries.some(({ quantity, gross }) => quantity !== undefined || gross !== undefined);
+    const breakdown = breakdownEntries.flatMap(({ ticketTypeId, quantity, gross }) => {
       if (quantity === undefined && gross === undefined) return [];
-      if (quantity === undefined || gross === undefined) {
-        throw new Error("Each ticket breakdown row needs both quantity and gross sales.");
-      }
+      if (quantity === undefined || gross === undefined) throw new Error("Each ticket breakdown row needs both quantity and gross sales.");
       return [{ ticket_type_id: ticketTypeId, quantity_to_date: quantity, gross_sales_minor: gross }];
     });
+    const ticketsSold = optionalInt(formData.get("ticketsSold"), "Tickets sold");
+    const grossSales = parseMoneyToMinor(clean(formData.get("grossSales")));
+
+    if (breakdownStarted) {
+      if (breakdown.length !== ticketTypeIds.length) {
+        throw new Error("Complete every ticket-type breakdown row, or leave the breakdown blank.");
+      }
+      const breakdownQuantity = breakdown.reduce((total, row) => total + row.quantity_to_date, 0);
+      const breakdownGross = breakdown.reduce((total, row) => total + row.gross_sales_minor, 0);
+      if (ticketsSold === undefined || ticketsSold !== breakdownQuantity) {
+        throw new Error("Ticket-type breakdown quantity must equal tickets sold to date.");
+      }
+      if (grossSales !== breakdownGross) {
+        throw new Error("Ticket-type breakdown gross sales must equal gross ticket income to date.");
+      }
+    }
 
     const { error } = await supabase.rpc("record_ticket_sales_snapshot", {
       p_event_id: eventId,
       p_captured_at: clean(formData.get("capturedAt")),
-      p_tickets_sold_to_date: optionalInt(formData.get("ticketsSold"), "Tickets sold"),
+      p_tickets_sold_to_date: ticketsSold,
       p_net_sales_minor: optionalMoney(formData.get("netSales")),
       p_vat_minor: optionalMoney(formData.get("vatSales")),
-      p_gross_sales_minor: parseMoneyToMinor(clean(formData.get("grossSales"))),
+      p_gross_sales_minor: grossSales,
       p_refunds_to_date_minor: optionalMoney(formData.get("refunds")) ?? 0,
       p_booking_fees_to_date_minor: optionalMoney(formData.get("bookingFees")) ?? 0,
       p_source: clean(formData.get("source")) as SnapshotSource,
@@ -213,31 +230,118 @@ export async function recordTicketSnapshotAction(formData: FormData) {
   }
 }
 
-export async function saveOtherRevenueAction(formData: FormData) {
+function priceFromGross(
+  formData: FormData,
+  grossField: string,
+  vatTreatmentField = "vatTreatment",
+  vatRateField = "vatRate",
+) {
+  const treatment = vatTreatment(formData.get(vatTreatmentField));
+  const requestedRate = optionalRate(formData.get(vatRateField));
+  const effectiveRate = ticketVatRateApplies(treatment)
+    ? requestedRate ?? defaultTicketVatRate(treatment)
+    : 0;
+  return calculateTicketPriceBreakdown({
+    grossMinor: parseMoneyToMinor(clean(formData.get(grossField))),
+    vatRate: effectiveRate,
+    vatTreatment: treatment,
+  });
+}
+
+async function existingOtherRevenueItem(
+  supabase: Awaited<ReturnType<typeof rpcClient>>,
+  eventId: string,
+  itemId: string,
+) {
+  const { data, error } = await supabase
+    .from("other_revenue_items")
+    .select("id,event_id,title,category,owner_user_id,forecast_net_minor,forecast_vat_minor,forecast_gross_minor,vat_rate,vat_treatment,expected_date,received_date,status,notes")
+    .eq("id", itemId)
+    .eq("event_id", eventId)
+    .maybeSingle();
+  if (error || !data) throw new Error("Other revenue item could not be found.");
+  return data;
+}
+
+export async function saveOtherRevenueForecastAction(formData: FormData) {
   const eventId = clean(formData.get("eventId"));
   const itemId = optional(formData.get("itemId"));
-  const returnPath = `/events/${eventId}/revenue/other`;
+  const returnPath = `/events/${eventId}/revenue`;
   const supabase = await rpcClient(returnPath);
 
   try {
+    const forecast = priceFromGross(formData, "forecastGross");
+    const existing = itemId ? await existingOtherRevenueItem(supabase, eventId, itemId) : null;
+    if (existing && !["forecast", "confirmed"].includes(existing.status)) {
+      throw new Error("Received revenue must be amended from its received record.");
+    }
     const { error } = await supabase.rpc("save_other_revenue_item", {
       p_event_id: eventId,
       p_item_id: itemId,
       p_title: clean(formData.get("title")),
       p_category: clean(formData.get("category")) as RevenueCategory,
       p_owner_user_id: optional(formData.get("ownerUserId")),
-      p_forecast_net_minor: parseMoneyToMinor(clean(formData.get("forecastNet"))),
-      p_forecast_vat_minor: parseMoneyToMinor(clean(formData.get("forecastVat"))),
-      p_forecast_gross_minor: parseMoneyToMinor(clean(formData.get("forecastGross"))),
-      p_actual_net_minor: optionalMoney(formData.get("actualNet")) ?? 0,
-      p_actual_vat_minor: optionalMoney(formData.get("actualVat")) ?? 0,
-      p_actual_gross_minor: optionalMoney(formData.get("actualGross")) ?? 0,
-      p_vat_rate: optionalRate(formData.get("vatRate")),
-      p_vat_treatment: clean(formData.get("vatTreatment")) as VatTreatment,
+      p_forecast_net_minor: forecast.netMinor,
+      p_forecast_vat_minor: forecast.vatMinor,
+      p_forecast_gross_minor: forecast.grossMinor,
+      p_actual_net_minor: 0,
+      p_actual_vat_minor: 0,
+      p_actual_gross_minor: 0,
+      p_vat_rate: forecast.vatRate,
+      p_vat_treatment: vatTreatment(formData.get("vatTreatment")),
       p_expected_date: optional(formData.get("expectedDate")),
-      p_received_date: optional(formData.get("receivedDate")),
-      p_status: clean(formData.get("status")) as RevenueStatus,
+      p_received_date: undefined,
+      p_status: existing?.status ?? "forecast",
       p_notes: optional(formData.get("notes")),
+    });
+    if (error) throw error;
+    revalidatePath(`/events/${eventId}/revenue`);
+    redirect(`${returnPath}?saved=1`);
+  } catch (error) {
+    if (isFrameworkRedirect(error)) throw error;
+    redirect(`${returnPath}?error=${encodeURIComponent(safeMessage(error))}`);
+  }
+}
+
+export async function recordOtherRevenueReceiptAction(formData: FormData) {
+  const eventId = clean(formData.get("eventId"));
+  const itemId = clean(formData.get("itemId"));
+  const returnPath = `/events/${eventId}/revenue`;
+  const supabase = await rpcClient(returnPath);
+
+  try {
+    if (!itemId) throw new Error("Choose an other revenue item.");
+    const existing = await existingOtherRevenueItem(supabase, eventId, itemId);
+    if (existing.status === "cancelled") throw new Error("Cancelled revenue cannot be marked as received.");
+    const treatment = existing.vat_treatment ?? "unknown";
+    const actual = calculateTicketPriceBreakdown({
+      grossMinor: parseMoneyToMinor(clean(formData.get("actualGross"))),
+      vatRate: ticketVatRateApplies(treatment)
+        ? Number(existing.vat_rate ?? defaultTicketVatRate(treatment))
+        : 0,
+      vatTreatment: treatment,
+    });
+    const status = ["part_received", "received"].includes(existing.status)
+      ? existing.status
+      : "received";
+    const { error } = await supabase.rpc("save_other_revenue_item", {
+      p_event_id: eventId,
+      p_item_id: existing.id,
+      p_title: existing.title,
+      p_category: existing.category,
+      p_owner_user_id: existing.owner_user_id ?? undefined,
+      p_forecast_net_minor: existing.forecast_net_minor,
+      p_forecast_vat_minor: existing.forecast_vat_minor,
+      p_forecast_gross_minor: existing.forecast_gross_minor,
+      p_actual_net_minor: actual.netMinor,
+      p_actual_vat_minor: actual.vatMinor,
+      p_actual_gross_minor: actual.grossMinor,
+      p_vat_rate: actual.vatRate,
+      p_vat_treatment: treatment,
+      p_expected_date: existing.expected_date ?? undefined,
+      p_received_date: optional(formData.get("receivedDate")),
+      p_status: status,
+      p_notes: existing.notes ?? undefined,
     });
     if (error) throw error;
     revalidatePath(`/events/${eventId}/revenue`);

@@ -34,7 +34,7 @@ create temp table wrong_email_preview_invite as
     '30000000-0000-0000-0000-000000000027',
     'invitee@example.test',
     array['committee_member']::public.event_role[],
-    array[]::uuid[],
+    array['40000000-0000-0000-0000-000000000003']::uuid[],
     14
   );
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000007',true);
@@ -46,7 +46,7 @@ create temp table revoked_preview_invite as
     '30000000-0000-0000-0000-000000000027',
     'noevents@example.test',
     array['committee_member']::public.event_role[],
-    array[]::uuid[],
+    array['40000000-0000-0000-0000-000000000003']::uuid[],
     14
   );
 select public.revoke_invitation((select invitation_id from revoked_preview_invite));

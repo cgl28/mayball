@@ -78,8 +78,8 @@ function eventNavItems(eventAccess: EventAccess): NavItem[] {
     { href: `/events/${eventId}/dashboard`, label: "Dashboard", icon: LayoutDashboard, prefetch: false },
     { href: `/events/${eventId}/committee`, label: "Committee", icon: Users, prefetch: false },
     { href: `/events/${eventId}/departments`, label: "Departments", icon: Users, prefetch: false },
-    { href: `/events/${eventId}/budget`, label: "Budget", icon: Banknote, prefetch: false },
     { href: `/events/${eventId}/revenue`, label: "Revenue", icon: BarChart3, prefetch: false },
+    { href: `/events/${eventId}/budget`, label: "Budget", icon: Banknote, prefetch: false },
     { href: `/events/${eventId}/finances`, label: "Finances", icon: ReceiptText, prefetch: false },
     { href: `/events/${eventId}/requests`, label: "Requests", icon: FileText, prefetch: false },
     {
