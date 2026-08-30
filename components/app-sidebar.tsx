@@ -9,6 +9,7 @@ import {
   CalendarClock,
   CreditCard,
   FileText,
+  History,
   Home,
   LayoutDashboard,
   LockKeyhole,
@@ -90,6 +91,7 @@ function eventNavItems(eventAccess: EventAccess): NavItem[] {
       prefetch: false,
     },
     { href: `/events/${eventId}/payments`, label: "Payments", icon: CreditCard, prefetch: false },
+    { href: `/events/${eventId}/activity`, label: "Audit", icon: History, prefetch: false },
     { href: `/events/${eventId}/settings/lifecycle`, label: "Lifecycle", icon: CalendarClock, prefetch: false },
     { href: `/events/${eventId}/settings`, label: "Settings", icon: Settings, prefetch: false },
   ];

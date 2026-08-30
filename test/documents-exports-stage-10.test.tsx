@@ -128,10 +128,10 @@ describe("Stage 10 documents, activity and exports", () => {
   });
 
   it("renders activity feed entries without raw metadata leakage", () => {
-    render(<ActivityPanel rows={[activity]} count={1} page={1} pageSize={30} readOnly={false} />);
+    render(<ActivityPanel eventId="event-id" rows={[activity]} count={1} page={1} pageSize={30} readOnly={false} />);
 
-    expect(screen.getByText("Document uploaded for DMB_AE_1")).toBeInTheDocument();
-    expect(screen.getAllByText((_, element) => element?.textContent?.includes("document.finalised") ?? false).length).toBeGreaterThan(0);
+    expect(screen.getByText(/uploaded a document/)).toBeInTheDocument();
+    expect(screen.getByTitle("Terry Treasurer")).toBeInTheDocument();
     expect(screen.queryByText(/object_path/i)).not.toBeInTheDocument();
   });
 
